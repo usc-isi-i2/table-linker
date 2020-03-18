@@ -15,7 +15,13 @@ The `tl` CLI works by pushing CSV data through a series of [commands](#commands)
 **Table of Contents:**
 - [`canonicalize`](#command_canonicalize): translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
 - [`clean`](#command_clean) : clean the values to be linked to the KG   
-- [`get-exact-matches`](#command_get-exact-matches): retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
+- [`generate-candidates`](#command_generate-candidates): retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
+- [`string-similarity`](#command_string-similarity): command compares the cell values in two input columns and outputs a similarity score for each pair of participating strings 
+- [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
+- [`normalize-scores`](#command_normalize_scores): normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells
+- [`combine-linearly`](#command_combine-linearly): combines the two or more columns with scores for candidate knowledge graph objects for each input cell value
+- [`outputter`](#command_outputter): outputs the top k candidates from a sorted list of ranking scores, as linked kmnowledge graph object
+- [`ground-truth-labeler`](#command_ground-truth-labeler): compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
 
 
 **Options:**
@@ -518,13 +524,13 @@ $ tl ground-truth-labeler -f countries_gt.csv -c ranking_score  < countries_feat
 $ cat countries_evaluation.csv
 
 column row clean_labels kg_id     ranking_score evaluation_label GT_kg_id GT_kg_label
-1      0   Budapest     Q1781     8.01848598    1                Q1781    Budapest
+1      0   Budapest     Q1781     8.01848598     1               Q1781    Budapest
 1      0   Budapest     Q16467392 4.152548805   -1               Q1781    Budapest
 1      0   Budapest     Q55420238 7.65849315    -1               Q1781    Budapest
-1      1   Prague       Q1085     7.00211745    0                -        -
-1      1   Prague       Q1953283  4.19621823    0                -        -
-1      1   Prague       Q2084234  4.029960225   0                -        -
-1      1   Prague       Q5969542  5.81884368    0                -        -
-1      2   London       Q84       9.02968554    1                Q84      London
+1      1   Prague       Q1085     7.00211745     0                        
+1      1   Prague       Q1953283  4.19621823     0                        
+1      1   Prague       Q2084234  4.029960225    0                        
+1      1   Prague       Q5969542  5.81884368     0                        
+1      2   London       Q84       9.02968554     1               Q84      London
 1      2   London       Q92561    5.757565725   -1               Q84      London
 ```
