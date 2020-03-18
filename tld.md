@@ -109,8 +109,7 @@ The `clean` command cleans the cell values in a column, creating a new column wi
 - `-o a`: the name of the column where cleaned column values are stored. If not provided, the name of the new column is the name of the input column with the suffix `_clean`.
 - `--symbols {string}`: a string containing the set of characters to be removed: default is “!@#$%^&*()+={}[]:;’\”/<>”
 - `--replace-by-space {yes/no}`: when `yes` (default) all instances of the symbols are replaced by a space. In case of removal of multiple consecutive characters, they’ll be replaced by a single space. The value `no` causes the symbols to be deleted.
-- `--keep-original {yes/no}` : when `yes`, the output column will contain the original value and the clean value will be appended. Default is `no`
-separated by `|`
+- `--keep-original {yes/no}` : when `yes`, the output column will contain the original value and the clean value will be appended, separated by `|`. Default is `no`
  
 **Examples:**
 ```bash
@@ -231,22 +230,22 @@ In future, more string similarity algorithms will be supported
 **Options:**
 - `-c {a,b}`: input columns containing the cells to be compared. The two columns are represented as a comma separated string.
 - `-o a`: the string similarity  scores will be outputted in this column. By default, 
-column names in the format <col_1>_<col_2>_<algorithm> will be used.
-- `-a | --algorithm`:String similarity algorithm to be used. By default, Normalized Levenshtein will be used
+column names in the format <col_1>\_<col_2>\_\<algorithm> will be used.
+- `-a | --algorithm`: String similarity algorithm to be used. By default, Normalized Levenshtein will be used
 - `--lev`: Use Normalized Levenshtein 
 - `--jw`: Use Jaro Winkler
 - `-i`: case insensitive comparison. Default is case sensitive
 
 #### Implementation
-For any input cell value, s and  a candidate C, String similarity outputs a score computed as follows,
+For any input cell value, s and  a candidate c, String similarity outputs a score computed as follows,
 
-<code> stringSimilarity(s, C) := max(similarityFunction(s, l)) ∀ l ∈ { labels(C), aliases(C) } </code> 
+<code> stringSimilarity(s, c) := max(similarityFunction(s, l)) ∀ l ∈ { labels(c), aliases(c) } </code> 
 
 For example,
 ```
  if we have a input cell value,
     s = Mohamed Abdullahi Farmajo
-And a Candidate C, such that
+And a Candidate c, such that
     labels(c) = {Mohamed Abdullahi Farmajo},
     aliases(c) = {Maxamed Cabdulaahi Maxamed, Said Abdullahi     Mohamed}
 
@@ -332,7 +331,7 @@ Note that the column containing the retrieval method names is `method`, added by
 
 **Options:**
 - `-c a`: column name which has the retrieval scores. Default is `retrieval_score`
-- `-o a`: the output column name where the normalized scores will be stored. Default is input column name with the suffix `_normalized`
+- `-o a`: the output column name where the normalized scores will be stored. Default is input column name appended with the suffix `_normalized`
 - `-w|--weights`: a comma string of the format `<retrieval_method_1}:<weight_1>, <retrieval_method_2:<weight_2>,...>`
  specifying the weights for each retrieval method.By default, all retrieval method weights are set to 1.0
 
