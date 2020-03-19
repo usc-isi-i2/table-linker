@@ -8,7 +8,7 @@
 
 
 ## Pipelines
-The `tl` CLI works by pushing CSV data through a series of [commands](#commands), starting with a single input on `stdin` and ending with a single output on `stdout`. This pipeline feature allows construction of pipelines for linking table cells to a knowledge graph (KG).
+The `tl` CLI works by pushing CSV data through a series of commands, starting with a single input on `stdin` and ending with a single output on `stdout`. This pipeline feature allows construction of pipelines for linking table cells to a knowledge graph (KG).
 
 ### `Usage:  tl [OPTIONS] COMMAND [ / COMMAND]* `
 
