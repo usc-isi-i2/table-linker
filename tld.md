@@ -20,7 +20,8 @@ The `tl` CLI works by pushing CSV data through a series of [commands](#commands)
 - [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
 - [`normalize-scores`](#command_normalize-scores): normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells
 - [`combine-linearly`](#command_combine-linearly): combines the two or more columns with scores for candidate knowledge graph objects for each input cell value
-- [`outputter`](#command_outputter): outputs the top k candidates from a sorted list of ranking scores, as linked knowledge graph object for input cell values
+- [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list of ranking scores, as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format
+- [`join`](#command_join): outputs the top `k` candidates from a sorted list of ranking scores, as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
 - [`ground-truth-labeler`](#command_ground-truth-labeler): compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
 
 
@@ -43,7 +44,7 @@ These are options that can appear in different commands. We list them here so th
 - `-P {password}`: the password for authenticating to the ElasticSearch index.
 - `-i`: case insensitive operation.
 - `-n {number}`: controls the number of items processed, e.g., the number of candidates retrieved during candidate generation.
-- `-f {path}`: specified auxiliary file path as input to commands
+- `-f {path}`: specifies auxiliary file path as input to commands
 
 ## Commands On Raw Input Files
 
@@ -69,7 +70,7 @@ assigned index 0.
    $ tl canonicalize -c people,country < input.csv > canonical-input.csv
    $ cat input.csv | tl canonicalize -c people,country > canonical-input.csv
 
-   # Same, but using column an indice to specify the country column
+   # Same, but using column as index to specify the country column
    $ tl canonicalize -c people,3 < input.csv > canonical-input.csv
    ```
 
@@ -242,7 +243,7 @@ In future, more string similarity algorithms will be supported
 - `--jw`: Use Jaro Winkler
 - `-i`: case insensitive comparison. Default is case sensitive
 
-The string similarity scores are added to a output column, whose name will be in the format <col_1>\_<col_2>\_\<algorithm>.
+The string similarity scores are added to a output columns, whose name will be in the format <col_1>\_<col_2>\_\<algorithm>.
  
 If none of `--lev` or `--jw` options are specified, `--lev` is used. In case both `--lev` and `--jw` options are specified, 
 two output columns will be added as described above, recording string similarity scores using both algorithms.
@@ -460,7 +461,7 @@ In case of more than one  preferred label for a candidate, the first label is pi
 
 **Examples:**
 ```bash
-# read the ranking score file countries_features_ranked.csv and ouput top 2 candidates, use the column clean_labels for cleaned input cell labels
+# read the ranking score file countries_features_ranked.csv and output top 2 candidates, use the column clean_labels for cleaned input cell labels
 $ tl get-kg-links -c ranking_score -l clean_labels -k 2 countries_features_ranked.csv > countries_kg_links.csv
 
 # same example but with default options 
@@ -484,7 +485,7 @@ column row label        kg_id           kg_labels         ranking_score
 ### [`join`](#command_join)` [OPTIONS]`
 
 The `join` command outputs the top `k` candidates from a sorted list of ranking scores, 
-as linked kmnowledge graph object for an input cell. This module takes as input a [Input](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.7pj9afmz3h1t)
+as linked knowledge graph objects for an input cell. This module takes as input a [Input](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.7pj9afmz3h1t)
  file and a file in Ranking Score format and outputs a file in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format.
 
 **Options:**
@@ -494,7 +495,7 @@ as linked kmnowledge graph object for an input cell. This module takes as input 
 
 #### Implementation
 Join the input file and the ranking score file based on column and row indices to produce an output file. In case of more than one  preferred label
-for a candidate, the first label is picked from the `|` separated string. The corresponsing values in each output column have the same index, in case of `k > 1`
+for a candidate, the first label is picked from the `|` separated string. The corresponding values in each output column have the same index, in case of `k > 1`
 
 This command will add the following three columns to the input file to produce the output file.
 - `<input_column_name>_kg_id`: stores the KG object identifiers. Multiple values represented as a `|` separated string.
@@ -504,17 +505,17 @@ Multiple values are represented as `|` separated string. If not available, empty
 
 **Examples:**
 ```bash
-# read the input file countries.csv and the ranking score file countries_features_ranked.csv and ouput top 2 candidates
-$ tl outputter -f countries.csv -c ranking_score -k 2 countries_features_ranked.csv > countries_output.csv
+# read the input file countries.csv and the ranking score file countries_features_ranked.csv and output top 2 candidates
+$ tl join -f countries.csv -c ranking_score -k 2 countries_features_ranked.csv > countries_output.csv
 
 # same example but with default options 
-$ tl outputter -f countries.csv -c ranking_score < countries_features_ranked.csv > countries_output.csv
+$ tl join -f countries.csv -c ranking_score < countries_features_ranked.csv > countries_output.csv
 ```
 
 **File Example:**
 ```bash
 # read the input file countries.csv and the ranking score file countries_features_ranked.csv and ouput top 2 candidates
-$ tl outputter -f countries.csv -c ranking_score -k 2 countries_features_ranked.csv > countries_output.csv
+$ tl join -f countries.csv -c ranking_score -k 2 countries_features_ranked.csv > countries_output.csv
 $ cat countries_output.csv
 
 country        capital_city phone_code capital_city_kg_id capital_city_kg_label capital_city_score
