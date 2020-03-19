@@ -1,16 +1,18 @@
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Table Linker Utility Commands
 
-  This document describes the [utility commands](#command_utility-commands) for the <code>Table Linker (tl)</code> system. These satellite 
-  commands are used to build the infrastructure used by `tl`.
+  This document describes the [utility commands](#command_utility-commands) for the <code>Table Linker (tl)</code> system. 
 
 ### `Usage: tl [OPTIONS] COMMAND`
 
 **Table of Contents:**
-- [`build-elasticsearch-index``](#command_build-elasticseach-index)
+- [`build-elasticsearch-index`](#command_build-elasticseach-index): builds an Elasticsearch index to support retrieval of candidates.
+- [`convert-iswc-gt`](#command_convert-iswc-gt): converts the ISWC Ground Truth file to [TL Ground Truth](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.63n3hyogxr1e) file
 
 <a name="command_utility-commands" />
 
 ## [`Utility Commands`](#command_utility-commands)
+
+utility commands for `tl`
 
 <a name="command_build-elasticseach-index" />
 
@@ -107,9 +109,13 @@ The mapping of the  fields `id`, `labels` and `aliases` stored in the Elasticsea
 - `aliases.keyword`: stored as is for exact matches
 - `aliases.keyword_lower`: stored lowercased for exact matches
 
-The mapping file is a JSON document. Mapping file for the index `kg_labels_aliases_1` is [here](tl/helper_files/kg_labels_aliases.mapping.json)
+The mapping file is a JSON document. Mapping file for the index `kg_labels_aliases_1` is [here](tl/helper_files/kg_labels_aliases_mapping.json)
 
+<a name="command_build-elasticseach-index" />
 
-### Convert ISWC Ground Truth files to [KGTK](https://github.com/usc-isi-i2/kgtk) [Ground Truth](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.63n3hyogxr1e) format
+### [`convert-iswc-gt`](#command_convert-iswc-gt) 
+
+converts the ISWC Ground Truth file to [TL Ground Truth](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.63n3hyogxr1e) file
+
 
 ## Score `tl` Pipeline
