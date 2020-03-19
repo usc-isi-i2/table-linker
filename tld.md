@@ -20,8 +20,8 @@ The `tl` CLI works by pushing CSV data through a series of [commands](#commands)
 - [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
 - [`normalize-scores`](#command_normalize-scores): normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells
 - [`combine-linearly`](#command_combine-linearly): combines the two or more columns with scores for candidate knowledge graph objects for each input cell value
-- [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list of ranking scores, as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format
-- [`join`](#command_join): outputs the top `k` candidates from a sorted list of ranking scores, as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
+- [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format
+- [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
 - [`ground-truth-labeler`](#command_ground-truth-labeler): compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
 
 
@@ -454,7 +454,7 @@ column row clean_labels kg_id     kg_labels                             clean_la
 ```
 
 #### Implementation
-Multiply the values in the input columns with their corresponding weights and add them up to get a ranking score for each candidate. 
+Multiply the values in the input score-columns with their corresponding weights and add them up to get a ranking score for each candidate. 
 
 For each candidate `c` and the set of score-columns `S`,
 
