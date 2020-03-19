@@ -46,6 +46,28 @@ These are options that can appear in different commands. We list them here so th
 - `-n {number}`: controls the number of items processed, e.g., the number of candidates retrieved during candidate generation.
 - `-f {path}`: specifies auxiliary file path as input to commands
 
+## Error handling
+In case of an error in any of the commands in the `tl` pipeline, the responsible command will print out 
+the error details, an error code and, the pipeline will halt.
+
+**Error details**
+
+Error details will contain the following information
+- `name of the command`: the command where this error occurred
+- `error message`: a stacktrace of the error message describing the exception
+- `error code`: a number corresponding to the error. Default is `-1`
+
+**Example**
+```bash
+Command: Exception in get-exact-matches command, error details:
+Error Message:
+ Traceback (most recent call last):
+  File "get_candidates.py", line 7, in <module>
+    raise HTTPUnAuthorizedError(msg)
+  HTTP 403: Unauthorized attempt to connect to Elasticsearch
+Error Code: 403
+```
+
 ## Commands On Raw Input Files
 
 <a name="command_canonicalize" />
