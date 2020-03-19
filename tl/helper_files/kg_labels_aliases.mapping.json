@@ -1,0 +1,58 @@
+{
+  "mappings": {
+    "doc": {
+      "properties": {
+        "label": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "keyword_lower": {
+              "type": "keyword",
+              "normalizer": "lowercase_normalizer"
+            }
+          }
+        },
+        "id": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "aliases": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "keyword_lower": {
+              "type": "keyword",
+              "normalizer": "lowercase_normalizer"
+            }
+          }
+        }
+      }
+    }
+  },
+  "settings": {
+    "index": {
+      "analysis": {
+        "normalizer": {
+          "lowercase_normalizer": {
+            "filter": [
+              "lowercase"
+            ],
+            "type": "custom"
+          }
+        }
+      }
+    }
+  }
+}
+
