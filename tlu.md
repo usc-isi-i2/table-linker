@@ -107,7 +107,7 @@ The mapping of the  fields `id`, `labels` and `aliases` stored in the Elasticsea
 - `aliases.keyword`: stored as is for exact matches
 - `aliases.keyword_lower`: stored lowercased for exact matches
 
-The mapping file is a JSON document. Mapping file for the index `kg_labels_aliases_1` is [here](link)
+The mapping file is a JSON document. Mapping file for the index `kg_labels_aliases_1` is [here](tl/helper_files/kg_labels_aliases.mapping.json)
 
 
 ### Convert ISWC Ground Truth files to [KGTK](https://github.com/usc-isi-i2/kgtk) [Ground Truth](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.63n3hyogxr1e) format
