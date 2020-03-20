@@ -7,7 +7,7 @@
 **Table of Contents:**
 - [`build-elasticsearch-index`](#command_build-elasticseach-index): builds an Elasticsearch index to support retrieval of candidates.
 - [`convert-iswc-gt`](#command_convert-iswc-gt): converts the ISWC Ground Truth file to [TL Ground Truth](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.63n3hyogxr1e) file
-
+- [`metrics`](#command_metrics): computes the `precision`, `recall` and `f1 score` for the `tl` pipeline
 
 **Options:**
 - `-e, --examples` -- Print some examples and exit
@@ -149,8 +149,8 @@ v15_3   0   1   http://dbpedia.org/resource/Royal_Challengers_Bangalore
 v15_3   1   1   http://dbpedia.org/resource/Mumbai_Indians
 
 $ tl -U smith -P my_pwd --url http:/bah.com --index wikidata_dbpedia_joined \
- convert-iswc-gt --dbpedia-sparql-url http://dbpedia.org/sparql -d my-output-path iswc_gt.csv 
-$ cat my-output-path/*csv 
+ convert-iswc-gt --dbpedia-sparql-url http://dbpedia.org/sparql -d my-output-path ../o_path iswc_gt.csv 
+$ cat ../o_path/*csv 
 
 v15_1.csv
 column  row     kg_id
@@ -168,7 +168,7 @@ column  row     kg_id
 
 **Implementation**
 
-The ISWC GT files have four columns with no column headers. The columns in order contain:
+The ISWC GT files have four columns with no column headers. The columns in order are:
 - `file name`: name of the input file for which the current row has GT KG id
 - `column`: zero based column index in the input file
 - `row`: zero based row index in the input file
@@ -187,6 +187,26 @@ columns,
     - `row`: the row index from the ISWC GT file
     - `kg_id`: a `|` separated string of Qnodes, corresponding to the dbpedia urls.
 
+If the mapping from a dbpedia url to Qnode is not found, delete that row from the TL GT file.
 
+<a name="command_metrics" />
 
-## Score `tl` Pipeline
+### [`metrics`](#command_metrics)
+
+computes the `precision`, `recall` and `f1 score` for the `tl` pipeline. Takes as input a [Evaluation File](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.vurz5diqkuf7)
+file  and output a file in [Metrics File](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.if3pcq7n8wz6) format.
+
+**Examples:**
+
+```bash
+$ tl metrics <  cities_evaluation.csv > cities_metrics.csv
+
+```
+
+**Implementation**
+
+Discard the rows with `evaluation_label=0`. Sort all the candidates for an input cell by ranking score, breaking ties alphabetically.
+If the top ranked candidate has `evalaution_label=1`, it is counted as true positive, otherwise false positive.
+
+Compute `precision`, `recall` and `f1 score`
+
