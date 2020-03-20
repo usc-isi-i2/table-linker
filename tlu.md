@@ -134,6 +134,38 @@ converts the ISWC Ground Truth file to [TL Ground Truth](https://docs.google.com
 tl -U smith -P my_pwd --url http:/bah.com --index wikidata_dbpedia_joined \
  convert-iswc-gt --dbpedia-sparql-url http://dbpedia.org/sparql -d my-output-path iswc_gt.csv 
 ```
+
+**File Example:**
+
+```bash
+# consider the ISWC GT File
+$ cat iswc_gt.csv
+
+v15_1   1   5   http://dbpedia.org/resource/Sachin_Tendulkar http://dbpedia.org/resource/Sachin_r_Tendulkar 
+v15_1   2   5   http://dbpedia.org/resource/Virat_Kohli
+v15_1   3   5   http://dbpedia.org/resource/Rishabh_Pant
+v15_1   4   5   http://dbpedia.org/resource/Ishant_Sharma
+v15_3   0   1   http://dbpedia.org/resource/Royal_Challengers_Bangalore
+v15_3   1   1   http://dbpedia.org/resource/Mumbai_Indians
+
+$ tl -U smith -P my_pwd --url http:/bah.com --index wikidata_dbpedia_joined \
+ convert-iswc-gt --dbpedia-sparql-url http://dbpedia.org/sparql -d my-output-path iswc_gt.csv 
+$ cat my-output-path/*csv 
+
+v15_1.csv
+column  row     kg_id
+1       5       Q9488
+2       5       Q213854 
+3       5       Q21622311
+4       5       Q3522062
+
+v15_3.csv
+column  row     kg_id
+0       1       Q1156897
+1       1       Q1195237
+
+```
+
 **Implementation**
 
 The ISWC GT files have four columns with no column headers. The columns in order contain:
@@ -152,7 +184,7 @@ This command has the following steps in order:
 - output a file with the name `file name`  from the ISWC file in the output directory as specified by the option `-d`. The output file has the following
 columns,
     - `column`: the column index from the ISWC GT file.
-    - `row`: the row index forom the ISWC GT file
+    - `row`: the row index from the ISWC GT file
     - `kg_id`: a `|` separated string of Qnodes, corresponding to the dbpedia urls.
 
 
