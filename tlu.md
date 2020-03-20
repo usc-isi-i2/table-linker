@@ -96,11 +96,11 @@ The set of all values for each of the label properties specified in the `labels`
 Similar operation is done for all values specified in the`aliases` option.
 
 The command will follow these steps before loading documents into the Elasticsearch index,
-- Check if index to be created already exists.
-   - if the index exists, do nothing move to next step.
-   - if the index does not exist, create the index first with mapping file, if specified, otherwise with default mapping. Then move to next step.
+- Check if the index to be created already exists.
+   - if the index exists, do nothing move to the next step.
+   - if the index does not exist, create the index first with the mapping file, if specified, otherwise with default mapping. Then move to the next step.
 - The Elasticsearch document format is JSON, so convert the input KGTK file to JSON documents with the following fields,
-   - `id`: the identifier for the node. This will computed from the the column `node1` in the input KGTK file.
+   - `id`: the identifier for the node. This will be computed from the column `node1` in the input KGTK file.
    - `labels`: a list of values specified using the `--labels` option.
    - `aliases`: a list of aliases specified using the `--aliases` option.
 - Batch load the documents into the Elasticsearch index.  
@@ -112,10 +112,10 @@ The mapping of the  fields `id`, `labels` and `aliases` stored in the Elasticsea
 - `id.keyword`: stored as is for exact matches
 - `labels`: default elasticsearch analyzer
 - `labels.keyword`: stored as is for exact matches
-- `labels.keyword_lower`: stored lowercased for exact matches
+- `labels.keyword_lower`: stored lowercase for exact matches
 - `aliases`: default with elasticsearch analyzer
 - `aliases.keyword`: stored as is for exact matches
-- `aliases.keyword_lower`: stored lowercased for exact matches
+- `aliases.keyword_lower`: stored lowercase for exact matches
 
 The mapping file is a JSON document. Mapping file for the index `kg_labels_aliases_1` is [here](tl/helper_files/kg_labels_aliases_mapping.json)
 
