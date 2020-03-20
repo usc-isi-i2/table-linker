@@ -5,7 +5,7 @@
 ### `Usage: tl [OPTIONS] COMMAND`
 
 **Table of Contents:**
-- [`build-elasticsearch-file`](#command_build-elasticseach-file): builds an Elasticsearch index to support retrieval of candidates.
+- [`build-elasticsearch-file`](#command_build-elasticseach-file): builds a json lines file and a mapping file to support retrieval of candidates.
 - [`load-elasticsearch-index`](#command_load-elasticsearch-index): loads a json lines file to elasticsearch index
 - [`convert-iswc-gt`](#command_convert-iswc-gt): converts the ISWC Ground Truth file to [TL Ground Truth](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.63n3hyogxr1e) file
 - [`metrics`](#command_metrics): computes the `precision`, `recall` and `f1 score` for the `tl` pipeline
@@ -139,7 +139,7 @@ This command has the following steps,
 - Check if the index to be created already exists.
    - if the index exists, do nothing and move to the next step.
    - if the index does not exist, create the index first with the mapping file, if specified, otherwise with default mapping. Then move to the next step.
-- - Batch load the documents into the Elasticsearch index.  
+- Batch load the documents into the Elasticsearch index.  
 
 <a name="command_convert-iswc-gt" />
 
