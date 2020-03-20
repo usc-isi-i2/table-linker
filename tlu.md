@@ -130,7 +130,7 @@ loads a jsonlines file to Elasticsearch index.
 $ tl -U smith -P my_pwd --url http:/bah.com --index docs_1 load-elasticsearch-index \
 --mapping docs_1_mapping.json docs.jl
 
-# same as above, but dont create index using the mapping file
+# same as above, but don't create index using the mapping file
 $ tl -U smith -P my_pwd --url http:/bah.com --index docs_1 load-elasticsearch-index docs.jl 
 ```
 **Implementation**
