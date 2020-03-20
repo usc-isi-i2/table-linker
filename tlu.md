@@ -119,7 +119,7 @@ The mapping of the  fields `id`, `labels` and `aliases` stored in the Elasticsea
 
 The mapping file is a JSON document. Mapping file for the index `kg_labels_aliases_1` is [here](tl/helper_files/kg_labels_aliases_mapping.json)
 
-<a name="command_command_convert-iswc-gt" />
+<a name="command_convert-iswc-gt" />
 
 ### [`convert-iswc-gt`](#command_convert-iswc-gt) 
 
