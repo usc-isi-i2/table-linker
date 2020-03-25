@@ -85,7 +85,7 @@ class ExactMatches(object):
         """
         if file_path is None and df is None:
             raise RequiredInputParameterMissingException(
-                'One of the input parameters is required: {} or {}'.format(file_path, df))
+                'One of the input parameters is required: {} or {}'.format("file_path", "df"))
 
         if file_path:
             df = pd.read_csv(file_path, dtype=object)

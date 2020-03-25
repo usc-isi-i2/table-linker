@@ -20,7 +20,7 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
     """
     if file_path is None and df is None:
         raise RequiredInputParameterMissingException(
-            'One of the input parameters is required: {}or {}'.format(file_path, df))
+            'One of the input parameters is required: {}or {}'.format("file_path", "df"))
 
     try:
         if file_path:
