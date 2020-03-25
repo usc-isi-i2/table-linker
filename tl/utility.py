@@ -10,15 +10,17 @@ class Utility(object):
     @staticmethod
     def build_elasticsearch_file(kgtk_file_path, label_fields, mapping_file_path, output_path, alias_fields=None):
         """
-        It is assumed that the file is sorted by column `node`, in order to be able to process it in a streaming fashion
+        builds a json lines file and a mapping file to support retrieval of candidates
+        It is assumed that the file is sorted by subject and predicate, in order to be able to process it in a streaming fashion
 
+        Args:
+            kgtk_file_path: a file in KGTK format
+            label_fields: field in the kgtk file to be used as labels
+            mapping_file_path: output mapping file path for elasticsearch
+            output_path: output json lines path, converted from the input kgtk file
+            alias_fields: field in the kgtk file to be used as aliases
 
-        :param kgtk_file_path: a file in KGTK format
-        :param label_fields: field in the kgtk file to be used as labels
-        :param mapping_file_path: output mapping file path for elasticsearch
-        :param output_path: output json lines path, converted from the input kgtk file
-        :param alias_fields: field in the kgtk file to be used as aliases
-        :return: Nothing, writes out 2 files
+        Returns: Nothing
 
         """
         labels = label_fields.split(',')
@@ -113,11 +115,25 @@ class Utility(object):
     @staticmethod
     def load_elasticsearch_index(kgtk_jl_path, es_url, es_index, mapping_file_path=None, es_user=None, es_pass=None,
                                  batch_size=1000):
+        """
+         loads a jsonlines file to Elasticsearch index.
+
+        Args:
+            kgtk_jl_path: input json lines file, could be output of build_elasticsearch_index
+            es_url:  Elasticsearch server url
+            es_index: Elasticsearch index to be created/loaded
+            mapping_file_path: mapping file for the index
+            es_user: Elasticsearch user
+            es_pass: Elasticsearch password
+            batch_size: batch size to be loaded at once
+
+        Returns: Nothing
+
+        """
 
         # first create the index
         create_response = Utility.create_index(es_url, es_index, mapping_file_path, es_user, es_pass)
         print('create response: {}'.format(create_response.status_code))
-
 
         f = open(kgtk_jl_path)
         load_batch = []
@@ -172,11 +188,13 @@ class Utility(object):
         if response.status_code == 200:
             print('Index: {} already exists...'.format(es_index))
         elif response.status_code == 404:
-            mapping = json.load(open(mapping_file_path))
-            if es_user and es_pass:
-                return requests.put(es_url_index, auth=HTTPBasicAuth(es_user, es_pass), json=mapping)
-            else:
-                return requests.put(es_url_index, json=mapping)
+            if mapping_file_path is not None:
+                # no need to create index if mapping file is not specified, it'll be created at load time
+                mapping = json.load(open(mapping_file_path))
+                if es_user and es_pass:
+                    return requests.put(es_url_index, auth=HTTPBasicAuth(es_user, es_pass), json=mapping)
+                else:
+                    return requests.put(es_url_index, json=mapping)
         else:
             print('An exception has occurred: ')
             print(response.text)
@@ -191,7 +209,6 @@ class Utility(object):
             "error_code": error_code
         }
         return error
-
 
 # Utility.build_elasticsearch_file('5000.tsv', 'label', '', alias_fields='aliases')
 # Utility.build_elasticsearch_file('/Users/amandeep/Downloads/edges_no_scholarly_articles_in_subject_sorted.tsv.gz',

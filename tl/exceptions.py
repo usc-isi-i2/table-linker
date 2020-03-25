@@ -1,0 +1,2 @@
+class RequiredInputParameterMissingException(Exception):
+    pass
