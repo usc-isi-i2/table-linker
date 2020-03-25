@@ -137,12 +137,14 @@ class Utility(object):
 
         f = open(kgtk_jl_path)
         load_batch = []
-
+        counter = 0
         for line in f:
             json_x = json.loads(line.replace('\n', ''))
             load_batch.append(json.dumps({"index": {"_id": json_x['id']}}))
             load_batch.append(line.replace('\n', ''))
             if len(load_batch) % batch_size == 0:
+                counter += len(load_batch)
+                print('done {} rows'.format(coun))
                 response = None
                 try:
                     response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
@@ -215,13 +217,13 @@ class Utility(object):
 #                                  'label', 'mapping_file.json', 'kgtk_labels.jl', alias_fields='aliases')
 
 
-# response = Utility.create_index('http://kg2018a.isi.edu:9200', 'test_index_1', 'mapping_file.json')
+# response = Utility.create_index('http://kg2018a.isi.edu:9200', 'wiki_labels_aliases_1', 'sample_delete_later/mapping_file.json')
 # print(response.text)
 # print(response.status_code)
 
 
-# response = Utility.load_index('http://kg2018a.isi.edu:9200', 'test_index_1', 'mapping_file.json')
-# Utility.load_elasticsearch_index('kgtk_labels_sample.jl', 'http://kg2018a.isi.edu:9200', 'test_index_1',
-#                                  'mapping_file.json')
+
+Utility.load_elasticsearch_index('sample_delete_later/kgtk_labels.jl', 'http://kg2018a.isi.edu:9200', 'wiki_labels_aliases_1',
+                                 'sample_delete_later/mapping_file.json')
 # print(response.text)
 # print(response.status_code)
