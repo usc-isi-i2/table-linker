@@ -114,7 +114,7 @@ class Utility(object):
 
     @staticmethod
     def load_elasticsearch_index(kgtk_jl_path, es_url, es_index, mapping_file_path=None, es_user=None, es_pass=None,
-                                 batch_size=1000):
+                                 batch_size=10000):
         """
          loads a jsonlines file to Elasticsearch index.
 
@@ -138,25 +138,29 @@ class Utility(object):
         f = open(kgtk_jl_path)
         load_batch = []
         counter = 0
+        i = 0
         for line in f:
-            json_x = json.loads(line.replace('\n', ''))
-            load_batch.append(json.dumps({"index": {"_id": json_x['id']}}))
-            load_batch.append(line.replace('\n', ''))
-            if len(load_batch) % batch_size == 0:
-                counter += len(load_batch)
-                print('done {} rows'.format(coun))
-                response = None
-                try:
-                    response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
-                                                  mapping_file_path,
-                                                  es_user=es_user, es_pass=es_pass)
-                    if response.status_code >= 400:
+            i += 1
+            counter += 1
+            if i > 1918500:
+                json_x = json.loads(line.replace('\n', ''))
+                load_batch.append(json.dumps({"index": {"_id": json_x['id']}}))
+                load_batch.append(line.replace('\n', ''))
+                if len(load_batch) % batch_size == 0:
+                    counter += len(load_batch)
+                    print('done {} rows'.format(counter))
+                    response = None
+                    try:
+                        response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
+                                                      mapping_file_path,
+                                                      es_user=es_user, es_pass=es_pass)
+                        if response.status_code >= 400:
+                            print(response.text)
+                    except:
+                        print('Exception while loading a batch to es')
                         print(response.text)
-                except:
-                    print('Exception while loading a batch to es')
-                    print(response.text)
-                    print(response.status_code)
-                load_batch = []
+                        print(response.status_code)
+                    load_batch = []
 
         if len(load_batch) > 0:
 
@@ -212,6 +216,7 @@ class Utility(object):
         }
         return error
 
+
 # Utility.build_elasticsearch_file('5000.tsv', 'label', '', alias_fields='aliases')
 # Utility.build_elasticsearch_file('/Users/amandeep/Downloads/edges_no_scholarly_articles_in_subject_sorted.tsv.gz',
 #                                  'label', 'mapping_file.json', 'kgtk_labels.jl', alias_fields='aliases')
@@ -222,8 +227,8 @@ class Utility(object):
 # print(response.status_code)
 
 
-
-Utility.load_elasticsearch_index('sample_delete_later/kgtk_labels.jl', 'http://kg2018a.isi.edu:9200', 'wiki_labels_aliases_1',
+Utility.load_elasticsearch_index('sample_delete_later/kgtk_labels.jl', 'http://kg2018a.isi.edu:9200',
+                                 'wiki_labels_aliases_1',
                                  'sample_delete_later/mapping_file.json')
 # print(response.text)
 # print(response.status_code)

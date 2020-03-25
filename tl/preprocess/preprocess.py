@@ -56,7 +56,7 @@ def clean(column, output_column=None, file_path=None, df=None, symbols='!@#$%^&*
     """
     if file_path is None and df is None:
         raise RequiredInputParameterMissingException(
-            'One of the input parameters is required: {}or {}'.format(file_path, df))
+            'One of the input parameters is required: {} or {}'.format(file_path, df))
     symbols = list(symbols)
 
     if output_column is None:
