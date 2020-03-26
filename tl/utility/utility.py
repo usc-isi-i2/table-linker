@@ -227,7 +227,7 @@ class Utility(object):
 # print(response.status_code)
 
 
-Utility.load_elasticsearch_index('sample_delete_later/kgtk_labels.jl', 'http://kg2018a.isi.edu:9200',
+Utility.load_elasticsearch_index('../sample_delete_later/kgtk_labels.jl', 'http://kg2018a.isi.edu:9200',
                                  'wiki_labels_aliases_1',
                                  'sample_delete_later/mapping_file.json')
 # print(response.text)
