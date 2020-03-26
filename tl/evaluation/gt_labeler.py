@@ -3,6 +3,18 @@ from tl.exceptions import RequiredInputParameterMissingException
 
 
 def ground_truth_labeler(gt_file_path, column, file_path=None, df=None):
+    """
+    compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label.
+
+    Args:
+        gt_file_path: ground truth file path.
+        column: column name with ranking scores
+        file_path: input file path
+        df: or input dataframe
+
+    Returns: a dataframe with added column `evaluation_label`
+
+    """
     if file_path is None and df is None:
         raise RequiredInputParameterMissingException(
             'One of the input parameters is required: {} or {}'.format('file_path', 'df'))
@@ -25,10 +37,10 @@ def ground_truth_labeler(gt_file_path, column, file_path=None, df=None):
 
     evaluation_df['GT_kg_id'].fillna(value="", inplace=True)
     evaluation_df['GT_kg_label'].fillna(value="", inplace=True)
-    evaluation_df['max_score'] = evaluation_df.groupby(by=['column', 'row'])[column].transform(max)
+    # evaluation_df['max_score'] = evaluation_df.groupby(by=['column', 'row'])[column].transform(max)
     evaluation_df['evaluation_label'] = evaluation_df.apply(lambda row: evaluate(row, column), axis=1)
 
-    evaluation_df.drop(columns=['max_score'], inplace=True)
+    # evaluation_df.drop(columns=['max_score'], inplace=True)
     return evaluation_df
 
 
@@ -36,7 +48,8 @@ def evaluate(row, column):
     if row['GT_kg_id'] == '':
         return 0
 
-    if row[column] == row['max_score'] and row['kg_id'] == row['GT_kg_id']:
+    # if row[column] == row['max_score'] and row['kg_id'] == row['GT_kg_id']:
+    if row['kg_id'] == row['GT_kg_id']:
         return 1
     return -1
 
