@@ -11,13 +11,13 @@ class ConvertISWC(object):
         self.db_sparql_url = 'http://dbpedia.org/sparql'
         self.wiki_sparql_url = 'http://dsbox02.isi.edu:8888/bigdata/namespace/wdq/sparql'
         self.em = ExactMatches(self.es_url, self.es_index)
-        pass
 
-    def convert_iswc_gt(self, file_path):
-        df = pd.read_csv(file_path, header=None, names=['file', 'column', 'row', 'db_uris'])
-        print(len(df))
+    def convert_iswc_gt(self, output_directory, file_path=None, df=None, dburi_to_qnode_path=None):
+        if file_path:
+            df = pd.read_csv(file_path, header=None, names=['file', 'column', 'row', 'db_uris'], dtype=object)
+        print('Total number of rows in the input file: {}'.format(len(df)))
+
         db_uri_strs = df['db_uris'].values
-
         db_uris_list = [x.split(' ') for x in db_uri_strs]
         db_uris_all = set()
 
@@ -25,31 +25,38 @@ class ConvertISWC(object):
             db_uris_all.update(x)
 
         dburi_to_qnode = {}
-        o = open('dburi_to_qnode.json')
-        dburi_to_qnode = json.load(o)
-        for line in o:
-            dburi_to_qnode.update(json.loads(line.replace('\n', '')))
+        if dburi_to_qnode_path:
+            o = open(dburi_to_qnode_path)
+            dburi_to_qnode = json.load(o)
 
         db_uris = [x for x in db_uris_all if x not in dburi_to_qnode]
-        print(len(db_uris))
-        for db_uri in db_uris:
-            query = {
-                "_source": ["id"],
-                "query": {
-                    "term": {
-                        "dbpedia_urls.keyword": {
-                            "value": db_uri
-                        }
-                    }
-                }
-            }
+
+        print('Total number of db uris to be converted to qnodes:{}'.format(len(db_uris)))
+
+        counter = 0
+        while (db_uris):
+            batch = db_uris[:500]
+            query = {"_source": ["dbpedia_urls"],
+                     "query": {
+                         "terms": {
+                             "dbpedia_urls.keyword": batch
+                         }
+                     }
+                     }
             hits = self.em.search_es(query)
+
             if hits:
-                dburi_to_qnode[db_uri] = hits[0]['_id']
+                dburi_to_qnode.update(self.convert_es_docs_to_dict(hits))
+
+            print('queried {} uris'.format(counter))
+            counter += len(batch)
+            db_uris = db_uris[500:]
 
         df['kg_id'] = df['db_uris'].map(lambda x: ConvertISWC.find_qnode(x, dburi_to_qnode))
-        print(len(df))
-        print(len(df[df['kg_id'] == 'None']))
+
+        print('Number of db uris which could not be converted to qnodes: {}'.formta(len(df[df['kg_id'] == 'None'])))
+
+        print('Running some SPARQL queries, here we go... ')
 
         remaining_db_uris = df[df['kg_id'] == 'None']['db_uris'].values
         db_uris_list = [x.split(' ') for x in remaining_db_uris]
@@ -58,17 +65,20 @@ class ConvertISWC(object):
         for x in db_uris_list:
             db_uris.update(x)
 
-        # self.qnode_from_uri_sameas(list(db_uris)[:50])
         db_uris = list(db_uris)
         while (db_uris):
             remaining_uris = db_uris[:50]
             dburi_to_qnode = self.qnode_from_sparql(remaining_uris, dburi_to_qnode)
             db_uris = db_uris[50:]
 
-        open('dburi_to_qnode.json', 'w').write(json.dumps(dburi_to_qnode))
+        open('{}_{}'.format(file_path.split('/')[-1], 'dburi_to_qnode.json'), 'w').write(json.dumps(dburi_to_qnode))
+
         df['kg_id'] = df['db_uris'].map(lambda x: ConvertISWC.find_qnode(x, dburi_to_qnode))
-        print(len(df[df['kg_id'] == 'None']))
-        df.to_csv(file_path.split('/')[-1], index=False)
+
+        print('Number of dbpedia urls which have to corresponding qnode: {}'.format(len(df[df['kg_id'] == 'None'])))
+
+        self.write_converted_gt_file(output_directory, df)
+        print('Done!!!')
 
     @staticmethod
     def find_qnode(db_uri_str, dburi_qnode_dict):
@@ -90,7 +100,6 @@ class ConvertISWC(object):
 
         sparqldb = SPARQLWrapper(self.db_sparql_url)
 
-        # Method 2 dbpedia:sameas to find qnode
         ustr = " ".join(["(<{}>)".format(uri) for uri in uris])
         sparqldb.setQuery("""select ?item ?qnode where 
                         {{VALUES (?item) {{ {} }} ?item <http://www.w3.org/2002/07/owl#sameAs> ?qnode .
@@ -111,7 +120,6 @@ class ConvertISWC(object):
         return dburi_to_qnode
 
     def qnode_from_uri_wiki(self, uris, dburi_to_qnode):
-        # Method 1 using Wikipedia
         if not uris:
             return []
         wiki_to_uri = {}
@@ -126,24 +134,35 @@ class ConvertISWC(object):
                 ?article schema:about ?item .
             }} 
             """.format(wikistr))
-        # print("""
-        #     SELECT ?item ?article WHERE {{
-        #         VALUES (?article) {{ {} }}
-        #         ?article schema:about ?item .
-        #     }}
-        #     """.format(wikistr))
+
         sparql.setReturnFormat(JSON)
 
         results = sparql.query().convert()['results']['bindings']
 
         for result in results:
-            print(result)
             wlink = result['article']['value']
             qnode = result['item']['value'].split('/')[-1]
             dburi_to_qnode[wiki_to_uri[wlink]] = qnode
 
         return dburi_to_qnode
 
+    @staticmethod
+    def convert_es_docs_to_dict(es_docs):
+        dburi_to_qnode_subset_dict = {}
+        for es_doc in es_docs:
+            qnode = es_doc['_id']
+            dbpedia_urls = es_doc['_source'].get('dbpedia_urls', [])
+            for du in dbpedia_urls:
+                dburi_to_qnode_subset_dict[du] = qnode
+        return dburi_to_qnode_subset_dict
 
-c = ConvertISWC()
-c.convert_iswc_gt('/Users/amandeep/Github/table-linker/data/CEA_Round3_gt.csv')
+    @staticmethod
+    def write_converted_gt_file(output_directory, df):
+        grouped = df.groupby(by=['file'])
+        for i, gdf in grouped:
+            gdf.drop(columns=["file", "db_uris"], inplace=True)
+            gdf.to_csv('{}/{}'.format(output_directory, i), index=False)
+
+
+# c = ConvertISWC()
+# c.convert_iswc_gt('/Users/amandeep/Github/table-linker/data/CEA_Round2_gt.csv')
