@@ -2,6 +2,7 @@ import pandas as pd
 from tl.candidate_generation.get_exact_matches import ExactMatches
 from SPARQLWrapper import SPARQLWrapper, JSON
 import json
+import traceback
 
 
 class ConvertISWC(object):
@@ -65,7 +66,7 @@ class ConvertISWC(object):
                 counter += len(batch)
                 db_uris = db_uris[500:]
         except:
-            open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode_path))
+            open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode))
             raise
 
         df['kg_id'] = df['db_uris'].map(lambda x: ConvertISWC.find_qnode(x, dburi_to_qnode))
@@ -88,10 +89,10 @@ class ConvertISWC(object):
                 dburi_to_qnode = self.qnode_from_sparql(remaining_uris, dburi_to_qnode)
                 db_uris = db_uris[100:]
         except:
-            open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode_path))
-            raise
+            open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode))
+            print(traceback.print_stack())
 
-        open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode_path))
+        open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode))
 
         df['kg_id'] = df['db_uris'].map(lambda x: ConvertISWC.find_qnode(x, dburi_to_qnode))
 
