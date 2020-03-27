@@ -20,8 +20,8 @@ class ExactMatches(object):
             response = requests.post(es_search_url, json=query, auth=HTTPBasicAuth(self.es_user, self.es_pass))
         else:
             response = requests.post(es_search_url, json=query)
-        print(es_search_url)
-        print(response.status_code)
+        # print(es_search_url)
+        # print(response.status_code)
         if response.status_code == 200:
             return response.json()['hits']['hits']
         return None
@@ -110,8 +110,8 @@ class ExactMatches(object):
             candidates_format.append(cf_dict)
         return pd.DataFrame(candidates_format)
 
-
-cg = ExactMatches('http://kg2018a.isi.edu:9200', 'wiki_labels_aliases_1')
-
-df =cg.get_exact_matches('label_clean', file_path='/Users/amandeep/Github/table-linker/tl/sample_delete_later/canonical_file.csv')
-df.to_csv('/Users/amandeep/Github/table-linker/tl/sample_delete_later/candidates_file.csv', index=False)
+#
+# cg = ExactMatches('http://kg2018a.isi.edu:9200', 'wiki_labels_aliases_1')
+#
+# df =cg.get_exact_matches('label_clean', file_path='/Users/amandeep/Github/table-linker/tl/sample_delete_later/canonical_file.csv')
+# df.to_csv('/Users/amandeep/Github/table-linker/tl/sample_delete_later/candidates_file.csv', index=False)
