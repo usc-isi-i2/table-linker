@@ -54,7 +54,7 @@ class ConvertISWC(object):
 
         df['kg_id'] = df['db_uris'].map(lambda x: ConvertISWC.find_qnode(x, dburi_to_qnode))
 
-        print('Number of db uris which could not be converted to qnodes: {}'.formta(len(df[df['kg_id'] == 'None'])))
+        print('Number of db uris which could not be converted to qnodes: {}'.format(len(df[df['kg_id'] == 'None'])))
 
         print('Running some SPARQL queries, here we go... ')
 
