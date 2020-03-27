@@ -13,6 +13,18 @@ class ConvertISWC(object):
         self.em = ExactMatches(self.es_url, self.es_index)
 
     def convert_iswc_gt(self, output_directory, file_path=None, df=None, dburi_to_qnode_path=None):
+        """
+        converts the ISWC Ground Truth file to TL Ground Truth file. This is a one time operation.
+
+        Args:
+            output_directory: output directory where the files in TL GT will be created
+            file_path: input iswc gt file
+            df: or dataframe
+            dburi_to_qnode_path: a dictionary to record dburit to qnode map
+
+        Returns:
+
+        """
         if file_path:
             df = pd.read_csv(file_path, header=None, names=['file', 'column', 'row', 'db_uris'], dtype=object)
         print('Total number of rows in the input file: {}'.format(len(df)))
@@ -34,23 +46,27 @@ class ConvertISWC(object):
         print('Total number of db uris to be converted to qnodes:{}'.format(len(db_uris)))
 
         counter = 0
-        while (db_uris):
-            batch = db_uris[:500]
-            query = {"_source": ["dbpedia_urls"],
-                     "query": {
-                         "terms": {
-                             "dbpedia_urls.keyword": batch
+        try:
+            while (db_uris):
+                batch = db_uris[:500]
+                query = {"_source": ["dbpedia_urls"],
+                         "query": {
+                             "terms": {
+                                 "dbpedia_urls.keyword": batch
+                             }
                          }
-                     }
-                     }
-            hits = self.em.search_es(query)
+                         }
+                hits = self.em.search_es(query)
 
-            if hits:
-                dburi_to_qnode.update(self.convert_es_docs_to_dict(hits))
+                if hits:
+                    dburi_to_qnode.update(self.convert_es_docs_to_dict(hits))
 
-            print('queried {} uris'.format(counter))
-            counter += len(batch)
-            db_uris = db_uris[500:]
+                print('queried {} uris'.format(counter))
+                counter += len(batch)
+                db_uris = db_uris[500:]
+        except:
+            open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode_path))
+            raise
 
         df['kg_id'] = df['db_uris'].map(lambda x: ConvertISWC.find_qnode(x, dburi_to_qnode))
 
@@ -66,12 +82,16 @@ class ConvertISWC(object):
             db_uris.update(x)
 
         db_uris = list(db_uris)
-        while (db_uris):
-            remaining_uris = db_uris[:100]
-            dburi_to_qnode = self.qnode_from_sparql(remaining_uris, dburi_to_qnode)
-            db_uris = db_uris[100:]
+        try:
+            while (db_uris):
+                remaining_uris = db_uris[:100]
+                dburi_to_qnode = self.qnode_from_sparql(remaining_uris, dburi_to_qnode)
+                db_uris = db_uris[100:]
+        except:
+            open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode_path))
+            raise
 
-        open('{}_{}'.format(file_path.split('/')[-1], 'dburi_to_qnode.json'), 'w').write(json.dumps(dburi_to_qnode))
+        open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode_path))
 
         df['kg_id'] = df['db_uris'].map(lambda x: ConvertISWC.find_qnode(x, dburi_to_qnode))
 
@@ -164,5 +184,7 @@ class ConvertISWC(object):
             gdf.to_csv('{}/{}'.format(output_directory, i), index=False)
 
 
-# c = ConvertISWC()
-# c.convert_iswc_gt('/Users/amandeep/Github/table-linker/data/CEA_Round2_gt.csv')
+c = ConvertISWC()
+c.convert_iswc_gt('/Users/amandeep/Github/table-linker/tl/utility/round2',
+                  file_path='/Users/amandeep/Github/table-linker/data/CEA_Round2_gt.csv',
+                  dburi_to_qnode_path='dburi_to_qnode_round2.json')
