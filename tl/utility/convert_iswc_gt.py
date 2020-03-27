@@ -67,15 +67,15 @@ class ConvertISWC(object):
 
         db_uris = list(db_uris)
         while (db_uris):
-            remaining_uris = db_uris[:50]
+            remaining_uris = db_uris[:100]
             dburi_to_qnode = self.qnode_from_sparql(remaining_uris, dburi_to_qnode)
-            db_uris = db_uris[50:]
+            db_uris = db_uris[100:]
 
         open('{}_{}'.format(file_path.split('/')[-1], 'dburi_to_qnode.json'), 'w').write(json.dumps(dburi_to_qnode))
 
         df['kg_id'] = df['db_uris'].map(lambda x: ConvertISWC.find_qnode(x, dburi_to_qnode))
 
-        print('Number of dbpedia urls which have to corresponding qnode: {}'.format(len(df[df['kg_id'] == 'None'])))
+        print('Number of dbpedia urls which have no corresponding qnodes: {}'.format(len(df[df['kg_id'] == 'None'])))
 
         self.write_converted_gt_file(output_directory, df)
         print('Done!!!')
