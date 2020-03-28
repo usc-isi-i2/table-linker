@@ -24,7 +24,7 @@ def add_arguments(parser):
     parser.add_argument('--tsv', action='store', type=str, dest='csv')
     parser.add_argument('--csv', action='store', type=str, dest='tsv')
 
-        parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+    parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
 def run(columns, output_column, csv, tsv, input_file):

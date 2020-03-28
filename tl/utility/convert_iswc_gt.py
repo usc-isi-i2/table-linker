@@ -67,15 +67,18 @@ class ConvertISWC(object):
                 db_uris = db_uris[500:]
         except:
             open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode))
-            raise
+            self.convert_iswc_gt(output_directory, file_path=file_path, df=df, dburi_to_qnode_path=dburi_to_qnode_path)
 
         df['kg_id'] = df['db_uris'].map(lambda x: ConvertISWC.find_qnode(x, dburi_to_qnode))
 
-        print('Number of db uris which could not be converted to qnodes: {}'.format(len(df[df['kg_id'] == 'None'])))
+        print('Number of rows which have no qnode: {}'.format(len(df[df['kg_id'] == 'None'])))
 
         print('Running some SPARQL queries, here we go... ')
 
         remaining_db_uris = df[df['kg_id'] == 'None']['db_uris'].values
+
+        print('Running sparql queries on {} db uris'.format(len(remaining_db_uris)))
+
         db_uris_list = [x.split(' ') for x in remaining_db_uris]
         db_uris = set()
 
@@ -83,14 +86,16 @@ class ConvertISWC(object):
             db_uris.update(x)
 
         db_uris = list(db_uris)
-        try:
-            while (db_uris):
+
+        while (db_uris):
+            try:
                 remaining_uris = db_uris[:100]
-                dburi_to_qnode = self.qnode_from_sparql(remaining_uris, dburi_to_qnode)
+                dburi_to_qnode_local = self.qnode_from_sparql(remaining_uris)
+                dburi_to_qnode.update(dburi_to_qnode_local)
                 db_uris = db_uris[100:]
-        except:
-            open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode))
-            print(traceback.print_stack())
+            except Exception as e:
+                open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode))
+                print(e)
 
         open(dburi_to_qnode_path, 'w').write(json.dumps(dburi_to_qnode))
 
@@ -98,6 +103,7 @@ class ConvertISWC(object):
 
         print('Number of dbpedia urls which have no corresponding qnodes: {}'.format(len(df[df['kg_id'] == 'None'])))
 
+        df = df[df['kg_id'] != 'None']
         self.write_converted_gt_file(output_directory, df)
         print('Done!!!')
 
@@ -111,10 +117,10 @@ class ConvertISWC(object):
                 break
         return ''.join(qnodes) if len(qnodes) > 0 else "None"
 
-    def qnode_from_sparql(self, uris, dburi_to_qnode):
-        dburi_to_qnode = self.qnode_from_uri_sameas(uris, dburi_to_qnode)
+    def qnode_from_sparql(self, uris):
+        dburi_to_qnode = self.qnode_from_uri_sameas(uris)
         remaining_uris = [x for x in uris if x not in dburi_to_qnode]
-        dburi_to_qnode = self.qnode_from_uri_wiki(remaining_uris, dburi_to_qnode)
+        dburi_to_qnode.update(self.qnode_from_uri_wiki(remaining_uris, dburi_to_qnode))
         return dburi_to_qnode
 
     def qnode_from_uri_sameas(self, uris, dburi_to_qnode):
