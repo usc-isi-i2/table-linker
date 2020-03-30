@@ -1,6 +1,3 @@
-"""
-translate an input CSV or TSV file to canonical form
-"""
 import sys
 import argparse
 

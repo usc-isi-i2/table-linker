@@ -123,9 +123,10 @@ class ConvertISWC(object):
         dburi_to_qnode.update(self.qnode_from_uri_wiki(remaining_uris, dburi_to_qnode))
         return dburi_to_qnode
 
-    def qnode_from_uri_sameas(self, uris, dburi_to_qnode):
+    def qnode_from_uri_sameas(self, uris):
 
         sparqldb = SPARQLWrapper(self.db_sparql_url)
+        dburi_to_qnode = {}
 
         ustr = " ".join(["(<{}>)".format(uri) for uri in uris])
         sparqldb.setQuery("""select ?item ?qnode where 
@@ -188,10 +189,16 @@ class ConvertISWC(object):
         grouped = df.groupby(by=['file'])
         for i, gdf in grouped:
             gdf.drop(columns=["file", "db_uris"], inplace=True)
+            gdf = gdf[gdf['kg_id'] != 'None']
             gdf.to_csv('{}/{}'.format(output_directory, i), index=False)
 
 
 c = ConvertISWC()
-c.convert_iswc_gt('/Users/amandeep/Github/table-linker/tl/utility/round2',
-                  file_path='/Users/amandeep/Github/table-linker/data/CEA_Round2_gt.csv',
-                  dburi_to_qnode_path='dburi_to_qnode_round2.json')
+# c.convert_iswc_gt('/Users/amandeep/Github/table-linker/tl/utility/round2',
+#                   file_path='/Users/amandeep/Github/table-linker/data/CEA_Round2_gt.csv',
+#                   dburi_to_qnode_path='dburi_to_qnode_round2.json')
+
+
+df = pd.read_csv('/Users/amandeep/Github/table-linker/tl/utility/CEA_Round3_gt.csv', dtype=object)
+
+c.write_converted_gt_file('/Users/amandeep/Github/table-linker/tl/utility/round3', df)
