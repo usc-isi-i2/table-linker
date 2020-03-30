@@ -29,9 +29,10 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - `-e, --examples` -- Print some examples and exit
 - `-h, --help` -- Print this help message and exit
 - `-v, --version` -- Print the version info and exit
-- `--url {url}`:  URL of the ElasticSearch index containing the items in the KG.
-- `-U {user id}`: the user id for authenticating to the ElasticSearch index.
-- `-P {password}`: the password for authenticating to the ElasticSearch index.
+- `--url {url}`:  URL of the Elasticsearch server containing the items in the KG
+- `--index {index}`: name of the Elasticsearch index 
+- `-U {user id}`: the user id for authenticating to the ElasticSearch index
+- `-P {password}`: the password for authenticating to the ElasticSearch index
 
 ## Common Options
 These are options that can appear in different commands. We list them here so that options with the same meaning use the same character.
@@ -208,10 +209,10 @@ The identifiers for the candidate knowledge graph objects returned by Elasticsea
 
 ```bash
    # generate candidates for the cells in the column 'label_clean'
-   $ tl --url http://blah.com -Ujohn -Ppwd  get-exact-matches -c label_clean  < canonical-input.csv
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-exact-matches -c label_clean  < canonical-input.csv
 
    # clean the column 'label' and then generate candidates for the resulting column 'label_clean' with case insensitive matching
-   $ tl --url http://blah.com -Ujohn -Ppwd clean -c label / get-exact-matches -c label_clean -i  < canonical-input.csv
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd clean -c label / get-exact-matches -c label_clean -i  < canonical-input.csv
 
 ```
 
@@ -219,7 +220,7 @@ The identifiers for the candidate knowledge graph objects returned by Elasticsea
 
 ```
 # generate candidates for the canonical file, countries_canonical.csv
-$ tl --url http://blah.com -Ujohn -Ppwd  get-exact-matches -c clean_labels  < countries_canonical.csv > countries_candidates.csv
+$ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-exact-matches -c clean_labels  < countries_canonical.csv > countries_candidates.csv
 $ cat countries_candidates.csv
 
 column row label     clean_labels kg_id     kg_labels                             method      retrieval_score
