@@ -1,5 +1,6 @@
 import sys
 import argparse
+import traceback
 
 
 def parser():
@@ -27,8 +28,12 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.evaluation import evaluation
     import pandas as pd
+    try:
+        df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-    df = pd.read_csv(kwargs['input_file'], dtype=object)
-
-    odf = evaluation.metrics(kwargs['column'], k=kwargs['k'], df=df)
-    odf.to_csv(sys.stdout, index=False)
+        odf = evaluation.metrics(kwargs['column'], k=kwargs['k'], df=df)
+        odf.to_csv(sys.stdout, index=False)
+    except:
+        print('Command: metrics\n')
+        print('Error Message: \n')
+        traceback.print_stack()

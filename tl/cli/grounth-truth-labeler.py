@@ -1,5 +1,6 @@
 import sys
 import argparse
+import traceback
 
 
 def parser():
@@ -28,8 +29,12 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.evaluation import evaluation
     import pandas as pd
+    try:
+        df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-    df = pd.read_csv(kwargs['input_file'], dtype=object)
-
-    odf = evaluation.ground_truth_labeler(kwargs['gt_file'], kwargs['column'], df=df)
-    odf.to_csv(sys.stdout, index=False)
+        odf = evaluation.ground_truth_labeler(kwargs['gt_file'], kwargs['column'], df=df)
+        odf.to_csv(sys.stdout, index=False)
+    except:
+        print('Command: ground-truth-labeler\n')
+        print('Error Message: \n')
+        traceback.print_stack()

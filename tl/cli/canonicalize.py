@@ -1,5 +1,6 @@
 import sys
 import argparse
+import traceback
 
 
 def parser():
@@ -30,8 +31,13 @@ def run(**kwargs):
     import pandas as pd
 
     file_type = 'tsv' if kwargs['tsv'] else 'csv'
+    try:
+        df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-    df = pd.read_csv(kwargs['input_file'], dtype=object)
-
-    odf = preprocess.canonicalize(kwargs['columns'], output_column=kwargs['output_column'], df=df, file_type=file_type)
-    odf.to_csv(sys.stdout, index=False)
+        odf = preprocess.canonicalize(kwargs['columns'], output_column=kwargs['output_column'], df=df,
+                                      file_type=file_type)
+        odf.to_csv(sys.stdout, index=False)
+    except:
+        print('Command: canonicalize\n')
+        print('Error Message: \n')
+        traceback.print_stack()

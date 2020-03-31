@@ -1,5 +1,6 @@
 import sys
 import argparse
+import traceback
 
 
 def parser():
@@ -33,10 +34,15 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.candidate_generation import get_exact_matches
     import pandas as pd
-
-    df = pd.read_csv(kwargs['input_file'], dtype=object)
-    em = get_exact_matches.ExactMatches(es_url=kwargs['url'], es_index=kwargs['index'], es_user=kwargs['user'],
-                                        es_pass=kwargs['password'])
-    odf = em.get_exact_matches(kwargs['column'], properties=kwargs['properties'], lower_case=kwargs['case_sensitive'],
-                               size=kwargs['size'], df=df)
-    odf.to_csv(sys.stdout, index=False)
+    try:
+        df = pd.read_csv(kwargs['input_file'], dtype=object)
+        em = get_exact_matches.ExactMatches(es_url=kwargs['url'], es_index=kwargs['index'], es_user=kwargs['user'],
+                                            es_pass=kwargs['password'])
+        odf = em.get_exact_matches(kwargs['column'], properties=kwargs['properties'],
+                                   lower_case=kwargs['case_sensitive'],
+                                   size=kwargs['size'], df=df)
+        odf.to_csv(sys.stdout, index=False)
+    except:
+        print('Command: get-exact-matches\n')
+        print('Error Message: \n')
+        traceback.print_stack()

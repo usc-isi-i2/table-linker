@@ -1,5 +1,6 @@
 import sys
 import argparse
+import traceback
 
 
 def parser():
@@ -42,9 +43,15 @@ def run(**kwargs):
     keep_original = kwargs['keep_original'].lower().strip() != 'no'
     replace_by_space = kwargs['replace_by_space'].lower().strip() == 'yes'
 
-    df = pd.read_csv(kwargs['input_file'], dtype=object)
+    try:
+        df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-    odf = preprocess.clean(kwargs['column'], output_column=kwargs['output_column'], df=df, symbols=kwargs['symbols'],
-                           keep_original=keep_original,
-                           replace_by_space=replace_by_space)
-    odf.to_csv(sys.stdout, index=False)
+        odf = preprocess.clean(kwargs['column'], output_column=kwargs['output_column'], df=df,
+                               symbols=kwargs['symbols'],
+                               keep_original=keep_original,
+                               replace_by_space=replace_by_space)
+        odf.to_csv(sys.stdout, index=False)
+    except:
+        print('Command: clean\n')
+        print('Error Message: \n')
+        traceback.print_stack()

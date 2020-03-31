@@ -1,5 +1,6 @@
 import sys
 import argparse
+import traceback
 
 
 def parser():
@@ -33,8 +34,12 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.candidate_ranking import combine_linearly
     import pandas as pd
+    try:
+        df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-    df = pd.read_csv(kwargs['input_file'], dtype=object)
-
-    odf = combine_linearly.combine_linearly(weights=kwargs['weights'], output_column=kwargs['output_column'], df=df)
-    odf.to_csv(sys.stdout, index=False)
+        odf = combine_linearly.combine_linearly(weights=kwargs['weights'], output_column=kwargs['output_column'], df=df)
+        odf.to_csv(sys.stdout, index=False)
+    except:
+        print('Command: combine-linearly\n')
+        print('Error Message: \n')
+        traceback.print_stack()

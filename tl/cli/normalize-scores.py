@@ -1,5 +1,6 @@
 import sys
 import argparse
+import traceback
 
 
 def parser():
@@ -36,8 +37,13 @@ def run(**kwargs):
     from tl.features import normalize_scores
     import pandas as pd
 
-    df = pd.read_csv(kwargs['input_file'], dtype=object)
+    try:
+        df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-    odf = normalize_scores.normalize_scores(column=kwargs['column'], output_column=kwargs['output_column'], df=df,
-                                            weights=kwargs['weights'])
-    odf.to_csv(sys.stdout, index=False)
+        odf = normalize_scores.normalize_scores(column=kwargs['column'], output_column=kwargs['output_column'], df=df,
+                                                weights=kwargs['weights'])
+        odf.to_csv(sys.stdout, index=False)
+    except:
+        print('Command: normalize-scores\n')
+        print('Error Message: \n')
+        traceback.print_stack()
