@@ -35,7 +35,6 @@ def add_arguments(parser):
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
-# def run(column, output_column, input_file, symbols, replace_by_space, keep_original, **kwargs):
 def run(**kwargs):
     from tl.preprocess import preprocess
     import pandas as pd
@@ -45,6 +44,7 @@ def run(**kwargs):
 
     df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-    odf = preprocess.clean(kwargs['column'], output_column=kwargs['output_column'], df=df, symbols=kwargs['symbols'], keep_original=keep_original,
+    odf = preprocess.clean(kwargs['column'], output_column=kwargs['output_column'], df=df, symbols=kwargs['symbols'],
+                           keep_original=keep_original,
                            replace_by_space=replace_by_space)
     odf.to_csv(sys.stdout, index=False)

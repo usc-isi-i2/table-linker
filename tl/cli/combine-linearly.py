@@ -16,7 +16,7 @@ def add_arguments(parser):
         parser: (argparse.ArgumentParser)
 
     """
-    parser.add_argument('-w', '--weights', action='store', type=str, dest='weights',
+    parser.add_argument('-w', '--weights', action='store', type=str, dest='weights', required=True,
                         help='a comma separated string, in the format '
                              '<score-column-1>:<weight-1>,<score-column-2>:<weight-2>,... '
                              'representing weights for each score-column. '
