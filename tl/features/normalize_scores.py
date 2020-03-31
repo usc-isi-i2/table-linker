@@ -47,9 +47,3 @@ def normalize_scores(column='retrieval_score', output_column=None, weights=None,
         o_df.append(fdf)
 
     return pd.concat(o_df)
-
-
-df = normalize_scores(file_path='/Users/amandeep/Github/table-linker/tl/sample_delete_later/f_candidates_file.csv',
-                       weights='phrase-match:2.0')
-
-df.to_csv('/Users/amandeep/Github/table-linker/tl/sample_delete_later/normalized_file.csv', index=False)
