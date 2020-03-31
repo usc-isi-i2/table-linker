@@ -35,15 +35,16 @@ def add_arguments(parser):
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
-def run(column, output_column, input_file, symbols, replace_by_space, keep_original):
+# def run(column, output_column, input_file, symbols, replace_by_space, keep_original, **kwargs):
+def run(**kwargs):
     from tl.preprocess import preprocess
     import pandas as pd
 
-    keep_original = keep_original.lower().strip() != 'no'
-    replace_by_space = replace_by_space.lower().strip() == 'yes'
+    keep_original = kwargs['keep_original'].lower().strip() != 'no'
+    replace_by_space = kwargs['replace_by_space'].lower().strip() == 'yes'
 
-    df = pd.read_csv(input_file, dtype=object)
+    df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-    odf = preprocess.clean(column, output_column=output_column, df=df, symbols=symbols, keep_original=keep_original,
+    odf = preprocess.clean(kwargs['column'], output_column=kwargs['output_column'], df=df, symbols=kwargs['symbols'], keep_original=keep_original,
                            replace_by_space=replace_by_space)
     odf.to_csv(sys.stdout, index=False)

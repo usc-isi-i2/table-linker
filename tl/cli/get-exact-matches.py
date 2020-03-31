@@ -30,11 +30,13 @@ def add_arguments(parser):
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
-def run(column, properties, input_file, case_sensitive, size, url, index, user, password):
+def run(**kwargs):
     from tl.candidate_generation import get_exact_matches
     import pandas as pd
 
-    df = pd.read_csv(input_file, dtype=object)
-    em = get_exact_matches.ExactMatches(es_url=url, es_index=index, es_user=user, es_pass=password)
-    odf = em.get_exact_matches(column, properties=properties, lower_case=case_sensitive, size=size, df=df)
+    df = pd.read_csv(kwargs['input_file'], dtype=object)
+    em = get_exact_matches.ExactMatches(es_url=kwargs['url'], es_index=kwargs['index'], es_user=kwargs['user'],
+                                        es_pass=kwargs['password'])
+    odf = em.get_exact_matches(kwargs['column'], properties=kwargs['properties'], lower_case=kwargs['case_sensitive'],
+                               size=kwargs['size'], df=df)
     odf.to_csv(sys.stdout, index=False)
