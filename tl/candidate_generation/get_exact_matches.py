@@ -20,8 +20,7 @@ class ExactMatches(object):
             response = requests.post(es_search_url, json=query, auth=HTTPBasicAuth(self.es_user, self.es_pass))
         else:
             response = requests.post(es_search_url, json=query)
-        # print(es_search_url)
-        # print(response.status_code)
+
         if response.status_code == 200:
             return response.json()['hits']['hits']
         return None
@@ -59,7 +58,6 @@ class ExactMatches(object):
 
         for search_term in search_terms:
             hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties))
-            print(search_term, hits)
             if hits is not None:
                 for hit in hits:
                     all_labels = hit['_source'].get('labels', [])
@@ -98,7 +96,6 @@ class ExactMatches(object):
 
         for i, row in df.iterrows():
             candidate_dict = self.search_term_candidates(row[column], lower_case, size, properties)
-            print(candidate_dict)
             cf_dict = {}
             for df_column in df_columns:
                 cf_dict[df_column] = row[df_column]

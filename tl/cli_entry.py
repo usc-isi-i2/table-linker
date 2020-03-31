@@ -39,6 +39,38 @@ def cli_entry(*args):
         help="show tl version and exit."
     )
 
+    parser.add_argument(
+        '--url',
+        action='store',
+        type=str,
+        dest='url',
+        required=False,
+        help='URL of the Elasticsearch server containing the items in the KG')
+
+    parser.add_argument(
+        '--index',
+        action='store',
+        type=str,
+        dest='index',
+        required=False,
+        help='name of the Elasticsearch index')
+
+    parser.add_argument(
+        '-U',
+        action='store',
+        type=str,
+        dest='user',
+        required=False,
+        help='the user id for authenticating to the ElasticSearch index')
+
+    parser.add_argument(
+        '-P',
+        action='store',
+        type=str,
+        dest='password',
+        required=False,
+        help='the password for authenticating to the ElasticSearch index')
+
     sub_parsers = parser.add_subparsers(
         metavar='command',
         dest='cmd'
@@ -75,7 +107,7 @@ def cli_entry(*args):
             del kwargs['cmd']
 
         # run module
-        last_stdout.close();
+        last_stdout.close()
         last_stdout = StringIO()
         ret_code = tl_exception_handler(func, **kwargs)
         sys.stdin.close()
