@@ -215,20 +215,3 @@ class Utility(object):
             "error_code": error_code
         }
         return error
-
-
-# Utility.build_elasticsearch_file('5000.tsv', 'label', '', alias_fields='aliases')
-# Utility.build_elasticsearch_file('/Users/amandeep/Downloads/edges_no_scholarly_articles_in_subject_sorted.tsv.gz',
-#                                  'label', 'mapping_file.json', 'kgtk_labels.jl', alias_fields='aliases')
-
-
-# response = Utility.create_index('http://kg2018a.isi.edu:9200', 'wiki_labels_aliases_1', 'sample_delete_later/mapping_file.json')
-# print(response.text)
-# print(response.status_code)
-
-
-Utility.load_elasticsearch_index('../sample_delete_later/kgtk_labels.jl', 'http://kg2018a.isi.edu:9200',
-                                 'wiki_labels_aliases_1',
-                                 'sample_delete_later/mapping_file.json')
-# print(response.text)
-# print(response.status_code)

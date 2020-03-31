@@ -191,14 +191,3 @@ class ConvertISWC(object):
             gdf.drop(columns=["file", "db_uris"], inplace=True)
             gdf = gdf[gdf['kg_id'] != 'None']
             gdf.to_csv('{}/{}'.format(output_directory, i), index=False)
-
-
-c = ConvertISWC()
-# c.convert_iswc_gt('/Users/amandeep/Github/table-linker/tl/utility/round2',
-#                   file_path='/Users/amandeep/Github/table-linker/data/CEA_Round2_gt.csv',
-#                   dburi_to_qnode_path='dburi_to_qnode_round2.json')
-
-
-df = pd.read_csv('/Users/amandeep/Github/table-linker/tl/utility/CEA_Round3_gt.csv', dtype=object)
-
-c.write_converted_gt_file('/Users/amandeep/Github/table-linker/tl/utility/round3', df)

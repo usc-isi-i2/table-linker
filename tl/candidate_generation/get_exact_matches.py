@@ -106,9 +106,3 @@ class ExactMatches(object):
                 cf_dict['retrieval_score'] = candidate_dict[kg_id]['score']
             candidates_format.append(cf_dict)
         return pd.DataFrame(candidates_format)
-
-#
-# cg = ExactMatches('http://kg2018a.isi.edu:9200', 'wiki_labels_aliases_1')
-#
-# df =cg.get_exact_matches('label_clean', file_path='/Users/amandeep/Github/table-linker/tl/sample_delete_later/canonical_file.csv')
-# df.to_csv('/Users/amandeep/Github/table-linker/tl/sample_delete_later/candidates_file.csv', index=False)

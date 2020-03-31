@@ -1,5 +1,4 @@
 import ftfy
-import traceback
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException
 
@@ -22,19 +21,15 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
         raise RequiredInputParameterMissingException(
             'One of the input parameters is required: {}or {}'.format("file_path", "df"))
 
-    try:
-        if file_path:
-            df = pd.read_csv(file_path, sep=',' if file_type == 'csv' else '\t', dtype=object)
+    if file_path:
+        df = pd.read_csv(file_path, sep=',' if file_type == 'csv' else '\t', dtype=object)
 
-        columns = columns.split(',')
-        out = list()
-        for i, v in df.iterrows():
-            for column in columns:
-                out.append({'column': df.columns.get_loc(column), 'row': i, output_column: v[column]})
-        return pd.DataFrame(out).sort_values(by=['column', 'row'])
-    except:
-        traceback.print_exc()
-        raise
+    columns = columns.split(',')
+    out = list()
+    for i, v in df.iterrows():
+        for column in columns:
+            out.append({'column': df.columns.get_loc(column), 'row': i, output_column: v[column]})
+    return pd.DataFrame(out).sort_values(by=['column', 'row'])
 
 
 def clean(column, output_column=None, file_path=None, df=None, symbols='!@#$%^&*()+={}[]:;’\”/<>',

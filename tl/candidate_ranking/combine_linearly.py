@@ -41,7 +41,3 @@ def linear_combination(row, column_weights):
     for column in column_weights:
         score += float(row[column]) * column_weights[column]
     return score
-
-
-combine_linearly(file_path='/Users/amandeep/Github/table-linker/tl/sample_delete_later/normalized_file.csv',
-                 weights='retrieval_score_normalized:2.0')
