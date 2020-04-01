@@ -96,10 +96,10 @@ def metrics(column, file_path=None, df=None, k=1):
             if row['evaluation_label'] == '1' and row[column] == row['max_score']:
                 tp_ps.append(key)
 
-                # this df is sorted by score, so highest ranked candidate is rank 1 and so on...
-                rank = i + 1
-                if rank <= k:
-                    tp_rs.append(key)
+            # this df is sorted by score, so highest ranked candidate is rank 1 and so on...
+            rank = i + 1
+            if rank <= k and row['evaluation_label'] == '1':
+                tp_rs.append(key)
 
     precision = float(len(tp_ps)) / float(n)
     recall = float(len(tp_rs)) / float(n)
