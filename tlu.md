@@ -242,10 +242,17 @@ If the mapping from a dbpedia url to Qnode is not found, delete that row from th
 computes the `precision`, `recall` and `f1 score` for the `tl` pipeline. Takes as input a [Evaluation File](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.vurz5diqkuf7)
 file  and output a file in [Metrics File](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.if3pcq7n8wz6) format.
 
+**Options:**
+- `-c a`:  column name with ranking scores
+- `-k {number}: default, k=1. recall is calculated considering candidates with rank upto k
+
 **Examples:**
 
 ```bash
-$ tl metrics <  cities_evaluation.csv > cities_metrics.csv
+$ tl metrics -c ranking_score <  cities_evaluation.csv > cities_metrics.csv
+
+# same as above but calculate recall at 5
+$ tl metrics -c ranking_score -k 5 <  cities_evaluation.csv > cities_metrics.csv
 
 ```
 
