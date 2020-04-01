@@ -116,11 +116,33 @@ def cli_entry(*args):
         ret_code = tl_exception_handler(func, **kwargs)
     else:
         concat_cmd_str = None
+        global_cmd_options = {}
+        if '--url' in args:
+            i = args.index('--url')
+            global_cmd_options['--url'] = args[i + 1]
+
+        if '--index' in args:
+            i = args.index('--index')
+            global_cmd_options['--index'] = args[i + 1]
+
+        if '-U' in args:
+            i = args.index('-U')
+            global_cmd_options['-U'] = args[i + 1]
+
+        if '-P' in args:
+            i = args.index('-P')
+            global_cmd_options['-P'] = args[i + 1]
+
         for idx, cmd_args in enumerate(pipe):
+            _ = list(cmd_args)
+            for k in global_cmd_options:
+                _.insert(0, global_cmd_options[k])
+                _.insert(0, k)
+
+            cmd_args = tuple(_)
+
             # parse command and options
             cmd_str = ', '.join(['"{}"'.format(c) for c in cmd_args])
-            # if args.url:
-            #     cmd_str += ',' + args.url
 
             # add common arguments
             cmd_str += ', _bg_exc=False, _done=cmd_done'  # , _err=sys.stdout
