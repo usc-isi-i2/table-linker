@@ -42,4 +42,4 @@ def run(**kwargs):
     except:
         print('Command: combine-linearly\n')
         print('Error Message: \n')
-        traceback.print_stack()
+        traceback.print_exc()

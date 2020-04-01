@@ -40,4 +40,4 @@ def run(**kwargs):
     except:
         print('Command: canonicalize\n')
         print('Error Message: \n')
-        traceback.print_stack()
+        traceback.print_exc()

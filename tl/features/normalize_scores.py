@@ -43,7 +43,13 @@ def normalize_scores(column='retrieval_score', output_column=None, weights=None,
         max_score = gdf[column].max()
         # TODO find a better way to do this without having to make a copy
         fdf = gdf.copy(deep=True)
-        fdf[output_column] = gdf[column].map(lambda x: (x / max_score) * method_weights.get(i[1], 1.0))
+        fdf[output_column] = gdf[column].map(lambda x: divide_a_by_b(x, max_score) * method_weights.get(i[1], 1.0))
         o_df.append(fdf)
 
     return pd.concat(o_df)
+
+
+def divide_a_by_b(a, b):
+    if b == 0.0:
+        return 0.0
+    return a / b

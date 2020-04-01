@@ -46,4 +46,4 @@ def run(**kwargs):
     except:
         print('Command: normalize-scores\n')
         print('Error Message: \n')
-        traceback.print_stack()
+        traceback.print_exc()

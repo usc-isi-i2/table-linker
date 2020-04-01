@@ -24,6 +24,7 @@ def ground_truth_labeler(gt_file_path, column, file_path=None, df=None):
 
     if file_path:
         df = pd.read_csv(file_path, dtype=object)
+    df.fillna('', inplace=True)
     df[column] = df[column].map(lambda x: float(x))
 
     id_labels = list(zip(df.kg_id, df.kg_labels))
@@ -89,18 +90,22 @@ def metrics(column, file_path=None, df=None, k=1):
 
     grouped = rdf.groupby(by=['column', 'row'])
     for key, gdf in grouped:
-        gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True])
+        gdf = gdf.reset_index()
+        gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True], inplace=True)
         for i, row in gdf.iterrows():
-            if row['evaluation_label'] == 1 and row[column] == row['max_score']:
+            if row['evaluation_label'] == '1' and row[column] == row['max_score']:
                 tp_ps.append(key)
 
-            # this df is sorted by ranking score and  kg id, top candidate ranked 1 ...
-            if i < k and row['evaluation_label'] == 1:
-                tp_rs.append(key)
+                # this df is sorted by score, so highest ranked candidate is rank 1 and so on...
+                rank = i + 1
+                if rank <= k:
+                    tp_rs.append(key)
 
     precision = float(len(tp_ps)) / float(n)
     recall = float(len(tp_rs)) / float(n)
+    if precision == 0 and recall == 0:
+        f1_score = 0.0
+    else:
+        f1_score = (2 * precision * recall) / (precision + recall)
 
-    f1_score = (2 * precision * recall) / (precision + recall)
-
-    return {'f1': f1_score, 'precision': precision, 'recall': recall}
+    return pd.DataFrame({'f1': f1_score, 'precision': precision, 'recall': recall}, index=[0])
