@@ -5,7 +5,18 @@
 
 ## Installation Instructions
 
+Run the following commands in order in a terminal,
+```
+git clone https://github.com/usc-isi-i2/table-linker
+cd table-linker
 
+python3 -m venv tl_env
+source tl_env/bin/activate
+pip install -r requirements.txt
+
+pip install -e .
+```
+If python3 is not installed, find out what version of python 3 is installed and use that instead
 
 ## Pipelines
 The `tl` CLI works by pushing CSV data through a series of commands, starting with a single input on `stdin` and ending with a single output on `stdout`. This pipeline feature allows construction of pipelines for linking table cells to a knowledge graph (KG).
