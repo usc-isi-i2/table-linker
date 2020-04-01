@@ -605,9 +605,10 @@ column row clean_labels kg_id     ranking_score evaluation_label GT_kg_id GT_kg_
 #### Implementation
 
 Join the ranking score file and the ground truth file based on column and row indices and add the following columns,
-- `evaluation_label`: The permissible values for the evaluation label are in range `{-1, 0, 1}`. The value `1` means the cell is present in the Ground Truth file and the highest ranked candidate is the same as the corresponding knowledge graph object in the Ground Truth File.  
+- `evaluation_label`: The permissible values for the evaluation label are in range `{-1, 0, 1}`. The value `1` means the cell is present in the Ground Truth file and the candidate is same as  knowledge graph object in the Ground Truth File.  
+
 The value `0` means the cell is not present in the Ground Truth File. The value `-1` means the cell is present 
-in the Ground Truth File and the highest ranked candidate is different from the corresponding knowledge graph object in the Ground Truth File.
+in the Ground Truth File and the candidate is different from the corresponding knowledge graph object in the Ground Truth File.
 - `GT_kg_id`: identifier of the knowledge graph object in the ground truth
 - `GT_kg_label`: preferred label of the knowledge graph object in the ground truth. The labels for the candidates are
  added by the [get-exact-matches](#command_get-exact-matches) command and are stored in the column `kg_labels`. 
