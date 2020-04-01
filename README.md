@@ -24,17 +24,18 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 ### `Usage:  tl [OPTIONS] COMMAND [ / COMMAND]* `
 
 **Table of Contents:**
-- [`canonicalize`](#command_canonicalize): translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
-- [`clean`](#command_clean) : clean the values to be linked to the KG   
-- [`get-exact-matches`](#command_get-exact-matches): retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
+- [`canonicalize`](#command_canonicalize)<sup>*</sup>: translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
+- [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG   
+- [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
 - [`string-similarity`](#command_string-similarity): compares the cell values in two input columns and outputs a similarity score for each pair of participating strings 
 - [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
-- [`normalize-scores`](#command_normalize-scores): normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells
-- [`combine-linearly`](#command_combine-linearly): linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value
+- [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells
+- [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value
 - [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format
 - [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
-- [`ground-truth-labeler`](#command_ground-truth-labeler): compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
+- [`ground-truth-labeler`](#command_ground-truth-labeler)<sup>*</sup>: compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
 
+**Note: only the commands marked with <sup>*</sup> are currently implemented**
 
 **Options:**
 - `-e, --examples` -- Print some examples and exit
