@@ -1,6 +1,7 @@
 import sys
 import argparse
 import traceback
+import tl.exceptions
 
 
 def parser():
@@ -34,6 +35,6 @@ def run(**kwargs):
         odf = evaluation.metrics(kwargs['column'], k=kwargs['k'], df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
-        print('Command: metrics\n')
-        print('Error Message: \n')
-        traceback.print_exc()
+        message = 'Command: metrics\n'
+        message += 'Error Message:  {}\n'.format(traceback.format_exc())
+        raise tl.exceptions.TLException(message)

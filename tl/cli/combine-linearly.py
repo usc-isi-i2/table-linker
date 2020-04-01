@@ -1,6 +1,7 @@
 import sys
 import argparse
 import traceback
+import tl.exceptions
 
 
 def parser():
@@ -40,6 +41,6 @@ def run(**kwargs):
         odf = combine_linearly.combine_linearly(weights=kwargs['weights'], output_column=kwargs['output_column'], df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
-        print('Command: combine-linearly\n')
-        print('Error Message: \n')
-        traceback.print_exc()
+        message = 'Command: combine-linearly\n'
+        message += 'Error Message:  {}\n'.format(traceback.format_exc())
+        raise tl.exceptions.TLException(message)

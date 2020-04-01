@@ -1,6 +1,7 @@
 import sys
 import argparse
 import traceback
+import tl.exceptions
 
 
 def parser():
@@ -16,6 +17,7 @@ def add_arguments(parser):
         parser: (argparse.ArgumentParser)
 
     """
+
     parser.add_argument('-c', '--column', action='store', type=str, dest='column', required=True,
                         help='the column used for retrieving candidates.')
 
@@ -43,6 +45,6 @@ def run(**kwargs):
                                    size=kwargs['size'], df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
-        print('Command: get-exact-matches\n')
-        print('Error Message: \n')
-        traceback.print_exc()
+        message = 'Command: get-exact-matches\n'
+        message += 'Error Message:  {}\n'.format(traceback.format_exc())
+        raise tl.exceptions.TLException(message)

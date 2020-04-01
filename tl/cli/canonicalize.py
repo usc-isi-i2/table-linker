@@ -1,6 +1,7 @@
 import sys
 import argparse
 import traceback
+import tl.exceptions
 
 
 def parser():
@@ -38,6 +39,6 @@ def run(**kwargs):
                                       file_type=file_type)
         odf.to_csv(sys.stdout, index=False)
     except:
-        print('Command: canonicalize\n')
-        print('Error Message: \n')
-        traceback.print_exc()
+        message = 'Command: canonicalize\n'
+        message += 'Error Message:  {}\n'.format(traceback.format_exc())
+        raise tl.exceptions.TLException(message)

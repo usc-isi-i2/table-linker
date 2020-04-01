@@ -1,7 +1,7 @@
 import sys
 import argparse
 import traceback
-
+import tl.exceptions
 
 def parser():
     return {
@@ -35,6 +35,6 @@ def run(**kwargs):
         odf = evaluation.ground_truth_labeler(kwargs['gt_file'], kwargs['column'], df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
-        print('Command: ground-truth-labeler\n')
-        print('Error Message: \n')
-        traceback.print_exc()
+        message = 'Command: ground-truth-labeler\n'
+        message += 'Error Message:  {}\n'.format(traceback.format_exc())
+        raise tl.exceptions.TLException(message)

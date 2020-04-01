@@ -7,8 +7,9 @@ import signal
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 from tl import cli
-from tl.exceptions import tl_exception_handler
+from tl.exceptions import tl_exception_handler, TLArgumentParseException
 from tl import __version__
+import sh
 
 handlers = [x.name for x in pkgutil.iter_modules(cli.__path__)
             if not x.name.startswith('__')]
@@ -26,11 +27,18 @@ class TLArgumentParser(ArgumentParser):
         super(TLArgumentParser, self).__init__(*args, **kwargs)
 
 
+def cmd_done(cmd, success, exit_code):
+    # cmd.cmd -> complete command line
+    global ret_code
+    ret_code = exit_code
+
+
 def cli_entry(*args):
     """
     Usage:
         tl <command> [options]
     """
+    global ret_code
     parser = TLArgumentParser()
     parser.add_argument(
         '-V', '--version',
@@ -90,12 +98,10 @@ def cli_entry(*args):
         args = args + ('-h',)
     args = args[1:]
 
-    stdout_ = sys.stdout
-    last_stdout = StringIO()
-    ret_code = 0
-
-    for cmd_args in [tuple(y) for x, y in itertools.groupby(args, lambda a: a == pipe_delimiter) if not x]:
-        # parse command and options
+    # parse internal pipe
+    pipe = [tuple(y) for x, y in itertools.groupby(args, lambda a: a == pipe_delimiter) if not x]
+    if len(pipe) == 1:
+        cmd_args = pipe[0]
         args = parser.parse_args(cmd_args)
 
         # load module
@@ -107,14 +113,31 @@ def cli_entry(*args):
             del kwargs['cmd']
 
         # run module
-        last_stdout.close()
-        last_stdout = StringIO()
         ret_code = tl_exception_handler(func, **kwargs)
-        sys.stdin.close()
-        sys.stdin = StringIO(last_stdout.getvalue())
+    else:
+        concat_cmd_str = None
+        for idx, cmd_args in enumerate(pipe):
+            # parse command and options
+            cmd_str = ', '.join(['"{}"'.format(c) for c in cmd_args])
+            # if args.url:
+            #     cmd_str += ',' + args.url
 
-    stdout_.write(last_stdout.getvalue())
-    last_stdout.close()
-    sys.stdin.close()
-
+            # add common arguments
+            cmd_str += ', _bg_exc=False, _done=cmd_done'  # , _err=sys.stdout
+            # add specific arguments
+            if idx == 0:  # first command
+                concat_cmd_str = 'sh.tl({}, _in=sys.stdin, _piped=True)'.format(cmd_str)
+            elif idx + 1 == len(pipe):  # last command
+                concat_cmd_str = 'sh.tl({}, {}, _out=sys.stdout)'.format(concat_cmd_str, cmd_str)
+            else:
+                concat_cmd_str = 'sh.tl({}, {}, _piped=True)'.format(concat_cmd_str, cmd_str)
+        try:
+            # print(concat_cmd_str)
+            process = eval(concat_cmd_str)
+            process.wait()
+        except sh.SignalException_SIGPIPE:
+            pass
+        except sh.ErrorReturnCode as e:
+            # mimic parser exit
+            parser.exit(TLArgumentParseException.return_code, e.stderr.decode('utf-8'))
     return ret_code
