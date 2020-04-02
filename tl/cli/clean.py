@@ -25,7 +25,7 @@ def add_arguments(parser):
                              'of the new column is the name of the input column with the suffix _clean')
 
     parser.add_argument('--symbols', action='store', type=str, dest='symbols', default='!@#$%^&*()+={}[]:;’\”/<>',
-                        help='a string containing the set of characters to be removed')
+                        help="""'a string containing the set of characters to be removed, default is “!@#$%%^&*()+={}[]:;’\”/<>”'""")
 
     parser.add_argument('--replace-by-space', action='store', type=str, dest='replace_by_space', default='yes',
                         help='replace all instances of the symbols a space, delete otherwise')
