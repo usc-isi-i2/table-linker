@@ -97,19 +97,23 @@ class ExactMatches(object):
         for i, row in df.iterrows():
             candidate_dict = self.search_term_candidates(row[column], lower_case, size, properties)
 
-            cf_dict = {}
-            for df_column in df_columns:
-                cf_dict[df_column] = row[df_column]
             if not candidate_dict:
+                cf_dict = {}
+                for df_column in df_columns:
+                    cf_dict[df_column] = row[df_column]
                 cf_dict['kg_id'] = ""
                 cf_dict['kg_labels'] = ""
                 cf_dict['method'] = 'exact-match'
                 cf_dict['retrieval_score'] = 0.0
             else:
                 for kg_id in candidate_dict:
+                    cf_dict = {}
+                    for df_column in df_columns:
+                        cf_dict[df_column] = row[df_column]
                     cf_dict['kg_id'] = kg_id
                     cf_dict['kg_labels'] = candidate_dict[kg_id]['label_str']
                     cf_dict['method'] = 'exact-match'
                     cf_dict['retrieval_score'] = candidate_dict[kg_id]['score']
-            candidates_format.append(cf_dict)
+                    candidates_format.append(cf_dict)
+
         return pd.DataFrame(candidates_format)
