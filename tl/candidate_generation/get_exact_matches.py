@@ -43,7 +43,8 @@ class ExactMatches(object):
             if not candidate_dict:
                 cf_dict = {}
                 for df_column in df_columns:
-                    cf_dict[df_column] = row[df_column]
+                    if df_column not in ['kg_id', 'kg_labels', 'method', 'retrieval_score']:
+                        cf_dict[df_column] = row[df_column]
                 cf_dict['kg_id'] = ""
                 cf_dict['kg_labels'] = ""
                 cf_dict['method'] = 'exact-match'
@@ -53,7 +54,8 @@ class ExactMatches(object):
                 for kg_id in candidate_dict:
                     cf_dict = {}
                     for df_column in df_columns:
-                        cf_dict[df_column] = row[df_column]
+                        if df_column not in ['kg_id', 'kg_labels', 'method', 'retrieval_score']:
+                            cf_dict[df_column] = row[df_column]
                     cf_dict['kg_id'] = kg_id
                     cf_dict['kg_labels'] = candidate_dict[kg_id]['label_str']
                     cf_dict['method'] = 'exact-match'

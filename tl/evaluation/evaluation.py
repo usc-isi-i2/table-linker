@@ -20,19 +20,12 @@ def ground_truth_labeler(gt_file_path, column, file_path=None, df=None):
             'One of the input parameters is required: {} or {}'.format('file_path', 'df'))
 
     gt_df = pd.read_csv(gt_file_path, dtype=object)
-    gt_df.rename(columns={'kg_id': 'GT_kg_id'}, inplace=True)
+    gt_df.rename(columns={'kg_id': 'GT_kg_id', 'kg_label': 'GT_kg_label'}, inplace=True)
 
     if file_path:
         df = pd.read_csv(file_path, dtype=object)
     df.fillna('', inplace=True)
     df[column] = df[column].map(lambda x: float(x))
-
-    id_labels = list(zip(df.kg_id, df.kg_labels))
-    id_labels_dict = {}
-    for id, labels in id_labels:
-        id_labels_dict[id] = labels.split('|')[0]
-
-    gt_df['GT_kg_label'] = gt_df['GT_kg_id'].map(lambda x: id_labels_dict.get(x, ""))
 
     evaluation_df = pd.merge(df, gt_df, on=['column', 'row'], how='left')
 

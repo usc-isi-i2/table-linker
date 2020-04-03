@@ -9,9 +9,10 @@ class ConvertISWC(object):
     def __init__(self):
         self.es_url = 'http://kg2018a.isi.edu:9200'
         self.es_index = 'wikidata_dbpedia_joined_3'
+        self.es_index_1 = 'wiki_labels_aliases_1'
         self.db_sparql_url = 'http://dbpedia.org/sparql'
         self.wiki_sparql_url = 'http://dsbox02.isi.edu:8888/bigdata/namespace/wdq/sparql'
-        self.em = ExactMatches(self.es_url, self.es_index)
+        self.em = ExactMatches(self.es_url, self.es_index_1)
 
     def convert_iswc_gt(self, output_directory, file_path=None, df=None, dburi_to_qnode_path=None):
         """
@@ -57,7 +58,7 @@ class ConvertISWC(object):
                              }
                          }
                          }
-                hits = self.em.search_es(query)
+                hits = self.em.es.search_es(query)
 
                 if hits:
                     dburi_to_qnode.update(self.convert_es_docs_to_dict(hits))
@@ -191,3 +192,52 @@ class ConvertISWC(object):
             gdf.drop(columns=["file", "db_uris"], inplace=True)
             gdf = gdf[gdf['kg_id'] != 'None']
             gdf.to_csv('{}/{}'.format(output_directory, i), index=False)
+
+    @staticmethod
+    def create_gt_es_to_dict(es_docs):
+        local_dict = {}
+        for es_doc in es_docs:
+            qnode = es_doc['_id']
+            labels = es_doc['_source'].get('labels', [])
+            aliases = es_doc['_source'].get('aliases', [])
+            _label = ""
+            if labels:
+                _label = labels[0]
+            if aliases and _label == "":
+                _label = aliases[0]
+            local_dict[qnode] = _label
+
+        return local_dict
+
+    def add_labels(self, df, f):
+        all_qnodes = list(df['kg_id'].unique())
+        qnode_to_label_dict = {}
+        while (all_qnodes):
+            try:
+                remaining_qnodes = all_qnodes[:500]
+                local_dict = self.labels_for_qnodes(remaining_qnodes)
+                if local_dict:
+                    qnode_to_label_dict.update(local_dict)
+                all_qnodes = all_qnodes[500:]
+            except Exception as e:
+
+                traceback.print_exc()
+                print(f)
+                raise
+
+        df['kg_label'] = df['kg_id'].map(lambda x: qnode_to_label_dict.get(x, ''))
+        return df
+
+    def labels_for_qnodes(self, qnodes):
+        query = {
+            "query": {
+                "ids": {
+                    "values": qnodes
+                }
+            },
+            "size": 500
+        }
+        hits = self.em.es.search_es(query)
+
+        if hits:
+            return ConvertISWC.create_gt_es_to_dict(hits)
