@@ -1,0 +1,686 @@
+column,row,label,label_clean
+0,0,You're Going Down,You're Going Down
+0,1,You're Easy on the Eyes,You're Easy on the Eyes
+0,2,You're Beginning to Get to Me,You're Beginning to Get to Me
+0,3,You're Beautiful,You're Beautiful
+0,4,You're Amazing,You're Amazing
+0,5,You're All I Need to Get By,You're All I Need to Get By
+0,6,You're All I Have,You're All I Have
+0,7,You'll See,You'll See
+0,8,You'll Rock,You'll Rock
+0,9,You'll Never Know What You're Missing,You'll Never Know What You're Missing
+0,10,You'll Never Get to Heaven,You'll Never Get to Heaven
+0,11,You'll Lose a Good Thing,You'll Lose a Good Thing
+0,12,You'll Follow Me Down,You'll Follow Me Down
+0,13,You'll Be in My Heart,You'll Be in My Heart
+0,14,You'll Be Mine,You'll Be Mine
+0,15,You'll Always Be My Baby,You'll Always Be My Baby
+0,16,You'll Always Be Loved by Me,You'll Always Be Loved by Me
+0,17,Yoshi City,Yoshi City
+0,18,Yoru no Odoriko,Yoru no Odoriko
+0,19,Yonkers,Yonkers
+0,20,Yodelling Song,Yodelling Song
+0,21,Yo,Yo
+0,22,Yo-Yo,Yo-Yo
+0,23,Yesterdays,Yesterdays
+0,24,Yesterday Went Too Soon,Yesterday Went Too Soon
+0,25,Yesterday Once More,Yesterday Once More
+0,26,Yesterday Girl,Yesterday Girl
+0,27,Yesterday,Yesterday
+0,28,Yesterday,Yesterday
+0,29,Yesterday & Today,Yesterday   Today
+0,30,"Yesterday, When I Was Mad","Yesterday, When I Was Mad"
+0,31,Yesterday's Wine,Yesterday's Wine
+0,32,Yesterday's Men,Yesterday's Men
+0,33,Yesterday's Gone,Yesterday's Gone
+0,34,Yester Love,Yester Love
+0,35,"Yester-Me, Yester-You, Yesterday","Yester-Me, Yester-You, Yesterday"
+0,36,Yes or No,Yes or No
+0,37,Yes We Can,Yes We Can
+0,38,Yes It Is,Yes It Is
+0,39,Yes,Yes
+0,40,Yep!,Yep 
+0,41,Yellow Submarine,Yellow Submarine
+0,42,Yellow Flicker Beat,Yellow Flicker Beat
+0,43,Yellow,Yellow
+0,44,Year of the Lover,Year of the Lover
+0,45,Year of tha Boomerang,Year of tha Boomerang
+0,46,Year 3000,Year 3000
+0,47,Yeah Yeah Yeah Yeah Yeah,Yeah Yeah Yeah Yeah Yeah
+0,48,Yeah Yeah,Yeah Yeah
+0,49,Yeah 3x,Yeah 3x
+0,50,Yeah,Yeah
+0,51,Yeah,Yeah
+0,52,Yeah!,Yeah 
+0,53,Yeah!,Yeah 
+0,54,Yay Yay,Yay Yay
+0,55,Yassassin,Yassassin
+0,56,Yasei no Energy,Yasei no Energy
+0,57,Yard Sale,Yard Sale
+0,58,"Yank Me, Crank Me","Yank Me, Crank Me"
+0,59,Yang Yang,Yang Yang
+0,60,Yalla Habibi,Yalla Habibi
+0,61,Yalla Chant,Yalla Chant
+0,62,Ya Soshla S Uma,Ya Soshla S Uma
+0,63,Ya Hey,Ya Hey
+0,64,Y Yo Sigo Aquí,Y Yo Sigo Aquí
+0,65,YYZ,YYZ
+0,66,Y.M.C.A.,Y.M.C.A.
+0,67,Y'all Come Back Saloon,Y'all Come Back Saloon
+0,68,Y'All Want a Single,Y'All Want a Single
+0,69,Yūhi o Miteiru ka?,Yūhi o Miteiru ka?
+0,70,Xtatic Truth,Xtatic Truth
+0,71,Xmas Time of the Year,Xmas Time of the Year
+0,72,Xmas Ear Bender,Xmas Ear Bender
+0,73,Xanadu,Xanadu
+0,74,Xanadu,Xanadu
+0,75,X You,X You
+0,76,X X X,X X X
+0,77,X Offender,X Offender
+0,78,X,X
+0,79,X,X
+0,80,XXX 88,XXX 88
+0,81,XXXO,XXXO
+0,82,XXX's and OOO's,XXX's and OOO's
+0,83,XXL,XXL
+0,84,XXL,XXL
+0,85,XO,XO
+0,86,X-Kid,X-Kid
+0,87,Wynona's Big Brown Beaver,Wynona's Big Brown Beaver
+0,88,Www.memory,Www.memory
+0,89,Wuthering Heights,Wuthering Heights
+0,90,Wrote a Song About You,Wrote a Song About You
+0,91,Wrong Way,Wrong Way
+0,92,Wrong Side of Memphis,Wrong Side of Memphis
+0,93,Wrong Side of Heaven,Wrong Side of Heaven
+0,94,Wrong Number,Wrong Number
+0,95,Wrong Night,Wrong Night
+0,96,Wrong Impression,Wrong Impression
+0,97,Wrong Baby Wrong Baby Wrong,Wrong Baby Wrong Baby Wrong
+0,98,Wrong Again,Wrong Again
+0,99,Wrong,Wrong
+0,100,Wrong,Wrong
+0,101,Written on Ya Kitten,Written on Ya Kitten
+0,102,Written on Her,Written on Her
+0,103,Writing to Reach You,Writing to Reach You
+0,104,Writer's Block,Writer's Block
+0,105,Write This Down,Write This Down
+0,106,Write Me a Letter,Write Me a Letter
+0,107,Write It on Your Skin,Write It on Your Skin
+0,108,Write About Love,Write About Love
+0,109,Wrist,Wrist
+0,110,Wrecking Ball,Wrecking Ball
+0,111,Wreckin' Bar,Wreckin' Bar
+0,112,Wrapping Paper,Wrapping Paper
+0,113,Wrapped Up in You,Wrapped Up in You
+0,114,Wrapped Around Your Finger,Wrapped Around Your Finger
+0,115,Wrapped Around,Wrapped Around
+0,116,Wrapped,Wrapped
+0,117,Wrap Your Arms Around Me,Wrap Your Arms Around Me
+0,118,Woz Not Woz,Woz Not Woz
+0,119,Wow Oh Wow,Wow Oh Wow
+0,120,Wow,Wow
+0,121,Wouldn't You,Wouldn't You
+0,122,Wouldn't It Be Nice,Wouldn't It Be Nice
+0,123,Wouldn't It Be Good,Wouldn't It Be Good
+0,124,Wouldn't I Be Someone,Wouldn't I Be Someone
+0,125,Wouldn't Get Far,Wouldn't Get Far
+0,126,Would You Lay with Me,Would You Lay with Me
+0,127,Would You Go with Me,Would You Go with Me
+0,128,Would You Be Happier?,Would You Be Happier?
+0,129,Would You...?,Would You...?
+0,130,Would?,Would?
+0,131,Worth It,Worth It
+0,132,Worst Behavior,Worst Behavior
+0,133,Worse Comes to Worst,Worse Comes to Worst
+0,134,Worm Tamer,Worm Tamer
+0,135,Worlock,Worlock
+0,136,Worlds Apart,Worlds Apart
+1,0,S. Moore,S. Moore
+1,1,T. Clark,T. Clark
+1,2,A. Barker,A. Barker
+1,3,J. Blunt,J. Blunt
+1,4,G. Pratt,G. Pratt
+1,5,N. Ashford,N. Ashford
+1,6,G. Lightbody,G. Lightbody
+1,7,Madonna,Madonna
+1,8,L. C. J,L. C. J
+1,9,C. Amoo,C. Amoo
+1,10,B. Bacharach,B. Bacharach
+1,11,B. Lynn,B. Lynn
+1,12,Skin,Skin
+1,13,P. Collins,P. Collins
+1,14,E. Estefan,E. Estefan
+1,15,S. Evans,S. Evans
+1,16,R. Dunn,R. Dunn
+1,17,Y. Lean,Y. Lean
+1,18,I. Yamaguchi,I. Yamaguchi
+1,19,T. T. Creator,T. T. Creator
+1,20,T. Tikaram,T. Tikaram
+1,21,J. Austin,J. Austin
+1,22,J. South,J. South
+1,23,A. Rose,A. Rose
+1,24,G. Nicholas,G. Nicholas
+1,25,R. Carpenter,R. Carpenter
+1,26,P. DiNizio,P. DiNizio
+1,27,T. Braxton,T. Braxton
+1,28,Lennon–McCartney,Lennon–McCartney
+1,29,D. Nagao,D. Nagao
+1,30,C. Lowe,C. Lowe
+1,31,W. Nelson,W. Nelson
+1,32,C. Foreman,C. Foreman
+1,33,C. Stuart,C. Stuart
+1,34,S. Robinson,S. Robinson
+1,35,R. Miller,R. Miller
+1,36,R. Mael,R. Mael
+1,37,B. Obama,B. Obama
+1,38,Lennon–McCartney,Lennon–McCartney
+1,39,D. McAlmont,D. McAlmont
+1,40,D. Eddy,D. Eddy
+1,41,Lennon–McCartney,Lennon–McCartney
+1,42,Lorde,Lorde
+1,43,G. Berryman,G. Berryman
+1,44,R. Love,R. Love
+1,45,B. Wilk,B. Wilk
+1,46,C. Simpson,C. Simpson
+1,47,S. MacGowan,S. MacGowan
+1,48,S. Salerno,S. Salerno
+1,49,C. Harris,C. Harris
+1,50,J. Murphy,J. Murphy
+1,51,A. Gorley,A. Gorley
+1,52,L. Jon,L. Jon
+1,53,P. Brandt,P. Brandt
+1,54,S. Q,S. Q
+1,55,D. Bowie,D. Bowie
+1,56,K. Inaba,K. Inaba
+1,57,D. Blackwell,D. Blackwell
+1,58,T. Nugent,T. Nugent
+1,59,Y. Ono,Y. Ono
+1,60,Lukay,Lukay
+1,61,N. Atlas,N. Atlas
+1,62,E. Kiper,E. Kiper
+1,63,E. Koenig,E. Koenig
+1,64,Estéfano,Estéfano
+1,65,G. Lee,G. Lee
+1,66,V. Willis,V. Willis
+1,67,S. Vaughn,S. Vaughn
+1,68,J. Davis,J. Davis
+1,69,Y. Akimoto,Y. Akimoto
+1,70,C. Fighters,C. Fighters
+1,71,G. Day,G. Day
+1,72,N. Holder,N. Holder
+1,73,N. Peart,N. Peart
+1,74,J. Lynne,J. Lynne
+1,75,T. Bergling,T. Bergling
+1,76,Hyde,Hyde
+1,77,D. Harry,D. Harry
+1,78,Xzibit,Xzibit
+1,79,T. Lundon,T. Lundon
+1,80,Diplo,Diplo
+1,81,M.I.A.,M.I.A.
+1,82,A. Randall,A. Randall
+1,83,L. Boutonnat,L. Boutonnat
+1,84,K. Anderson,K. Anderson
+1,85,R. Tedder,R. Tedder
+1,86,G. Day,G. Day
+1,87,L. LaLonde,L. LaLonde
+1,88,A. Jackson,A. Jackson
+1,89,K. Bush,K. Bush
+1,90,MNEK,MNEK
+1,91,B. Nowell,B. Nowell
+1,92,M. Berg,M. Berg
+1,93,I. L. Moody,I. L. Moody
+1,94,R. Smith,R. Smith
+1,95,J. Leo,J. Leo
+1,96,N. Imbruglia,N. Imbruglia
+1,97,R. E. Orrall,R. E. Orrall
+1,98,C. Weil,C. Weil
+1,99,S. Seskin,S. Seskin
+1,100,M. Gore,M. Gore
+1,101,Treach,Treach
+1,102,Birdman,Birdman
+1,103,F. Healy,F. Healy
+1,104,J. Jack,J. Jack
+1,105,K. Robbins,K. Robbins
+1,106,S. Tyler,S. Tyler
+1,107,N. Faulkner,N. Faulkner
+1,108,S. Murdoch,S. Murdoch
+1,109,P. T,P. T
+1,110,Cirkut,Cirkut
+1,111,T. Vaccines,T. Vaccines
+1,112,J. Bruce,J. Bruce
+1,113,W. Kirkpatrick,W. Kirkpatrick
+1,114,Sting,Sting
+1,115,B. Paisley,B. Paisley
+1,116,B. Robison,B. Robison
+1,117,M. Chapman,M. Chapman
+1,118,D. Was,D. Was
+1,119,O. Williams,O. Williams
+1,120,P. &. Win,P.  . Win
+1,121,N-Dubz,N-Dubz
+1,122,B. Wilson,B. Wilson
+1,123,N. Kershaw,N. Kershaw
+1,124,"Barry, Robin & Maurice Gibb","Barry, Robin   Maurice Gibb"
+1,125,K. West,K. West
+1,126,D. A. Coe,D. A. Coe
+1,127,J. S. Sherrill,J. S. Sherrill
+1,128,T. Corrs,T. Corrs
+1,129,D. Lowe,D. Lowe
+1,130,J. Cantrell,J. Cantrell
+1,131,Stargate,Stargate
+1,132,Drake,Drake
+1,133,B. Joel,B. Joel
+1,134,N. Cave,N. Cave
+1,135,N. Ogre,N. Ogre
+1,136,V. Gill,V. Gill
+2,0,Rock Mafia,Rock Mafia
+2,1,Keith Stegall,Keith Stegall
+2,2,James Stroud,James Stroud
+2,3,Tom Rothrock,Tom Rothrock
+2,4,Robert Palmer,Robert Palmer
+2,5,Ashford & Simpson,Ashford   Simpson
+2,6,Jacknife Lee,Jacknife Lee
+2,7,Madonna,Madonna
+2,8,LL Cool J,LL Cool J
+2,9,Chris Amoo,Chris Amoo
+2,10,Burt Bacharach,Burt Bacharach
+2,11,Huey P Meaux,Huey P Meaux
+2,12,Skunk Anansie,Skunk Anansie
+2,13,Phil Collins,Phil Collins
+2,14,Emilio Estefan,Emilio Estefan
+2,15,Sara Evans,Sara Evans
+2,16,Byron Gallimore,Byron Gallimore
+2,17,Yung Gud,Yung Gud
+2,18,Sakanaction,Sakanaction
+2,19,"Tyler, The Creator","Tyler, The Creator"
+2,20,Thomas Newman,Thomas Newman
+2,21,Dre & Vidal,Dre   Vidal
+2,22,Rick Hall,Rick Hall
+2,23,Guns N' Roses,Guns N' Roses
+2,24,Feeder,Feeder
+2,25,Jack Daugherty,Jack Daugherty
+2,26,Ed Stasium,Ed Stasium
+2,27,DJ Frank E,DJ Frank E
+2,28,George Martin,George Martin
+2,29,Dai Nagao,Dai Nagao
+2,30,Pet Shop Boys,Pet Shop Boys
+2,31,Billy Sherrill,Billy Sherrill
+2,32,Clive Langer,Clive Langer
+2,33,John Barry,John Barry
+2,34,Smokey Robinson,Smokey Robinson
+2,35,Harvey Fuqua,Harvey Fuqua
+2,36,Martin Rushent,Martin Rushent
+2,37,Will.i.am,Will.i.am
+2,38,George Martin,George Martin
+2,39,Mike Hedges,Mike Hedges
+2,40,Lee Hazlewood,Lee Hazlewood
+2,41,George Martin,George Martin
+2,42,Joel Little,Joel Little
+2,43,Coldplay,Coldplay
+2,44,Eric Hudson,Eric Hudson
+2,45,Rage Against the Machine,Rage Against the Machine
+2,46,Steve Robson,Steve Robson
+2,47,Steve Lillywhite,Steve Lillywhite
+2,48,Severo Lombardoni,Severo Lombardoni
+2,49,DJ Frank E,DJ Frank E
+2,50,DFA Records,DFA Records
+2,51,Tony Brown,Tony Brown
+2,52,Lil Jon,Lil Jon
+2,53,Josh Leo,Josh Leo
+2,54,The Maven Boys,The Maven Boys
+2,55,Tony Visconti,Tony Visconti
+2,56,Tak Matsumoto,Tak Matsumoto
+2,57,Norro Wilson,Norro Wilson
+2,58,Ric Browde,Ric Browde
+2,59,John Lennon,John Lennon
+2,60,XSDTRK,XSDTRK
+2,61,Transglobal Underground,Transglobal Underground
+2,62,Ivan Shapovalov,Ivan Shapovalov
+2,63,Ariel Rechtshaid,Ariel Rechtshaid
+2,64,Estéfano,Estéfano
+2,65,Rush,Rush
+2,66,Jacques Morali,Jacques Morali
+2,67,Ron Chancey,Ron Chancey
+2,68,Jonathan Davis,Jonathan Davis
+2,69,Yasushi Akimoto,Yasushi Akimoto
+2,70,Crystal Fighters,Crystal Fighters
+2,71,Green Day,Green Day
+2,72,Slade,Slade
+2,73,Rush,Rush
+2,74,Jeff Lynne,Jeff Lynne
+2,75,Avicii,Avicii
+2,76,L'Arc-en-Ciel,L'Arc-en-Ciel
+2,77,Craig Leon,Craig Leon
+2,78,Dr. Dre,Dr. Dre
+2,79,Johnny Douglas,Johnny Douglas
+2,80,Ronni Vindahl,Ronni Vindahl
+2,81,Rusko,Rusko
+2,82,Garth Fundis,Garth Fundis
+2,83,Laurent Boutonnat,Laurent Boutonnat
+2,84,Jeffrey Steele,Jeffrey Steele
+2,85,Hit-Boy,Hit-Boy
+2,86,Green Day,Green Day
+2,87,Primus,Primus
+2,88,Keith Stegall,Keith Stegall
+2,89,Andrew Powell,Andrew Powell
+2,90,MNEK,MNEK
+2,91,Paul Leary,Paul Leary
+2,92,Garth Fundis,Garth Fundis
+2,93,Kevin Churko,Kevin Churko
+2,94,Mark Saunders,Mark Saunders
+2,95,Reba McEntire,Reba McEntire
+2,96,Ian Stanley,Ian Stanley
+2,97,Dann Huff,Dann Huff
+2,98,Martina McBride,Martina McBride
+2,99,Bob Montgomery,Bob Montgomery
+2,100,Ben Hillier,Ben Hillier
+2,101,Naughty by Nature,Naughty by Nature
+2,102,Oddz N Endz,Oddz N Endz
+2,103,Nigel Godrich,Nigel Godrich
+2,104,Just Jack,Just Jack
+2,105,Tony Brown,Tony Brown
+2,106,Adrian Barber,Adrian Barber
+2,107,Newton Faulkner,Newton Faulkner
+2,108,Tony Hoffer,Tony Hoffer
+2,109,6ix,6ix
+2,110,Cirkut,Cirkut
+2,111,Dan Grech-Marguerat,Dan Grech-Marguerat
+2,112,Robert Stigwood,Robert Stigwood
+2,113,Allen Reynolds,Allen Reynolds
+2,114,Hugh Padgham,Hugh Padgham
+2,115,Frank Rogers,Frank Rogers
+2,116,George Strait,George Strait
+2,117,Mike Chapman,Mike Chapman
+2,118,David Was,David Was
+2,119,Deekay,Deekay
+2,120,Play & Win,Play   Win
+2,121,Dappy,Dappy
+2,122,Brian Wilson,Brian Wilson
+2,123,Peter Collins,Peter Collins
+2,124,Barry Gibb,Barry Gibb
+2,125,Kanye West,Kanye West
+2,126,Billy Sherrill,Billy Sherrill
+2,127,Frank Rogers,Frank Rogers
+2,128,The Corrs,The Corrs
+2,129,David Lowe,David Lowe
+2,130,Rick Parashar,Rick Parashar
+2,131,Stargate,Stargate
+2,132,DJ Dahi,DJ Dahi
+2,133,Michael Stewart,Michael Stewart
+2,134,Grinderman,Grinderman
+2,135,CEvin Key,CEvin Key
+2,136,Tony Brown,Tony Brown
+3,0,Sick Puppies,Sick Puppies
+3,1,Terri Clark,Terri Clark
+3,2,Clay Walker,Clay Walker
+3,3,James Blunt,James Blunt
+3,4,Robert Palmer,Robert Palmer
+3,5,Marvin Gaye,Marvin Gaye
+3,6,Snow Patrol,Snow Patrol
+3,7,Madonna,Madonna
+3,8,LL Cool J,LL Cool J
+3,9,The Real Thing,The Real Thing
+3,10,Dionne Warwick,Dionne Warwick
+3,11,Barbara Lynn,Barbara Lynn
+3,12,Skunk Anansie,Skunk Anansie
+3,13,Phil Collins,Phil Collins
+3,14,Gloria Estefan,Gloria Estefan
+3,15,Sara Evans,Sara Evans
+3,16,Brooks & Dunn,Brooks   Dunn
+3,17,Yung Lean,Yung Lean
+3,18,Sakanaction,Sakanaction
+3,19,"Tyler, The Creator","Tyler, The Creator"
+3,20,Tanita Tikaram,Tanita Tikaram
+3,21,Chris Brown,Chris Brown
+3,22,The Osmonds,The Osmonds
+3,23,Guns N' Roses,Guns N' Roses
+3,24,Feeder,Feeder
+3,25,The Carpenters,The Carpenters
+3,26,The Smithereens,The Smithereens
+3,27,Toni Braxton,Toni Braxton
+3,28,The Beatles,The Beatles
+3,29,Do As Infinity,Do As Infinity
+3,30,Pet Shop Boys,Pet Shop Boys
+3,31,George Jones,George Jones
+3,32,Madness,Madness
+3,33,Chad & Jeremy,Chad   Jeremy
+3,34,Smokey Robinson & the Miracles,Smokey Robinson   the Miracles
+3,35,Stevie Wonder,Stevie Wonder
+3,36,The Go-Go's,The Go-Go's
+3,37,Will.i.am,Will.i.am
+3,38,The Beatles,The Beatles
+3,39,McAlmont & Butler,McAlmont   Butler
+3,40,Duane Eddy,Duane Eddy
+3,41,The Beatles,The Beatles
+3,42,Lorde,Lorde
+3,43,Coldplay,Coldplay
+3,44,Lloyd,Lloyd
+3,45,Rage Against the Machine,Rage Against the Machine
+3,46,Jonas Brothers,Jonas Brothers
+3,47,The Pogues,The Pogues
+3,48,Sabrina Salerno,Sabrina Salerno
+3,49,Chris Brown,Chris Brown
+3,50,LCD Soundsystem,LCD Soundsystem
+3,51,Joe Nichols,Joe Nichols
+3,52,Ludacris,Ludacris
+3,53,Paul Brandt,Paul Brandt
+3,54,Schoolboy Q,Schoolboy Q
+3,55,David Bowie,David Bowie
+3,56,B'z,B'z
+3,57,Sammy Kershaw,Sammy Kershaw
+3,58,Ted Nugent,Ted Nugent
+3,59,Yoko Ono,Yoko Ono
+3,60,Karl Wolf,Karl Wolf
+3,61,Natacha Atlas,Natacha Atlas
+3,62,T.A.T.u.,T.A.T.u.
+3,63,Vampire Weekend,Vampire Weekend
+3,64,Paulina Rubio,Paulina Rubio
+3,65,Rush,Rush
+3,66,Village People,Village People
+3,67,The Oak Ridge Boys,The Oak Ridge Boys
+3,68,Korn,Korn
+3,69,AKB48,AKB48
+3,70,Crystal Fighters,Crystal Fighters
+3,71,Green Day,Green Day
+3,72,Slade,Slade
+3,73,Rush,Rush
+3,74,Electric Light Orchestra,Electric Light Orchestra
+3,75,Avicii,Avicii
+3,76,L'Arc-en-Ciel,L'Arc-en-Ciel
+3,77,Blondie,Blondie
+3,78,Xzibit,Xzibit
+3,79,Liberty X,Liberty X
+3,80,MØ,MØ
+3,81,M.I.A.,M.I.A.
+3,82,Trisha Yearwood,Trisha Yearwood
+3,83,Mylène Farmer,Mylène Farmer
+3,84,Keith Anderson,Keith Anderson
+3,85,Beyoncé,Beyoncé
+3,86,Green Day,Green Day
+3,87,Primus,Primus
+3,88,Alan Jackson,Alan Jackson
+3,89,Kate Bush,Kate Bush
+3,90,MNEK,MNEK
+3,91,Sublime,Sublime
+3,92,Trisha Yearwood,Trisha Yearwood
+3,93,Five Finger Death Punch,Five Finger Death Punch
+3,94,The Cure,The Cure
+3,95,Reba McEntire,Reba McEntire
+3,96,Natalie Imbruglia,Natalie Imbruglia
+3,97,Martina McBride,Martina McBride
+3,98,Martina McBride,Martina McBride
+3,99,Waylon Jennings,Waylon Jennings
+3,100,Depeche Mode,Depeche Mode
+3,101,Naughty by Nature,Naughty by Nature
+3,102,Birdman,Birdman
+3,103,Travis,Travis
+3,104,Just Jack,Just Jack
+3,105,George Strait,George Strait
+3,106,Aerosmith,Aerosmith
+3,107,Newton Faulkner,Newton Faulkner
+3,108,Belle & Sebastian,Belle   Sebastian
+3,109,Logic,Logic
+3,110,Miley Cyrus,Miley Cyrus
+3,111,The Vaccines,The Vaccines
+3,112,Cream,Cream
+3,113,Garth Brooks,Garth Brooks
+3,114,The Police,The Police
+3,115,Brad Paisley,Brad Paisley
+3,116,George Strait,George Strait
+3,117,Agnetha Fältskog,Agnetha Fältskog
+3,118,Eric Prydz,Eric Prydz
+3,119,Jedward,Jedward
+3,120,Inna,Inna
+3,121,N-Dubz,N-Dubz
+3,122,The Beach Boys,The Beach Boys
+3,123,Nik Kershaw,Nik Kershaw
+3,124,Bee Gees,Bee Gees
+3,125,The Game,The Game
+3,126,Tanya Tucker,Tanya Tucker
+3,127,Josh Turner,Josh Turner
+3,128,The Corrs,The Corrs
+3,129,Touch and Go,Touch and Go
+3,130,Alice in Chains,Alice in Chains
+3,131,Fifth Harmony,Fifth Harmony
+3,132,Drake,Drake
+3,133,Billy Joel,Billy Joel
+3,134,Grinderman,Grinderman
+3,135,Skinny Puppy,Skinny Puppy
+3,136,Vince Gill,Vince Gill
+4,0,Odd One,Odd One
+4,1,Everytime I Cry,Everytime I Cry
+4,2,She's Always Right,She's Always Right
+4,3,Goodbye My Lover,Goodbye My Lover
+4,4,I Want You,I Want You
+4,5,Keep On Lovin' Me Honey,Keep On Lovin' Me Honey
+4,6,Chasing Cars,Chasing Cars
+4,7,One More Chance,One More Chance
+4,8,I'm Bad,I'm Bad
+4,9,Love's Such a Wonderful Thing,Love's Such a Wonderful Thing
+4,10,Reach Out for Me,Reach Out for Me
+4,11,Vaya con Dios,Vaya con Dios
+4,12,Tear the Place Up,Tear the Place Up
+4,13,Strangers Like Me,Strangers Like Me
+4,14,I'm Not Giving You Up,I'm Not Giving You Up
+4,15,As If,As If
+4,16,Ain't Nothing 'bout You,Ain't Nothing 'bout You
+4,17,Crystal Clear Ice,Crystal Clear Ice
+4,18,Music,Music
+4,19,She,She
+4,20,And I Think Of You - E penso a te,And I Think Of You - E penso a te
+4,21,Gimme That,Gimme That
+4,22,Down by the Lazy River,Down by the Lazy River
+4,23,Civil War,Civil War
+4,24,Paperfaces,Paperfaces
+4,25,Top of the World,Top of the World
+4,26,Blue Period,Blue Period
+4,27,Hands Tied,Hands Tied
+4,28,We Can Work It Out,We Can Work It Out
+4,29,Rumble Fish,Rumble Fish
+4,30,Paninaro,Paninaro
+4,31,Going Where the Lonely Go,Going Where the Lonely Go
+4,32,Uncle Sam,Uncle Sam
+4,33,A Summer Song,A Summer Song
+4,34,Special Occasion,Special Occasion
+4,35,Never Had a Dream Come True,Never Had a Dream Come True
+4,36,Cool Jerk,Cool Jerk
+4,37,We Are the Ones,We Are the Ones
+4,38,Help!,Help 
+4,39,You Do,You Do
+4,40,Forty Miles of Bad Road,Forty Miles of Bad Road
+4,41,Strawberry Fields Forever,Strawberry Fields Forever
+4,42,Magnets,Magnets
+4,43,Trouble,Trouble
+4,44,BedRock,BedRock
+4,45,Bulls on Parade,Bulls on Parade
+4,46,You Said No,You Said No
+4,47,"Misty Morning, Albert Bridge","Misty Morning, Albert Bridge"
+4,48,Siamo Donne,Siamo Donne
+4,49,Get Back Up,Get Back Up
+4,50,Movement,Movement
+4,51,Hard to Be Cool,Hard to Be Cool
+4,52,Burn,Burn
+4,53,Outside the Frame,Outside the Frame
+4,54,Collard Greens,Collard Greens
+4,55,Look Back in Anger,Look Back in Anger
+4,56,Banzai,Banzai
+4,57,Anywhere but Here,Anywhere but Here
+4,58,Need You Bad,Need You Bad
+4,59,Walking on Thin Ice,Walking on Thin Ice
+4,60,Hurting,Hurting
+4,61,Amulet,Amulet
+4,62,Nas Ne Dogonyat,Nas Ne Dogonyat
+4,63,Unbelievers,Unbelievers
+4,64,Yo No Soy Esa Mujer,Yo No Soy Esa Mujer
+4,65,Limelight,Limelight
+4,66,Go West,Go West
+4,67,You're the One,You're the One
+4,68,Everything I've Known,Everything I've Known
+4,69,Koi Suru Fortune Cookie,Koi Suru Fortune Cookie
+4,70,I Love London,I Love London
+4,71,Bang Bang,Bang Bang
+4,72,We'll Bring the House Down,We'll Bring the House Down
+4,73,Closer to the Heart,Closer to the Heart
+4,74,All Over the World,All Over the World
+4,75,Wake Me Up,Wake Me Up
+4,76,Chase,Chase
+4,77,In the Flesh,In the Flesh
+4,78,Get Your Walk On,Get Your Walk On
+4,79,I Wish It Could Be Christmas Everyday,I Wish It Could Be Christmas Everyday
+4,80,Don't Wanna Dance,Don't Wanna Dance
+4,81,Steppin Up,Steppin Up
+4,82,Thinkin' About You,Thinkin' About You
+4,83,L'Instant X,L'Instant X
+4,84,Every Time I Hear Your Name,Every Time I Hear Your Name
+4,85,Drunk in Love,Drunk in Love
+4,86,Xmas Time of the Year,Xmas Time of the Year
+4,87,Mrs. Blaileen,Mrs. Blaileen
+4,88,When Somebody Loves You,When Somebody Loves You
+4,89,Moving,Moving
+4,90,The Rhythm,The Rhythm
+4,91,Doin' Time,Doin' Time
+4,92,Don Henley,Don Henley
+4,93,Jekyll and Hyde,Jekyll and Hyde
+4,94,Cut Here,Cut Here
+4,95,One Honest Heart,One Honest Heart
+4,96,Beauty on the Fire,Beauty on the Fire
+4,97,Teenage Daughters,Teenage Daughters
+4,98,Whatever You Say,Whatever You Say
+4,99,Where Corn Don't Grow,Where Corn Don't Grow
+4,100,Peace,Peace
+4,101,Groove Thang,Groove Thang
+4,102,Money to Blow,Money to Blow
+4,103,Driftwood,Driftwood
+4,104,No Time,No Time
+4,105,What Do You Say to That,What Do You Say to That
+4,106,Movin' Out,Movin' Out
+4,107,Clouds,Clouds
+4,108,Come on Sister,Come on Sister
+4,109,Sucker for Pain,Sucker for Pain
+4,110,23,23
+4,111,Post Break-Up Sex,Post Break-Up Sex
+4,112,I Feel Free,I Feel Free
+4,113,Squeeze Me In,Squeeze Me In
+4,114,Don't Stand So Close to Me '86,Don't Stand So Close to Me '86
+4,115,I'm Gonna Miss Her,I'm Gonna Miss Her
+4,116,How 'bout Them Cowgirls,How 'bout Them Cowgirls
+4,117,Can't Shake Loose,Can't Shake Loose
+4,118,Proper Education,Proper Education
+4,119,Waterline,Waterline
+4,120,Caliente,Caliente
+4,121,I Got Soul,I Got Soul
+4,122,Good Vibrations,Good Vibrations
+4,123,Dancing Girls,Dancing Girls
+4,124,Mr. Natural,Mr. Natural
+4,125,Game's Pain,Game's Pain
+4,126,The Man That Turned My Mama On,The Man That Turned My Mama On
+4,127,Me and God,Me and God
+4,128,When the Stars Go Blue,When the Stars Go Blue
+4,129,Straight to... Number One,Straight to... Number One
+4,130,Them Bones,Them Bones
+4,131,I'm in Love with a Monster,I'm in Love with a Monster
+4,132,0 to 100 / The Catch Up,0 to 100   The Catch Up
+4,133,Travelin Prayer,Travelin Prayer
+4,134,Palaces of Montezuma,Palaces of Montezuma
+4,135,Tormentor,Tormentor
+4,136,Pretty Little Adriana,Pretty Little Adriana
