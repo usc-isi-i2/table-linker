@@ -105,6 +105,7 @@ class ExactMatches(object):
                 cf_dict['kg_labels'] = ""
                 cf_dict['method'] = 'exact-match'
                 cf_dict['retrieval_score'] = 0.0
+                candidates_format.append(cf_dict)
             else:
                 for kg_id in candidate_dict:
                     cf_dict = {}
