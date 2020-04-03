@@ -3,19 +3,17 @@ from tl.candidate_generation.es_search import Search
 from tl.exceptions import RequiredInputParameterMissingException
 
 
-class ExactMatches(object):
+class PhraseQueryMatches(object):
     def __init__(self, es_url, es_index, es_user=None, es_pass=None):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
 
-    def get_exact_matches(self, column, properties="labels,aliases", lower_case=False, size=50, file_path=None,
-                          df=None):
+    def get_phrase_matches(self, column, properties="labels^2,aliases", size=50, file_path=None, df=None):
         """
-        retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
+        retrieves the identifiers of KG entities base on phrase match queries.
 
         Args:
             column: the column used for retrieving candidates.
-            properties: a comma separated names of properties in the KG to search for exact match query: default is labels,aliases
-            lower_case: case insensitive retrieval, default is case sensitive.
+            properties: a comma separated names of properties in the KG to search for exact match query: default is labels^2,aliases
             size: maximum number of candidates to retrieve, default is 50.
             file_path: input file in canonical format
             df: input dataframe in canonical format
@@ -37,8 +35,7 @@ class ExactMatches(object):
         df_columns = df.columns
 
         for i, row in df.iterrows():
-            candidate_dict = self.es.search_term_candidates(row[column], size, properties, 'exact_matches',
-                                                            lower_case=lower_case)
+            candidate_dict = self.es.search_term_candidates(row[column], size, properties, 'phrase_matches')
 
             if not candidate_dict:
                 cf_dict = {}
@@ -46,7 +43,7 @@ class ExactMatches(object):
                     cf_dict[df_column] = row[df_column]
                 cf_dict['kg_id'] = ""
                 cf_dict['kg_labels'] = ""
-                cf_dict['method'] = 'exact-match'
+                cf_dict['method'] = 'phrase-match'
                 cf_dict['retrieval_score'] = 0.0
                 candidates_format.append(cf_dict)
             else:
@@ -56,7 +53,7 @@ class ExactMatches(object):
                         cf_dict[df_column] = row[df_column]
                     cf_dict['kg_id'] = kg_id
                     cf_dict['kg_labels'] = candidate_dict[kg_id]['label_str']
-                    cf_dict['method'] = 'exact-match'
+                    cf_dict['method'] = 'phrase-match'
                     cf_dict['retrieval_score'] = candidate_dict[kg_id]['score']
                     candidates_format.append(cf_dict)
 
