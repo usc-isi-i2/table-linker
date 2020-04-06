@@ -13,7 +13,7 @@ class FFV(object):
             return False
 
         columns = df.columns
-        if len(columns) == 3 and all(c in columns for c in self.canonical_columns):
+        if len(columns) in (3, 4) and all(c in columns for c in self.canonical_columns):
             return True
         return False
 
