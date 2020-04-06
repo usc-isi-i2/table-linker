@@ -97,9 +97,9 @@ class Search(object):
 
         for search_term in search_terms:
             hits = None
-            if query_type == 'exact_matches':
+            if query_type == 'exact-match':
                 hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties))
-            elif query_type == 'phrase_matches':
+            elif query_type == 'phrase-match':
                 hits = self.search_es(self.create_phrase_query(search_term, size, properties))
 
             if hits is not None:

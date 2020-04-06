@@ -1,11 +1,13 @@
 import pandas as pd
 from tl.candidate_generation.es_search import Search
+from tl.candidate_generation.utility import Utility
 from tl.exceptions import RequiredInputParameterMissingException
 
 
 class ExactMatches(object):
     def __init__(self, es_url, es_index, es_user=None, es_pass=None):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
+        self.utility = Utility(self.es)
 
     def get_exact_matches(self, column, properties="labels,aliases", lower_case=False, size=50, file_path=None,
                           df=None):
@@ -32,34 +34,4 @@ class ExactMatches(object):
 
         df.fillna(value="", inplace=True)
 
-        properties = properties.split(',')
-        candidates_format = list()
-        df_columns = df.columns
-
-        for i, row in df.iterrows():
-            candidate_dict = self.es.search_term_candidates(row[column], size, properties, 'exact_matches',
-                                                            lower_case=lower_case)
-
-            if not candidate_dict:
-                cf_dict = {}
-                for df_column in df_columns:
-                    if df_column not in ['kg_id', 'kg_labels', 'method', 'retrieval_score']:
-                        cf_dict[df_column] = row[df_column]
-                cf_dict['kg_id'] = ""
-                cf_dict['kg_labels'] = ""
-                cf_dict['method'] = 'exact-match'
-                cf_dict['retrieval_score'] = 0.0
-                candidates_format.append(cf_dict)
-            else:
-                for kg_id in candidate_dict:
-                    cf_dict = {}
-                    for df_column in df_columns:
-                        if df_column not in ['kg_id', 'kg_labels', 'method', 'retrieval_score']:
-                            cf_dict[df_column] = row[df_column]
-                    cf_dict['kg_id'] = kg_id
-                    cf_dict['kg_labels'] = candidate_dict[kg_id]['label_str']
-                    cf_dict['method'] = 'exact-match'
-                    cf_dict['retrieval_score'] = candidate_dict[kg_id]['score']
-                    candidates_format.append(cf_dict)
-
-        return pd.DataFrame(candidates_format)
+        return self.utility.create_candidates_df(df, column, size, properties, 'exact-match', lower_case=lower_case)
