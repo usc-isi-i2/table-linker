@@ -3,6 +3,7 @@ import argparse
 import traceback
 import tl.exceptions
 
+
 def parser():
     return {
         'help': 'compares each candidate for the input cells with the ground truth value for that cell and '
@@ -17,8 +18,6 @@ def add_arguments(parser):
         parser: (argparse.ArgumentParser)
 
     """
-    parser.add_argument('-c', '--column', action='store', type=str, dest='column', required=True,
-                        help='column name with ranking scores')
 
     parser.add_argument('-f', '--gt-file', action='store', type=str, dest='gt_file', required=True,
                         help='ground truth file path')
@@ -32,7 +31,7 @@ def run(**kwargs):
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-        odf = evaluation.ground_truth_labeler(kwargs['gt_file'], kwargs['column'], df=df)
+        odf = evaluation.ground_truth_labeler(kwargs['gt_file'], df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: ground-truth-labeler\n'

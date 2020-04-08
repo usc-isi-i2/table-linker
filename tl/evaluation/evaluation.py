@@ -2,7 +2,7 @@ import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException
 
 
-def ground_truth_labeler(gt_file_path, column, file_path=None, df=None):
+def ground_truth_labeler(gt_file_path, file_path=None, df=None):
     """
     compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label.
 
@@ -25,24 +25,22 @@ def ground_truth_labeler(gt_file_path, column, file_path=None, df=None):
     if file_path:
         df = pd.read_csv(file_path, dtype=object)
     df.fillna('', inplace=True)
-    df[column] = df[column].map(lambda x: float(x))
 
     evaluation_df = pd.merge(df, gt_df, on=['column', 'row'], how='left')
 
     evaluation_df['GT_kg_id'].fillna(value="", inplace=True)
     evaluation_df['GT_kg_label'].fillna(value="", inplace=True)
 
-    evaluation_df['evaluation_label'] = evaluation_df.apply(lambda row: assign_evaluation_label(row, column), axis=1)
+    evaluation_df['evaluation_label'] = evaluation_df.apply(lambda row: assign_evaluation_label(row), axis=1)
 
     # evaluation_df.drop(columns=['max_score'], inplace=True)
     return evaluation_df
 
 
-def assign_evaluation_label(row, column):
+def assign_evaluation_label(row):
     if row['GT_kg_id'] == '':
         return 0
 
-    # if row[column] == row['max_score'] and row['kg_id'] == row['GT_kg_id']:
     if row['kg_id'] == row['GT_kg_id']:
         return 1
     return -1
