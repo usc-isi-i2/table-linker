@@ -193,6 +193,7 @@ When a cell contains a |-separated string (e.g., `Pedro|Peter`, the string is sp
 
 Candidate Generation commands output a file in [Candidates](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.j9cdkygbzzq7) format
 
+
 <a name="command_get-exact-matches" />
 
 ### [`get-exact-matches`](#command_get-exact-matches)` [OPTIONS]`
@@ -261,6 +262,59 @@ Add-Feature commands add one or more features for the candidate knowledge graph 
 All Add-Feature commands take a column in a [Candidate](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.j9cdkygbzzq7) 
 or a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file 
 and output a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file. 
+
+<a name="command_get-phrase-matches" />
+
+### [`get-phrase-matches`](#command_get-phrase-matches)` [OPTIONS]`
+retrieves the identifiers of KG entities base on phrase match queries.
+
+**Options:**
+- `-c a`: the column used for retrieving candidates.
+- `-p {a,b,c}`:  a comma separated names of properties in the KG to search for phrase match query with boost for each property.
+ Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
+- `-n {number}`: maximum number of candidates to retrieve, default is 50.
+
+This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
+labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
+The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as 
+defined above.
+
+The string `phrase-match` is recorded in the column `method` to indicate the source of the candidates.
+
+The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in 
+the field `_score` in the retrieved Elasticsearch objects.
+
+The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
+ are stored in the field `_id` in the retrieved Elasticsearch objects.
+ 
+ **Examples:**
+
+```bash
+   # generate candidates for the cells in the column 'label_clean'
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-phrase-matches -c label_clean  < canonical-input.csv
+
+   # generate candidates for the resulting column 'label_clean' with property alias boosted to 1.5 and fetch 20 candidates per query
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd get-phrase-matches -c label_clean -p "alias^1.5"  -n 20 < canonical-input.csv
+
+```
+
+**File Example:**
+
+```
+# generate candidates for the canonical file, countries_canonical.csv
+$ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-phrase-matches -c clean_labels  < countries_canonical.csv > countries_candidates.csv
+$ cat countries_candidates.csv
+
+column  row  label      clean_labels  kg_id      kg_labels                                        method        retrieval_score
+1       0    Buda’pest  Budapest      Q603551    Budapest|Budapest Georgia                        phrase-match  42.405098
+1       0    Buda’pest  Budapest      Q20571386  .budapest|dot budapest                           phrase-match  42.375305
+1       1    Prague     Prague        Q2084234   Prague|Prague  Nebraska                          phrase-match  37.18586
+1       1    Prague     Prague        Q1953283   Prague|Prague Oklahoma                           phrase-match  36.9689
+1       2    London!    London        Q261303    London|London                                    phrase-match  33.492584
+1       2    London!    London        Q23939248  London|Greater London|London region              phrase-match  33.094616
+0       0    Hungary    Hungary       Q5943060   Hungary|European Parliament election in Hungary  phrase-match  33.324196
+0       0    Hungary    Hungary       Q40662208  CCC Hungary|Cru Hungary                          phrase-match  30.940805
+```
 
 <a name="command_string-similarity" />
 
