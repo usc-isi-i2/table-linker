@@ -256,13 +256,6 @@ Two ElasticSearch term queries are defined, one for exact match retrieval and on
 -   Exact match query: In Elasticsearch language, this will be a terms query. Terms query allows search for multiple terms. This query retrieves documents which have the exact search term as label or aliases.
 -   Exact match lowercase query: Same as Exact match query but with lowercase search terms.
 
-## Adding Features Commands
-
-Add-Feature commands add one or more features for the candidate knowledge graph objects for the input cells.
-All Add-Feature commands take a column in a [Candidate](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.j9cdkygbzzq7) 
-or a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file 
-and output a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file. 
-
 <a name="command_get-phrase-matches" />
 
 ### [`get-phrase-matches`](#command_get-phrase-matches)` [OPTIONS]`
@@ -315,6 +308,17 @@ column  row  label      clean_labels  kg_id      kg_labels                      
 0       0    Hungary    Hungary       Q5943060   Hungary|European Parliament election in Hungary  phrase-match  33.324196
 0       0    Hungary    Hungary       Q40662208  CCC Hungary|Cru Hungary                          phrase-match  30.940805
 ```
+
+### Implementation
+Details to follow
+
+## Adding Features Commands
+
+Add-Feature commands add one or more features for the candidate knowledge graph objects for the input cells.
+All Add-Feature commands take a column in a [Candidate](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.j9cdkygbzzq7) 
+or a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file 
+and output a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file. 
+
 
 <a name="command_string-similarity" />
 
