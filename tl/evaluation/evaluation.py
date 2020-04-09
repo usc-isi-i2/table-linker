@@ -55,6 +55,7 @@ def metrics(column, file_path=None, df=None, k=1, tag=""):
         file_path: input file path
         df: or input dataframe
         k: calculate recall at top k candidates
+        tag: a tag to use in the output file to identify the results of running the given pipeline
 
     Returns:
 
