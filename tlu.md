@@ -245,6 +245,7 @@ file  and output a file in [Metrics File](https://docs.google.com/document/d/1eY
 **Options:**
 - `-c a`:  column name with ranking scores
 - `-k {number}: default, k=1. recall is calculated considering candidates with rank upto k
+- `--tag: a tag to use in the output file to identify the results of running the given pipeline
 
 **Examples:**
 
