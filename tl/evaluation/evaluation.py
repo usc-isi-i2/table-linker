@@ -46,7 +46,7 @@ def assign_evaluation_label(row):
     return -1
 
 
-def metrics(column, file_path=None, df=None, k=1):
+def metrics(column, file_path=None, df=None, k=1, tag=""):
     """
     computes the precision, recall and f1 score for the tl pipeline.
 
@@ -99,4 +99,4 @@ def metrics(column, file_path=None, df=None, k=1):
     else:
         f1_score = (2 * precision * recall) / (precision + recall)
 
-    return pd.DataFrame({'f1': f1_score, 'precision': precision, 'recall': recall}, index=[0])
+    return pd.DataFrame({'f1': f1_score, 'precision': precision, 'recall': recall, 'tag': tag}, index=[0])

@@ -23,6 +23,9 @@ def add_arguments(parser):
     parser.add_argument('-k', action='store', type=int, dest='k', default=1,
                         help='calculate recall at top k, default is 1')
 
+    parser.add_argument('--tag', action='store', type=str, dest='tag', default='',
+                        help='a tag to use in the output file to identify the results of running the given pipeline')
+
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
@@ -32,7 +35,7 @@ def run(**kwargs):
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-        odf = evaluation.metrics(kwargs['column'], k=kwargs['k'], df=df)
+        odf = evaluation.metrics(kwargs['column'], k=kwargs['k'], df=df, tag=kwargs['tag'])
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: metrics\n'
