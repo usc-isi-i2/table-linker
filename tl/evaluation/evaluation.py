@@ -71,8 +71,6 @@ def metrics(column, file_path=None, df=None, k=1, tag=""):
 
     # relevant df
     rdf = df[df['evaluation_label'] != '0']
-    
-    n = len(rdf)
 
     # true positive for precision at 1
     tp_ps = []
@@ -81,7 +79,7 @@ def metrics(column, file_path=None, df=None, k=1, tag=""):
     tp_rs = []
 
     grouped = rdf.groupby(by=['column', 'row'])
-
+    n = len(grouped)
     for key, gdf in grouped:
         gdf = gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True]).reset_index()
 
@@ -96,6 +94,7 @@ def metrics(column, file_path=None, df=None, k=1, tag=""):
 
     precision = float(len(tp_ps)) / float(n)
     recall = float(len(tp_rs)) / float(n)
+    
     if precision == 0 and recall == 0:
         f1_score = 0.0
     else:
