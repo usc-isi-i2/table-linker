@@ -156,7 +156,7 @@ class EmbeddingVector:
                 vector_strategy == "exact-matches"
         if vector_strategy == "exact-matches":
             candidate_nodes = self.only_one_candidates
-        else:
+        elif vector_strategy != "ground-truth":
             raise ValueError("Unknown vector vector strategy {}".format(vector_strategy))
         candidate_nodes = [each for each in candidate_nodes if each != "" and each is not np.nan]
         # random sample nodes if nedded
