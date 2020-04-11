@@ -94,6 +94,7 @@ class EmbeddingVector:
         self.loaded_file = None
         self.kgtk_format_input = None
         self.centroid = None
+        self.only_one_candidates = set()
 
     def load_input_file(self, input_file):
         """
@@ -118,6 +119,8 @@ class EmbeddingVector:
                     "kg_id": list(info["kg_id"])[0] if len(info["kg_id"]) > 0 else "",
                     "candidates": "|".join(list(info["candidates"]))
                 }
+                if len(info["candidates"]) == 1 and info_list_format['kg_id'] != "":
+                    self.only_one_candidates.update(info["candidates"])
                 all_info[count] = info_list_format
                 count += 1
                 info = defaultdict(set)
@@ -148,8 +151,11 @@ class EmbeddingVector:
             if "GT_kg_id" not in self.loaded_file:
                 raise ValueError("The input file does not have `GT_kg_id` column! Can't run with ground-truth strategy")
             candidate_nodes = list(set(self.loaded_file["GT_kg_id"].tolist()))
-        elif vector_strategy == "exact-matches":
-            candidate_nodes = list(set(self.loaded_file["kg_id"].tolist()))
+            # if we get no result with only one candidate, we have to find out a centroid
+            if len(candidate_nodes) == 0:
+                vector_strategy == "exact-matches"
+        if vector_strategy == "exact-matches":
+            candidate_nodes = self.only_one_candidates
         else:
             raise ValueError("Unknown vector vector strategy {}".format(vector_strategy))
         candidate_nodes = [each for each in candidate_nodes if each != "" and each is not np.nan]
