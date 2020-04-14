@@ -89,12 +89,14 @@ def parse_evaluation_format(dataset_path):
 
 class EmbeddingVector:
     def __init__(self, parameters):
+        from collections import defaultdict
         self.vectors_map = {}
         self.kwargs = parameters
         self.loaded_file = None
         self.kgtk_format_input = None
-        self.centroid = None
+        self.centroid = {}
         self.only_one_candidates = set()
+        self.groups = defaultdict(set)
 
     def load_input_file(self, input_file):
         """
@@ -129,8 +131,10 @@ class EmbeddingVector:
             # GT_kg_id can also sometime be empty?
             if each_row["GT_kg_id"] is not np.nan:
                 info["kg_id"].add(each_row["GT_kg_id"])
+                self.groups[each_row["column"]].add(each_row["GT_kg_id"])
             if each_row["kg_id"] is not np.nan:
                 info["candidates"].add(each_row["kg_id"])
+                self.groups[each_row["column"]].add(each_row["kg_id"])
         # add last row
         info_list_format = {
                     "label": list(info["label"])[0],
@@ -145,30 +149,40 @@ class EmbeddingVector:
             function used to calculate the column-vector(centroid) value
         """
         import numpy as np
+        import random
+        from collections import defaultdict
         n_value = int(self.kwargs.pop("n_value"))
         vector_strategy = self.kwargs.get("column_vector_strategy", "exact-matches")
         if vector_strategy == "ground-truth":
             if "GT_kg_id" not in self.loaded_file:
                 raise ValueError("The input file does not have `GT_kg_id` column! Can't run with ground-truth strategy")
             candidate_nodes = list(set(self.loaded_file["GT_kg_id"].tolist()))
-            # if we get no result with only one candidate, we have to find out a centroid
-            if len(candidate_nodes) == 0:
-                vector_strategy == "exact-matches"
-        if vector_strategy == "exact-matches":
-            candidate_nodes = self.only_one_candidates
-        elif vector_strategy != "ground-truth":
+        elif vector_strategy == "exact-matches":
+            candidate_nodes = list(set(self.loaded_file["kg_id"].tolist()))
+        else:
             raise ValueError("Unknown vector vector strategy {}".format(vector_strategy))
         candidate_nodes = [each for each in candidate_nodes if each != "" and each is not np.nan]
+        # get corresponding column of each candidate nodes
+        nodes_map = defaultdict(set)
+        for each_node in candidate_nodes:
+            for group, nodes in self.groups.items():
+                if each_node in nodes:
+                    nodes_map[group].add(each_node)
         # random sample nodes if nedded
-        if n_value != 0 and n_value < len(candidate_nodes):
-            import random
-            candidate_nodes = random.sample(candidate_nodes, n_value)
+        nodes_map_updated = {}
+        for group, nodes in nodes_map.items():
+            if n_value != 0 and n_value < len(nodes):
+                nodes_map_updated[group] = random.sample(nodes, n_value)
+            else:
+                nodes_map_updated[group] = nodes
         # get centroid
-        centroid = self.vectors_map[candidate_nodes[0]]
-        for each_node in candidate_nodes[1:]:
-            centroid += self.vectors_map[each_node]
-        centroid = centroid / len(candidate_nodes)
-        self.centroid = centroid
+        for group, nodes in nodes_map_updated.items():
+            nodes = list(nodes)
+            each_centroid = self.vectors_map[nodes[0]]
+            for each_node in nodes[1:]:
+                each_centroid += self.vectors_map[each_node]
+            each_centroid = each_centroid / len(nodes)
+            self.centroid[group] = each_centroid
 
     def compute_distance(self, v1: typing.List[float], v2: typing.List[float]):
         if self.kwargs["distance_function"] == "cosine":
@@ -194,7 +208,7 @@ class EmbeddingVector:
         scores = []
         for i, each_row in self.loaded_file.iterrows():
             if each_row["kg_id"] is not np.nan:
-                each_score = self.compute_distance(self.centroid, self.vectors_map[each_row["kg_id"]])
+                each_score = self.compute_distance(self.centroid[each_row["column"]], self.vectors_map[each_row["kg_id"]])
             else:
                 each_score = ""
             scores.append(each_score)
