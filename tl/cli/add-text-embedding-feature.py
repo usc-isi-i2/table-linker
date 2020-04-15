@@ -1,4 +1,8 @@
 import typing
+import argparse
+import sys
+import traceback
+import tl.exceptions
 
 def parser():
     return {
@@ -8,8 +12,7 @@ def parser():
 def add_arguments(parser):
     # input file
     from kgtk.cli.text_embedding import ALL_EMBEDDING_MODELS_NAMES
-    parser.add_argument('-i', '--input', action='store', dest='input_file',
-            help="input path",)
+    parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
     # query endpoint, default use official wikidata?
     parser.add_argument('-q', '--sparql-query-endpoint', action='store', dest='query_endpoint',
             help="sparql_query_endpoint", default="https://query.wikidata.org/sparql")
@@ -35,7 +38,7 @@ def add_arguments(parser):
     # projector file
     parser.add_argument('-g', '--generate-projector-file', action='store', dest='projector_file_name',
             default=None, 
-            help="generate the files needed to run the Google Project visualization, using the given name to compose the names of the output files. If gien, an additional tsv file will be saved. If only a file name given, it will save on user's home directory.")
+            help="generate the files needed to run the Google Project visualization, using the given name to compose the names of the output files. If given, an additional tsv file will be saved. If only a file name given, it will save on user's home directory.")
     # properties to use for embedding
     parser.add_argument('--label-properties', action='store', nargs='+', 
             dest='label_properties',default= ["label"],
@@ -106,7 +109,7 @@ class EmbeddingVector:
         import os
         from collections import defaultdict
         import numpy as np
-        self.loaded_file = pd.read_csv(input_file)
+        self.loaded_file = pd.read_csv(input_file, dtype=object)
         last_location = None
         all_info = {}
         count = 0
@@ -114,6 +117,7 @@ class EmbeddingVector:
         for i, each_row in self.loaded_file.iterrows():
             column_row_pair = (each_row["column"], each_row["row"])
             if column_row_pair != last_location and last_location != None:
+                # in this condition, it means there is no proper candidates
                 if len(list(info["candidates"])) == 1 and isinstance(list(info['candidates'])[0], float):
                     info["candidates"] = []
                 info_list_format = {
@@ -135,12 +139,16 @@ class EmbeddingVector:
             if each_row["kg_id"] is not np.nan:
                 info["candidates"].add(each_row["kg_id"])
                 self.groups[each_row["column"]].add(each_row["kg_id"])
+
         # add last row
+        if len(list(info["candidates"])) == 1 and isinstance(list(info['candidates'])[0], float):
+            info["candidates"] = []
         info_list_format = {
                     "label": list(info["label"])[0],
                     "kg_id": list(info["kg_id"])[0] if len(info["kg_id"]) > 0 else "",
                     "candidates": "|".join(list(info["candidates"]))
                 }
+
         all_info[count] = info_list_format
         self.kgtk_format_input = pd.DataFrame.from_dict(all_info, orient='index')
 
@@ -201,18 +209,20 @@ class EmbeddingVector:
 
     def add_score_column(self):
         import numpy as np
+        import math
         score_column_name = self.kwargs["output_column_name"]
         if score_column_name is None:
             score_column_name = "score_{}".format(self.kwargs["models_names"])
 
         scores = []
         for i, each_row in self.loaded_file.iterrows():
-            if each_row["kg_id"] is not np.nan:
-                each_score = self.compute_distance(self.centroid[each_row["column"]], self.vectors_map[each_row["kg_id"]])
-            else:
+            # the nan value can also be float
+            if (isinstance(each_row["kg_id"], float) and math.isnan(each_row["kg_id"])) or each_row["kg_id"] is np.nan:
                 each_score = ""
+            else:
+                each_score = self.compute_distance(self.centroid[each_row["column"]], self.vectors_map[each_row["kg_id"]])
+                
             scores.append(each_score)
-
         self.loaded_file[score_column_name] = scores
 
     def get_vectors(self):
@@ -235,6 +245,7 @@ class EmbeddingVector:
         self.kwargs["input_format"] = "test_format"
         self.kwargs["logging_level"] = "none"
         self.kwargs["output_uri"] = "none"
+        self.kwargs["run_TSNE"] = False
         # catch the stdout to string
         old_stdout = sys.stdout
         sys.stdout = output_vectors = StringIO()
@@ -264,12 +275,7 @@ class EmbeddingVector:
             f.writelines(vector_io.readlines())
 
     def print_output(self):
-        from io import StringIO
-        temp_io = StringIO()
-        self.loaded_file.to_csv(temp_io, index=False)
-        temp_io.seek(0)
-        for each_line in temp_io.readlines():
-            print(each_line.replace("\n",""))
+        self.loaded_file.to_csv(sys.stdout, index=False)
 
 def run(**kwargs):
     try:
@@ -280,5 +286,7 @@ def run(**kwargs):
         vector_transformer.get_centroid()
         vector_transformer.add_score_column()
         vector_transformer.print_output()
-    except Exception as e:
-        print(e)
+    except:
+        message = 'Command: clean\n'
+        message += 'Error Message:  {}\n'.format(traceback.format_exc())
+        raise tl.exceptions.TLException(message)
