@@ -52,7 +52,12 @@ def add_arguments(parser):
     parser.add_argument('--has-properties', action='store', nargs='+', 
             dest='has_properties', default= ["all"],
             help="""The names of the eges for `has` properties, Default is ["all"] (will automatically append all properties found for each node).\n This argument is only valid for input in kgtk format.""")
-
+    # query server
+    parser.add_argument("--query-server", nargs='?',  action='store',
+                        default="https://dsbox02.isi.edu:8888/bigdata/namespace/wdq/sparql", dest="query_server",
+                        help="cache host address, default is https://dsbox02.isi.edu:8888/bigdata/namespace/wdq/sparql"
+                        )
+    
 def parse_evaluation_format(dataset_path):
     for source in os.listdir(dataset_path):
         if source.endswith(".csv") and not source.startswith("wrapped"):
