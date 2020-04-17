@@ -246,6 +246,7 @@ class EmbeddingVector:
         self.kwargs["logging_level"] = "none"
         self.kwargs["output_uri"] = "none"
         self.kwargs["run_TSNE"] = False
+        self.kwargs["use_cache"] = True
         # catch the stdout to string
         old_stdout = sys.stdout
         sys.stdout = output_vectors = StringIO()
