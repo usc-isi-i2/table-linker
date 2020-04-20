@@ -11,15 +11,30 @@ def parser():
     }
 
 def execute_shell_code(shell_command: str, debug=False):
-    import subprocess
+    from subprocess import Popen, PIPE
+    import sys
+    r1 = ""
+    r2 = ""
     if debug:
         print("excuting...")
         print(shell_command)
         print("-"*100)
-    out = subprocess.Popen(shell_command, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
-    out.wait()
+    out = Popen(shell_command, shell=True, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    # out.wait()
+    """
+    Popen.wait():
+
+    Wait for child process to terminate. Set and return returncode attribute.
+
+    Warning: This will deadlock when using stdout=PIPE and/or stderr=PIPE and the child process generates enough output to a pipe such that it blocks waiting for the OS pipe buffer to accept more data. Use communicate() to avoid that.
+    """
     stdout,stderr = out.communicate()
-    # print(stdout)
+    if stderr:
+        print("Error!!")
+        print(stderr)
+        print("-" * 50)
+    if debug:
+        print("Running fished!!!!!!")
     return stdout
 
 
@@ -32,10 +47,12 @@ def add_arguments(parser):
                         default="", help="the path of a directory containing the ground truth files for all the input files.")
     parser.add_argument('--ground-truth-file-pattern', action='store', nargs='?', dest='ground_truth_pattern',
                         default="{}_gt.csv", help="the pattern used to create the name of the ground truth file from the name of an input file.")
-    parser.add_argument('--omit-headers', action='store_true', help="if set, not store header")
+    parser.add_argument('--omit-headers', action='store_false', help="if set, not store header")
     # tag
     parser.add_argument('--tag', action='store', nargs='?', dest='tag',
                         default="output", help="a tag to use in the output file to identify the results of running the given pipeline")
+    # debug
+    parser.add_argument('--debug', action='store_true', help="if set, will print debug information.")
     # main pipeline
     parser.add_argument('-p','--pipeline', action='store', nargs='?', dest='pipeline',required=True,
                         default="", help=" the pattern used to create the name of the ground truth file from the name of an input file.")
@@ -64,7 +81,6 @@ def run_one_pipeline(config: dict):
     if not config["command"].startswith("tl"):
         running_option += "tl "
 
-    
     all_commands = set([each.replace(".py", "") \
         for each in os.listdir(os.path.dirname(os.path.abspath(__file__))) \
         if each.endswith(".py") and not each.startswith("__")])
@@ -76,9 +92,9 @@ def run_one_pipeline(config: dict):
     # main running table linker function
     running_option += config["command"].replace("{}", update_part_name)
 
-    res = execute_shell_code(running_option, debug=True)
+    res = execute_shell_code(running_option, debug=config["debug"])
     if res == "":
-        raise ("Excuting Error!")
+        raise tl.exceptions.TLException("Excuting Error!")
 
     import tempfile
     temp_path = tempfile.mkstemp(prefix='table_linker_temp_file')[1]
@@ -92,7 +108,7 @@ def run_one_pipeline(config: dict):
         name = config.get("ground_truth_pattern").replace("{}", update_part_name)
         gt_file_path = os.path.join(config.get("ground_truth_directory"), name)
         running_option = "tl ground-truth-labeler {} -f {}".format(temp_path, gt_file_path)
-        res = execute_shell_code(running_option, debug=True)
+        res = execute_shell_code(running_option, debug=config["debug"])
         # update file to the new result with ground truth
         os.remove(temp_path)
         temp_path = tempfile.mkstemp(prefix='table_linker_temp_file')[1]
@@ -109,7 +125,7 @@ def run_one_pipeline(config: dict):
 
     # evaluate the prediction
     running_option = "tl metrics {} -c {}".format(temp_path, config["score_column"])
-    res = execute_shell_code(running_option, debug=True)
+    res = execute_shell_code(running_option, debug=config["debug"])
     os.remove(temp_path)
     return res
 
@@ -124,7 +140,7 @@ def print_result(results: typing.List[str], omit_header: bool, tag: str, input_f
     cols = ["tag", "file", "precision", "recall", "f1"]
     res_combined = res_combined[cols]
     res_combined = res_combined.reset_index().drop(columns=["index"])
-    res_combined.to_csv(sys.stdout, index=False)
+    res_combined.to_csv(sys.stdout, index=False, header=omit_header)
 
 def run(**kwargs):
     if len(kwargs.get("pipeline")) == 0:
@@ -146,7 +162,8 @@ def run(**kwargs):
             "output_name": kwargs.get("output_name"),
             "ground_truth_pattern": kwargs.get("ground_truth_pattern"),
             "ground_truth_directory": kwargs.get("ground_truth_directory", ""),
-            "score_column": kwargs.get("score_column")
+            "score_column": kwargs.get("score_column"),
+            "debug": kwargs.get("debug", False)
         }
         running_configs.append(each_config)
         if len(gpu_resources) > 0:
@@ -157,10 +174,31 @@ def run(**kwargs):
     # start running
     try:
         from multiprocessing import Pool
+        from tqdm import tqdm
+        import time
         import pandas as pd
         from io import StringIO
-        p = Pool(parallel_count)
-        results = p.map(run_one_pipeline, running_configs)
+        if parallel_count == 1:
+            results = []
+            for each in tqdm(running_configs):
+                results.append(run_one_pipeline(each))
+        else:
+            p = Pool(parallel_count)
+            result = p.map_async(run_one_pipeline, running_configs)
+            pbar = tqdm(total=len(running_configs))
+            previous_remain = len(running_configs)
+            while not result.ready():
+                remain_job = result._number_left
+                if remain_job != previous_remain:
+                    pbar.update(previous_remain - remain_job)
+                    previous_remain = remain_job
+                time.sleep(2)
+            pbar.close()
+            results = result.get()
+            p.close()
+            p.join()
+            # results = p.map(run_one_pipeline, running_configs)
+
         print_result(results, omit_header=kwargs['omit_headers'],input_files=input_files, tag=kwargs.get('tag'))
     except:
         message = 'Command: clean\n'
