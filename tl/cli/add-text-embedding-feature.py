@@ -12,6 +12,15 @@ def parser():
 def add_arguments(parser):
     # input file
     from kgtk.cli.text_embedding import ALL_EMBEDDING_MODELS_NAMES
+    def str2bool(v):
+        if isinstance(v, bool):
+           return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
     # query endpoint, default use official wikidata?
     parser.add_argument('-q', '--sparql-query-endpoint', action='store', dest='query_endpoint',
@@ -57,7 +66,11 @@ def add_arguments(parser):
                         default="https://dsbox02.isi.edu:8888/bigdata/namespace/wdq/sparql", dest="query_server",
                         help="cache host address, default is https://dsbox02.isi.edu:8888/bigdata/namespace/wdq/sparql"
                         )
-    
+    # run TSNE or not
+    parser.add_argument("--run-TSNE", type=str2bool, nargs='?',  action='store',
+                        default=True, dest="run_TSNE",
+                        help="whether to run TSNE or not after the embedding, default is true.")
+
 def parse_evaluation_format(dataset_path):
     for source in os.listdir(dataset_path):
         if source.endswith(".csv") and not source.startswith("wrapped"):
@@ -183,6 +196,7 @@ class EmbeddingVector:
                     nodes_map[group].add(each_node)
         # random sample nodes if nedded
         nodes_map_updated = {}
+
         for group, nodes in nodes_map.items():
             if n_value != 0 and n_value < len(nodes):
                 nodes_map_updated[group] = random.sample(nodes, n_value)
@@ -190,11 +204,10 @@ class EmbeddingVector:
                 nodes_map_updated[group] = nodes
         # get centroid
         for group, nodes in nodes_map_updated.items():
-            nodes = list(nodes)
-            each_centroid = self.vectors_map[nodes[0]]
-            for each_node in nodes[1:]:
-                each_centroid += self.vectors_map[each_node]
-            each_centroid = each_centroid / len(nodes)
+            temp = []
+            for each_node in sorted(list(nodes)):
+                temp.append(self.vectors_map[each_node])
+                each_centroid = np.mean(np.array(temp),axis=0)
             self.centroid[group] = each_centroid
 
     def compute_distance(self, v1: typing.List[float], v2: typing.List[float]):
@@ -250,7 +263,6 @@ class EmbeddingVector:
         self.kwargs["input_format"] = "test_format"
         self.kwargs["logging_level"] = "none"
         self.kwargs["output_uri"] = "none"
-        self.kwargs["run_TSNE"] = False
         self.kwargs["use_cache"] = True
         # catch the stdout to string
         old_stdout = sys.stdout
