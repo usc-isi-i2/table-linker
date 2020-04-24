@@ -1,5 +1,6 @@
 import json
 import requests
+from tl.candidate_generation.phrase_query_json import query
 from requests.auth import HTTPBasicAuth
 
 
@@ -9,10 +10,7 @@ class Search(object):
         self.es_index = es_index
         self.es_user = es_user
         self.es_pass = es_pass
-        try:
-            self.query = json.load(open('tl/candidate_generation/phrase_query.json'))
-        except:
-            self.query = json.load(open('./phrase_query.json'))
+        self.query = query
 
     def search_es(self, query):
         es_search_url = '{}/{}/_search'.format(self.es_url, self.es_index)
