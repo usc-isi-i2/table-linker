@@ -266,7 +266,7 @@ retrieves the identifiers of KG entities base on phrase match queries.
 - `-p {a,b,c}`:  a comma separated names of properties in the KG to search for phrase match query with boost for each property.
  Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
-- `--filer {str}`: a string indicate the filtering requirement.
+- `--filter {str}`: a string indicate the filtering requirement.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
 labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
