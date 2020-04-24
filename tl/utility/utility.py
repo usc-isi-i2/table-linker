@@ -215,3 +215,51 @@ class Utility(object):
             "error_code": error_code
         }
         return error
+
+    @staticmethod
+    def str2bool(v: str):
+        """
+            a simple wrap function that can wrap any kind of input to bool type, used for argparsers 
+        """
+        import argparse
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
+    @staticmethod
+    def execute_shell_code(shell_command: str, debug=False):
+        from subprocess import Popen, PIPE
+        if debug:
+            Utility.eprint("Executing...")
+            Utility.eprint(shell_command)
+            Utility.eprint("-" * 100)
+        out = Popen(shell_command, shell=True, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+        # out.wait()
+        """
+        Popen.wait():
+    
+        Wait for child process to terminate. Set and return returncode attribute.
+    
+        Warning: This will deadlock when using stdout=PIPE and/or stderr=PIPE and the child process generates enough output to 
+        a pipe such that it blocks waiting for the OS pipe buffer to accept more data. Use communicate() to avoid that. """
+        stdout, stderr = out.communicate()
+        if stderr:
+            Utility.eprint("Error!!")
+            Utility.eprint(stderr)
+            Utility.eprint("-" * 50)
+        if debug:
+            Utility.eprint("Running fished!!!!!!")
+        return stdout
+
+    @staticmethod
+    def eprint(*args, **kwargs):
+        """
+        print the things to stderr instead of stdout to prevent get included of bash `>`
+        """
+        import sys
+        print(*args, file=sys.stderr, **kwargs)

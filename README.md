@@ -266,6 +266,7 @@ retrieves the identifiers of KG entities base on phrase match queries.
 - `-p {a,b,c}`:  a comma separated names of properties in the KG to search for phrase match query with boost for each property.
  Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
+- `--filer {str}`: a string indicate the filtering requirement.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
 labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
@@ -280,6 +281,7 @@ the field `_score` in the retrieved Elasticsearch objects.
 The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
  are stored in the field `_id` in the retrieved Elasticsearch objects.
  
+The `filter` arg is optional, if given, it will excute the operation specified in the string and remove the rows which not fit the requirement. If after removing, no candidates for this `(column, row)` pair left, it will append the phrase match results generated, otherwise nothing will be appeneded.
  **Examples:**
 
 ```bash
@@ -289,6 +291,11 @@ The identifiers for the candidate knowledge graph objects returned by Elasticsea
    # generate candidates for the resulting column 'label_clean' with property alias boosted to 1.5 and fetch 20 candidates per query
    $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd get-phrase-matches -c label_clean -p "alias^1.5"  -n 20 < canonical-input.csv
 
+   # generate candidates for the cells in the column 'label_clean' with exact-match method and normalized the score
+   # then filter the results of exact-match with score less than 0.9 and add candaites found from phrase-match
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd clean -c label \
+     / get-exact-matches -c label_clean / normalize-scores -c retrieval_score \
+     / get-phrase-matches -c label_clean -n 5 --filter "retrieval_score_normalized > 0.9"
 ```
 
 **File Example:**
@@ -683,3 +690,133 @@ in the Ground Truth File and the candidate is different from the corresponding k
 - `GT_kg_label`: preferred label of the knowledge graph object in the ground truth. The labels for the candidates are
  added by the [get-exact-matches](#command_get-exact-matches) command and are stored in the column `kg_labels`. 
  If the column is not present or in case of missing preferred label, empty string "" is added.
+
+
+<a name="command_tee" />
+
+### [`tee`](#command_tee)` [OPTIONS]`
+
+The `tee` command is a simple wrap function of linux command `tee`
+
+This module is an internal command in a pipeline, should not be used alone. It can save the output of previous step, then send the output to next step as the input.
+
+**Options:**
+- `-o / --output`: The path to save the output of previous step
+
+**Examples:**
+```bash
+# clean the input table, save it to `cleaned_table.csv`, then run exact matches
+$ tl clean -c label / tee --output cleaned_table.csv /get-exact-matches -c label_clean < input.csv
+```
+
+**File Example:**
+any input format is supported
+
+#### Implementation
+Catch the output of the previous output, then make a copy to the output file and write to stdout.
+
+
+<a name="command_add-text-embedding-feature" />
+
+### [`add-text-embedding-feature`](#command_add-text-embedding-feature)` [OPTIONS]`
+
+The `add-text-embedding-feature` command is a feature function used to add a score column base on `sentence embedding`. The closer the vectors to centroid, the higher the score will get.
+
+This module is another socre ranking method that may help to improve the correctness of the linking results.
+
+**Options:**
+- `-q / --sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
+- `-o / --output-column-name`: The output scoring column name. If not provided, the name of the embedding model will be used.
+- `-g / --generate-projector-file`: If given, the function will generate the files needed to run the Google Project visualization.
+###### Following options are wrapped from kgtk, please refer to [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
+- `-c / --column-vector-strategy`: The centroid choosing method.
+- `-m / --embedding-model`: The pre-fitted models used for generating the vectors.
+- `-d / --distance-function`: The distance measurement function to used for scoring.
+- `-n`: The number of cells used to estimate the vector for a column.
+- `--label-properties`: The names of the eges for `label` properties
+- `--description-properties`: The names of the eges for `description` properties.
+- `--isa-properties`: The names of the eges for `isa` properties.
+- `--has-properties`: The names of the eges for `has` properties
+- `--run-TSNE`: whether to run TSNE or not after the embedding vectors is generated.
+
+**Examples:**
+```bash
+# run text embedding command to add an extra column `embed-score` with ground-truth strategy and use all nodes to calculate centroid
+$ tl add-text-embedding-feature input_file.csv \
+  --column-vector-strategy ground-truth \
+  -n 0 \
+  -o embed-score \
+```
+
+**File Example:**
+```
+    column  row                                          label  ...                                    GT_kg_label evaluation_label embed-score
+0        0    2                        Trigeminal nerve nuclei  ...                        Trigeminal nerve nuclei                1    0.925744
+1        0    3                       Trigeminal motor nucleus  ...                       Trigeminal motor nucleus                1    0.099415
+2        0    4                          Substantia innominata  ...                          Substantia innominata                1    0.070117
+3        0    6                                    Rhombic lip  ...                                    Rhombic lip                1    1.456694
+4        0    7                                 Rhinencephalon  ...                                 Rhinencephalon                1    0.471636
+5        0    9  Principal sensory nucleus of trigeminal nerve  ...  Principal sensory nucleus of trigeminal nerve                1    1.936707
+6        0   12                     Nucleus basalis of Meynert  ...                     Nucleus basalis of Meynert                1    0.130171
+7        0   14      Mesencephalic nucleus of trigeminal nerve  ...      Mesencephalic nucleus of trigeminal nerve                1    1.746346
+8        0   17                         Diagonal band of Broca  ...                         Diagonal band of Broca                1    0.520857
+9        0    1                                 Tuber cinereum  ...                                 tuber cinereum                1    0.116646
+10       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.192494
+11       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.028620
+```
+
+#### Implementation
+This command mainly wrap from kgtk's text-embedding functions.
+please refer to kgtk's readme page [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
+
+
+<a name="command_run-pipeline" />
+
+### [`run-pipeline`](#command_run-pipeline)` [OPTIONS]`
+
+The `run-pipeline` command is a batch running command that enable users to run same pipelines on a batch of files automatically and then evaluate the pipeline running results if possible.
+
+**Options:**
+
+- `--ground-truth-directory`: The ground truth directory.
+- `--ground-truth-file-pattern`: the pattern used to create the name of the ground truth file from the name of an input file. Default is `{}_gt.csv`
+- `-p / --pipeline`: the main pipeline structures.
+- `--score-column`: The column name for evaluating.
+- `--gpu-resources`: Optional, if given, the system will use only the specified GPU ID for running.
+- `--tag`: Optional, if given, the system we use given tag.
+- `-n`: Optional, if given, the sysetm will create the number of processes to run parallelly. Default is `1`.
+- `--output`: Optional, need to work with `--output-folder`. Default is `output_{}`
+- `--output-folder`: Optional, if given, the system will save the output file of each pipeline to given folder with given file naming pattern from `--output`.
+- `--omit-headers`: Optional flag, if set with `--omit-headers`, no header will be generated for output.
+- `--debug`: Optional flag, if set with `--debug`, system will print all the table-linker commands which are running for debugging purpose.
+**Examples:**
+```bash
+# run a pipeline on all files starting with `v15_68` and ends with `.csv` on folder `iswc_challenge_data/round4/canonical/`
+# clean -> get exact-matches candidates -> normalize score -> get phase-matches -> normalize score -> add ground truths -> get embedding scores 
+# Set to output with a tag gt-embed and score the output base on column `embed-score`, and run 4 processes parallelly. Also, turn on the debug mode.
+$ tl run-pipeline \
+  --tag gt-embed \
+  --gpu-resources 1 \
+  -n 4 \
+  --score-column embed-score \
+  --debug \
+  --ground-truth-directory iswc_challenge_data/round4/gt \
+  --ground-truth-file-pattern {}.csv \
+  --pipeline 'clean -c label / get-exact-matches -c label_clean / normalize-scores -c retrieval_score \
+    / get-phrase-matches -c label_clean -n 5 --filter "retrieval_score_normalized > 0.9" / normalize-scores -c retrieval_score \
+    / ground-truth-labeler -f iswc_challenge_data/round4/gt/{}.csv \
+    / add-text-embedding-feature --column-vector-strategy ground-truth -n 0 --run-TSNE True \
+    --distance-function cosine -o embed-score \
+    iswc_challenge_data/round4/canonical/v15_68*.csv
+```
+
+**File Example:**
+```
+tag         file      precision recall      f1
+gt-embed  v15_685.csv 0.473684211 0.473684211 0.473684211
+gt-embed  v15_686.csv 0.115384615 0.115384615 0.115384615
+```
+
+#### Implementation
+This command used python's subprocess to call shell functions then excute the corresponding shell codes.
+
