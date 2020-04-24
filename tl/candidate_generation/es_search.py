@@ -1,4 +1,4 @@
-import json
+import copy
 import requests
 from tl.candidate_generation.phrase_query_json import query
 from requests.auth import HTTPBasicAuth
@@ -10,7 +10,7 @@ class Search(object):
         self.es_index = es_index
         self.es_user = es_user
         self.es_pass = es_pass
-        self.query = query
+        self.query = copy.deepcopy(query)
 
     def search_es(self, query):
         es_search_url = '{}/{}/_search'.format(self.es_url, self.es_index)
