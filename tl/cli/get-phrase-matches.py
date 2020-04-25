@@ -31,32 +31,21 @@ def add_arguments(parser):
 
     # used for filtering
     parser.add_argument('--filter', action='store', nargs='?', dest='filter_condition',
-                        default="", help="If set to run filtering, which kind of the data should keep.")
+                        default=None, help="If set to run filtering, which kind of the data should keep.")
 
 
 def run(**kwargs):
     from tl.candidate_generation import phrase_query_candidates
-    from tl.utility.filter import Filter
     import pandas as pd
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-        need_filter = False
-        if kwargs.get("filter_condition"):
-            need_filter = True
-
-        if need_filter:
-            query_input_df = Filter.remove_previous_match_res(df)
-        else:
-            query_input_df = df
 
         em = phrase_query_candidates.PhraseQueryMatches(es_url=kwargs['url'], es_index=kwargs['index'],
                                                         es_user=kwargs['user'],
                                                         es_pass=kwargs['password'])
-        odf = em.get_phrase_matches(kwargs['column'], properties=kwargs['properties'], size=kwargs['size'], df=query_input_df)
+        odf = em.get_phrase_matches(kwargs['column'], properties=kwargs['properties'], size=kwargs['size'], 
+                                    df=df, filter_condition=kwargs['filter_condition'])
         
-        if need_filter:
-            odf = Filter.combine_result(df, odf, kwargs["filter_condition"])
-
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-phrase-matches\n'
