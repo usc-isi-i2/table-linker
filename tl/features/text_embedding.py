@@ -20,53 +20,39 @@ class EmbeddingVector:
 
     def load_input_file(self, input_file):
         """
-            read the input file and then transform it to kgtk format input
+            read the input file and then wrap it to kgtk format input
         """
         import pandas as pd
-        from collections import defaultdict
-        import numpy as np
+        from tl.utility.utility import Utility
         self.loaded_file = pd.read_csv(input_file, dtype=object)
-        last_location = None
         all_info = {}
         count = 0
-        info = defaultdict(set)
-        for i, each_row in self.loaded_file.iterrows():
-            column_row_pair = (each_row["column"], each_row["row"])
-            if column_row_pair != last_location and last_location is not None:
-                # in this condition, it means there is no proper candidates
-                if len(list(info["candidates"])) == 1 and isinstance(list(info['candidates'])[0], float):
-                    info["candidates"] = []
-                info_list_format = {
-                    "label": list(info["label"])[0],
-                    "kg_id": list(info["kg_id"])[0] if len(info["kg_id"]) > 0 else "",
-                    "candidates": "|".join(list(info["candidates"]))
-                }
-                if len(info["candidates"]) == 1 and info_list_format['kg_id'] != "":
-                    self.only_one_candidates.update(info["candidates"])
-                all_info[count] = info_list_format
-                count += 1
-                info = defaultdict(set)
-            last_location = column_row_pair
-            info["label"].add(each_row["label_clean"])
-            # GT_kg_id can also sometime be empty?
-            if each_row["GT_kg_id"] is not np.nan:
-                info["kg_id"].add(each_row["GT_kg_id"])
-                self.groups[each_row["column"]].add(each_row["GT_kg_id"])
-            if each_row["kg_id"] is not np.nan:
-                info["candidates"].add(each_row["kg_id"])
-                self.groups[each_row["column"]].add(each_row["kg_id"])
+        correspond_key = {"label_clean": "label", "kg_id": "candidates", "GT_kg_id": "kg_id"}
+        for i, each_part in self.loaded_file.groupby(["column", "row"]):
+            info = {}
+            for each_choice in correspond_key.keys():
+                temp = list(set(each_part[each_choice].unique()))
+                temp_filtered = []
+                for each in temp:
+                    if each != "" and not isinstance(each, float):
+                        temp_filtered.append(each)
+                info[correspond_key[each_choice]] = temp_filtered
+            if len(info['kg_id']) == 0:
+                Utility.eprint("Skip pair {} with no ground truth nodes.".format(i))
+                continue
+            if len(info['kg_id']) > 1 or len(info['label']) > 1:
+                Utility.eprint("WARNING: pair {} has multiple ground truths?".format(i))
+            self.groups[i[0]].update(info["candidates"])
+            self.groups[i[0]].update(info["kg_id"])
+            info["label"] = info["label"][0]
+            info["kg_id"] = info["kg_id"][0]
+            info["candidates"] = "|".join(info["candidates"])
 
-        # add last row
-        if len(list(info["candidates"])) == 1 and isinstance(list(info['candidates'])[0], float):
-            info["candidates"] = []
-        info_list_format = {
-            "label": list(info["label"])[0],
-            "kg_id": list(info["kg_id"])[0] if len(info["kg_id"]) > 0 else "",
-            "candidates": "|".join(list(info["candidates"]))
-        }
+            all_info[count] = info
+            count += 1
 
-        all_info[count] = info_list_format
         self.kgtk_format_input = pd.DataFrame.from_dict(all_info, orient='index')
+        # self.kgtk_format_input.to_csv("~/Desktop/kgtk_533_v2.csv")
 
     def get_centroid(self):
         """

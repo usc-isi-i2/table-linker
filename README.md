@@ -34,6 +34,9 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format
 - [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
 - [`ground-truth-labeler`](#command_ground-truth-labeler)<sup>*</sup>: compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
+- [`add-text-embedding-feature`](#command_add-text-embedding-feature): by calling `kgtk` sentence embedding functions to make a scoring base on the given candidates.
+- [`run-pipeline`](#command_run-pipeline): An auto filling function that enable users to run specific pipelines on all target files and then evaluate the results.
+- [`tee`](#command_tee): A wrap function of linux `tee` function.
 
 **Note: only the commands marked with <sup>*</sup> are currently implemented**
 
@@ -733,10 +736,10 @@ This module is another socre ranking method that may help to improve the correct
 - `-m / --embedding-model`: The pre-fitted models used for generating the vectors.
 - `-d / --distance-function`: The distance measurement function to used for scoring.
 - `-n`: The number of cells used to estimate the vector for a column.
-- `--label-properties`: The names of the eges for `label` properties
-- `--description-properties`: The names of the eges for `description` properties.
-- `--isa-properties`: The names of the eges for `isa` properties.
-- `--has-properties`: The names of the eges for `has` properties
+- `--label-properties`: The names of the properties(P nodes) for `label` properties
+- `--description-properties`: The names of the properties(P nodes) for `description` properties.
+- `--isa-properties`: The names of the properties(P nodes) for `isa` properties.
+- `--has-properties`: The names of the properties(P nodes) for `has` properties
 - `--run-TSNE`: whether to run TSNE or not after the embedding vectors is generated.
 
 **Examples:**
