@@ -34,9 +34,10 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format
 - [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
 - [`ground-truth-labeler`](#command_ground-truth-labeler)<sup>*</sup>: compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
-- [`add-text-embedding-feature`](#command_add-text-embedding-feature): by calling `kgtk` sentence embedding functions to make a scoring base on the given candidates.
-- [`run-pipeline`](#command_run-pipeline): An auto filling function that enable users to run specific pipelines on all target files and then evaluate the results.
-- [`tee`](#command_tee): A wrap function of linux `tee` function.
+- [`tee`](#command_tee): saves the input to disk and echoes the input to the standard output without modification
+- [`add-text-embedding-feature`](#command_add-text-embedding-feature): computes text embedding vectors of the candidates and similarity to rank candidates.
+- [`run-pipeline`](#command_run-pipeline): runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
+
 
 **Note: only the commands marked with <sup>*</sup> are currently implemented**
 
@@ -699,33 +700,33 @@ in the Ground Truth File and the candidate is different from the corresponding k
 
 ### [`tee`](#command_tee)` [OPTIONS]`
 
-The `tee` command is a simple wrap function of linux command `tee`
-
-This module is an internal command in a pipeline, should not be used alone. It can save the output of previous step, then send the output to next step as the input.
+The `tee` command saves the input to disk and echoes the input to the standard output without modification. The command can be put anywhere in a pipeline to save the input to a file.
+This command is a wrap of the linux command `tee`
 
 **Options:**
-- `-o / --output`: The path to save the output of previous step
+- `--output`: the path where the file should be saved.
 
 **Examples:**
 ```bash
-# clean the input table, save it to `cleaned_table.csv`, then run exact matches
-$ tl clean -c label / tee --output cleaned_table.csv /get-exact-matches -c label_clean < input.csv
+# After performing the expensive operations to get candidates and compute embeddings, save the file to disk and continue the pipeline.
+$ tl clean / 
+    / get-exact-matches -c label \
+    / ground-truth-labeler -f “./xxx_gt.csv” \
+    / add-text-embedding-feature --column-vector-strategy ground-truth -n 3 \
+    	--generate-projector-file xxx-google-projector -o embed 
+    / tee --output xxx-features.csv \
+    / normalize-scores \
+    / metrics
 ```
-
-**File Example:**
-any input format is supported
-
-#### Implementation
-Catch the output of the previous output, then make a copy to the output file and write to stdout.
 
 
 <a name="command_add-text-embedding-feature" />
 
 ### [`add-text-embedding-feature`](#command_add-text-embedding-feature)` [OPTIONS]`
 
-The `add-text-embedding-feature` command is a feature function used to add a score column base on `sentence embedding`. The closer the vectors to centroid, the higher the score will get.
-
-This module is another socre ranking method that may help to improve the correctness of the linking results.
+The `add-text-embedding-feature` command computes text embedding vectors of the candidates and similarity to rank candidates. 
+The basic idea is to compute a vector for a column in a table and then rank the candidates for each cell by measuring 
+similarity between each candidate vector and the column vector.
 
 **Options:**
 - `-q / --sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
@@ -782,16 +783,20 @@ The `run-pipeline` command is a batch running command that enable users to run s
 **Options:**
 
 - `--ground-truth-directory`: The ground truth directory.
-- `--ground-truth-file-pattern`: the pattern used to create the name of the ground truth file from the name of an input file. Default is `{}_gt.csv`
-- `-p / --pipeline`: the main pipeline structures.
-- `--score-column`: The column name for evaluating.
+- `--ground-truth-file-pattern`: the pattern used to create the name of the ground truth file from the name of an input file. 
+The pattern is any string where the characters {} are substituted by the name of the input file minus the extension. 
+For example “{}_gt.csv” specifies that the ground truth file for input file abc.csv is abc_gt.csv. The default is “{}_gt.csv”
+- `-p / --pipeline`: the pipeline to run.
+- `--score-column`: The column name with scores for evaluation
 - `--gpu-resources`: Optional, if given, the system will use only the specified GPU ID for running.
-- `--tag`: Optional, if given, the system we use given tag.
-- `-n`: Optional, if given, the sysetm will create the number of processes to run parallelly. Default is `1`.
-- `--output`: Optional, need to work with `--output-folder`. Default is `output_{}`
-- `--output-folder`: Optional, if given, the system will save the output file of each pipeline to given folder with given file naming pattern from `--output`.
-- `--omit-headers`: Optional flag, if set with `--omit-headers`, no header will be generated for output.
-- `--debug`: Optional flag, if set with `--debug`, system will print all the table-linker commands which are running for debugging purpose.
+- `--tag`: a tag to use in the output file to identify the results of running the given pipeline
+- `-n`: Optional, if specified, the system will run `n`processes parallelly. Default is `1`.
+- `--output`: optional, defines a name for the output file for each input file. The pattern is a string where {} gets substituted by the name of the input file, minus the extension.
+Default is `output_{}`
+- `--output-folder`: optional, if given, the system will save the output file of each pipeline to given folder with given file naming pattern from `--output`.
+- `--omit-headers`:  if this option is present, no headers will be output. If the option is omitted, the default, the first line will contain headers.
+- `--debug`: if this flag is present, system will print all the table-linker commands which are running for debugging purpose.
+
 **Examples:**
 ```bash
 # run a pipeline on all files starting with `v15_68` and ends with `.csv` on folder `iswc_challenge_data/round4/canonical/`
@@ -821,5 +826,5 @@ gt-embed  v15_686.csv 0.115384615 0.115384615 0.115384615
 ```
 
 #### Implementation
-This command used python's subprocess to call shell functions then excute the corresponding shell codes.
+This command used python's subprocess to call shell functions then execute the corresponding shell codes.
 

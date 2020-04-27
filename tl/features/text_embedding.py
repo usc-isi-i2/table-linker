@@ -1,6 +1,18 @@
-import typing
+import os
 import sys
+import math
+import shutil
+import typing
+import random
+import tempfile
+import numpy as np
+import pandas as pd
 import tl.exceptions
+from io import StringIO
+from collections import defaultdict
+from tl.utility.utility import Utility
+from scipy.spatial.distance import cosine, euclidean
+from kgtk.cli.text_embedding import main as main_embedding_function
 
 
 class EmbeddingVector:
@@ -9,7 +21,6 @@ class EmbeddingVector:
     """
 
     def __init__(self, parameters):
-        from collections import defaultdict
         self.vectors_map = {}
         self.kwargs = parameters
         self.loaded_file = None
@@ -22,8 +33,7 @@ class EmbeddingVector:
         """
             read the input file and then wrap it to kgtk format input
         """
-        import pandas as pd
-        from tl.utility.utility import Utility
+
         self.loaded_file = pd.read_csv(input_file, dtype=object)
         all_info = {}
         count = 0
@@ -52,21 +62,18 @@ class EmbeddingVector:
             count += 1
 
         self.kgtk_format_input = pd.DataFrame.from_dict(all_info, orient='index')
-        # self.kgtk_format_input.to_csv("~/Desktop/kgtk_533_v2.csv")
 
     def get_centroid(self):
         """
             function used to calculate the column-vector(centroid) value
         """
-        import numpy as np
-        import random
-        from collections import defaultdict
         n_value = int(self.kwargs.pop("n_value"))
         vector_strategy = self.kwargs.get("column_vector_strategy", "exact-matches")
         if vector_strategy == "ground-truth":
             if "GT_kg_id" not in self.loaded_file:
-                raise tl.exceptions.TLException("The input file does not have `GT_kg_id` column! Can't run with ground-truth "
-                                                "strategy")
+                raise tl.exceptions.TLException(
+                    "The input file does not have `GT_kg_id` column! Can't run with ground-truth "
+                    "strategy")
             candidate_nodes = list(set(self.loaded_file["GT_kg_id"].tolist()))
         elif vector_strategy == "exact-matches":
             candidate_nodes = list(set(self.loaded_file["kg_id"].tolist()))
@@ -100,11 +107,9 @@ class EmbeddingVector:
 
     def compute_distance(self, v1: typing.List[float], v2: typing.List[float]):
         if self.kwargs["distance_function"] == "cosine":
-            from scipy.spatial.distance import cosine
             val = cosine(v1, v2)
 
         elif self.kwargs["distance_function"] == "euclidean":
-            from scipy.spatial.distance import euclidean
             val = euclidean(v1, v2)
             # because we need score higher to be better, here we use the reciprocal value
             if val == 0:
@@ -116,8 +121,6 @@ class EmbeddingVector:
         return val
 
     def add_score_column(self):
-        import numpy as np
-        import math
         score_column_name = self.kwargs["output_column_name"]
         if score_column_name is None:
             score_column_name = "score_{}".format(self.kwargs["models_names"])
@@ -128,7 +131,8 @@ class EmbeddingVector:
             if (isinstance(each_row["kg_id"], float) and math.isnan(each_row["kg_id"])) or each_row["kg_id"] is np.nan:
                 each_score = ""
             else:
-                each_score = self.compute_distance(self.centroid[each_row["column"]], self.vectors_map[each_row["kg_id"]])
+                each_score = self.compute_distance(self.centroid[each_row["column"]],
+                                                   self.vectors_map[each_row["kg_id"]])
 
             scores.append(each_score)
         self.loaded_file[score_column_name] = scores
@@ -138,12 +142,6 @@ class EmbeddingVector:
             send the table linker format data to kgtk vector embedding
             the load the output and get the vector map
         """
-        import tempfile
-        import shutil
-        import os
-        from io import StringIO
-        import numpy as np
-        from kgtk.cli.text_embedding import main as main_embedding_function
         # transform format to kgtk format input
         destination = tempfile.mkdtemp(prefix='table_linker_temp_file')
         temp_file_path = os.path.join(destination, "test_input_to_kgtk")
@@ -174,7 +172,6 @@ class EmbeddingVector:
         output_vectors.close()
 
     def save_vector_file(self, vector_io):
-        import os
         output_path = self.kwargs["projector_file_name"]
         if "/" not in output_path:
             output_path = os.path.join(os.getcwd(), output_path)

@@ -12,7 +12,7 @@ def parser():
 def add_arguments(parser):
     # input file
     parser.add_argument('input', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
-    parser.add_argument('-o', '--output', action='store', nargs='?', dest='output_file_path',
+    parser.add_argument('--output', action='store', nargs='?', dest='output_file_path',
                         default="", help="the output file path")
 
 def run(**kwargs):
