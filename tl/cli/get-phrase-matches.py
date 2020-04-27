@@ -29,16 +29,23 @@ def add_arguments(parser):
 
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
+    # used for filtering
+    parser.add_argument('--filter', action='store', nargs='?', dest='filter_condition',
+                        default=None, help="If set to run filtering, which kind of the data should keep.")
+
 
 def run(**kwargs):
     from tl.candidate_generation import phrase_query_candidates
     import pandas as pd
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+
         em = phrase_query_candidates.PhraseQueryMatches(es_url=kwargs['url'], es_index=kwargs['index'],
                                                         es_user=kwargs['user'],
                                                         es_pass=kwargs['password'])
-        odf = em.get_phrase_matches(kwargs['column'], properties=kwargs['properties'], size=kwargs['size'], df=df)
+        odf = em.get_phrase_matches(kwargs['column'], properties=kwargs['properties'], size=kwargs['size'], 
+                                    df=df, filter_condition=kwargs['filter_condition'])
+        
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-phrase-matches\n'
