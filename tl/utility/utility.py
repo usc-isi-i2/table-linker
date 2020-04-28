@@ -28,18 +28,24 @@ class Utility(object):
 
         o = open(output_path, 'w')
 
-        kgtk_file = gzip.open(kgtk_file_path)
+        if kgtk_file_path.endswith(".gz"):
+            kgtk_file = gzip.open(kgtk_file_path)
+        else:
+            kgtk_file = open(kgtk_file_path, "r")
 
         _labels = list()
         _aliases = list()
         prev_node = None
         i = 0
+        is_human_name = False
         try:
             for line in kgtk_file:
                 i += 1
                 if i % 100000 == 0:
                     print('Processed {} lines...'.format(i))
-                line = line.decode('utf-8').replace('\n', '')
+                if isinstance(line, bytes):
+                    line = line.decode('utf-8')
+                line = line.replace('\n', '')
                 if line.startswith('Q'):
                     vals = line.split('\t')
                     id = vals[0]
@@ -47,11 +53,15 @@ class Utility(object):
                         prev_node = id
 
                     if id != prev_node:
+                        # we need to add acronym for human names
+                        if is_human_name:
+                            _labels = Utility.add_acronym(_labels)
                         o.write(json.dumps({'id': prev_node, 'labels': _labels, 'aliases': _aliases}))
                         o.write('\n')
                         _labels = list()
                         _aliases = list()
                         prev_node = id
+                        is_human_name = False
 
                     if vals[1] in labels:
                         tmp_val = Utility.remove_language_tag(vals[2])
@@ -61,6 +71,10 @@ class Utility(object):
                         tmp_val = Utility.remove_language_tag(vals[2])
                         if tmp_val.strip() != '':
                             _aliases.append(tmp_val)
+
+                    # if it is human
+                    if vals[2] == "Q5":
+                        is_human_name = True
 
         except:
             print(traceback.print_exc())
@@ -263,3 +277,57 @@ class Utility(object):
         """
         import sys
         print(*args, file=sys.stderr, **kwargs)
+
+    @staticmethod
+    def add_acronym(labels):
+        """
+        base on the given list of labels, add the acronym of each label
+        For example: ["Barack Obama"] -> ["Barack Obama", "B. Obama"]
+        :param labels: a list of str
+        :return: a list of str with acronym format data
+        """
+        useless_words = [
+            'Mr', 'Ms', 'Miss', 'Mrs', 'Mx', 'Master', 'Sir', 'Madam', 'Dame', 'Lord', 'Lady',
+            'Dr', 'Prof', 'Br', 'Sr', 'Fr', 'Rev', 'Pr', 'Elder'
+        ]
+        # ensure we can search both on capitalized case and normal case
+        temp = []
+        for each in useless_words:
+            temp.append(each.lower())
+        useless_words.extend(temp)
+
+        useless_words_parser = re.compile(r"({})\s".format("|".join(useless_words)))
+        all_candidates = set(labels)
+        try:
+            # check comma
+            new_add_labels = set()
+            for each_label in labels:
+                if "," in each_label:
+                    comma_pos = each_label.find(",")
+                    # if have comma, it means last name maybe at first
+                    all_candidates.add(each_label[comma_pos+1:].lstrip() + " " + each_label[:comma_pos])
+
+            # check useless words and remove them (like honorifics)
+            labels = list(all_candidates)
+            for each_label in labels:
+                # remove those until nothing remained, add the processed label after each removal
+                while useless_words_parser.search(each_label):
+                    temp_search_res = useless_words_parser.search(each_label)
+                    each_label = each_label[:temp_search_res.start()] + " " + each_label[temp_search_res.end():]
+                    all_candidates.add(each_label)
+
+            # generate acronyms
+            labels = list(all_candidates)
+            for each_label in labels:
+                # ensure only 1 space between words
+                label_preprocessed = " ".join(each_label.split())
+                f_name = ''
+                names = label_preprocessed.split(' ')
+                for n in names[:-1]:
+                    f_name = '{}{}. '.format(f_name, n[0])
+                f_name += names[-1]
+                all_candidates.add(f_name)
+        except:
+            import pdb
+            pdb.set_trace()
+        return list(all_candidates)

@@ -16,34 +16,34 @@ def add_arguments(parser):
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
     # query endpoint, default use official wikidata?
-    parser.add_argument('-q', '--sparql-query-endpoint', action='store', dest='query_server',
+    parser.add_argument('--sparql-query-endpoint', action='store', dest='query_server',
             help="sparql_query_endpoint", default="https://query.wikidata.org/sparql")
 
     # embedding model choice
-    parser.add_argument('-c', '--column-vector-strategy', action='store', dest='column_vector_strategy',
+    parser.add_argument('--column-vector-strategy', action='store', dest='column_vector_strategy',
             default="exact-matches", choices=("ground-truth", "exact-matches"),
             help="the name of the strategy to use to create the vector for the column:")
-    parser.add_argument('-m', '--embedding-model', action='store', nargs='+', dest='models_names',
+    parser.add_argument('--embedding-model', action='store', nargs='+', dest='all_models_names',
             default="bert-base-wikipedia-sections-mean-tokens", choices=ALL_EMBEDDING_MODELS_NAMES,
             help="the model to used for embedding")
 
     # distance function
-    parser.add_argument('-d', '--distance-function', action='store', dest='distance_function',
+    parser.add_argument('--distance-function', action='store', dest='distance_function',
             default="cosine", choices=("cosine", "euclidean"), 
             help="the function to compute similarity between column vectors and candidate vectors, default is cosine.")
 
     # n_value
-    parser.add_argument('-n', action='store', dest='n_value',
+    parser.add_argument('--centroid-sampling-amount', action='store', dest='n_value',
             default=0, type=int,
             help="the number of cells used to estimate the vector for a column (K in the column-vector-strategy). The default is 0, which causes all eligible cells to be used to compute the column vector.")
 
     # output column name
-    parser.add_argument('-o', '--output-column-name', action='store', dest='output_column_name',
+    parser.add_argument('--output-column-name', action='store', dest='output_column_name',
             default=None, 
             help="the name of the column where the value of the distance function will be stored. If not provided, the name of the embedding model will be used.")
 
     # projector file
-    parser.add_argument('-g', '--generate-projector-file', action='store', dest='projector_file_name',
+    parser.add_argument('--generate-projector-file', action='store', dest='projector_file_name',
             default=None, 
             help="generate the files needed to run the Google Project visualization, using the given name to compose the names of the output files. If given, an additional tsv file will be saved. If only a file name given, it will save on user's home directory.")
 

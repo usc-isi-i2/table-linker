@@ -729,18 +729,18 @@ The basic idea is to compute a vector for a column in a table and then rank the 
 similarity between each candidate vector and the column vector.
 
 **Options:**
-- `-q / --sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
-- `-o / --output-column-name`: The output scoring column name. If not provided, the name of the embedding model will be used.
-- `-g / --generate-projector-file`: If given, the function will generate the files needed to run the Google Project visualization.
+- `--sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
+- `--output-column-name`: The output scoring column name. If not provided, the name of the embedding model will be used.
+- `--generate-projector-file`: If given, the function will generate the files needed to run the Google Project visualization.
 ###### Following options are wrapped from kgtk, please refer to [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
-- `-c / --column-vector-strategy`: The centroid choosing method.
-- `-m / --embedding-model`: The pre-fitted models used for generating the vectors.
-- `-d / --distance-function`: The distance measurement function to used for scoring.
-- `-n`: The number of cells used to estimate the vector for a column.
-- `--label-properties`: The names of the properties(P nodes) for `label` properties
-- `--description-properties`: The names of the properties(P nodes) for `description` properties.
-- `--isa-properties`: The names of the properties(P nodes) for `isa` properties.
-- `--has-properties`: The names of the properties(P nodes) for `has` properties
+- `--column-vector-strategy`: The centroid choosing method.
+- `--embedding-model`: The pre-fitted models used for generating the vectors.
+- `--distance-function`: The distance measurement function to used for scoring.
+- `--centroid-sampling-amount`: The number of cells used to estimate the vector for a column.
+- `--label-properties`: The names of the properties(P nodes) for `label` properties. If pass with `None`, this part will not be used. Default is `label` property.
+- `--description-properties`: The names of the properties(P nodes) for `description` properties. If pass with `None`, this part will not be used. Default is `description` property.
+- `--isa-properties`: The names of the properties(P nodes) for `isa` properties. If pass with `None`, this part will not be used. Default is `P31`.
+- `--has-properties`: The names of the properties(P nodes) for `has` properties. If pass with `None`, this part will not be used. Default is all P nodes except `P31`.
 - `--run-TSNE`: whether to run TSNE or not after the embedding vectors is generated.
 
 **Examples:**
@@ -748,8 +748,19 @@ similarity between each candidate vector and the column vector.
 # run text embedding command to add an extra column `embed-score` with ground-truth strategy and use all nodes to calculate centroid
 $ tl add-text-embedding-feature input_file.csv \
   --column-vector-strategy ground-truth \
-  -n 0 \
-  -o embed-score \
+  --centroid-sampling-amount 0 \
+  --output-column-name embed-score
+
+# run text embedding command to add an extra column `embed-score` with ground-truth strategy and use up to 5 nodes to calculate centroid, the generated sentence only contains label and description information. Also, apply TSNE on the embedding vectors after generated. Also, the corresponding detail vectors file will be saved to `vectors.tsv`
+$ tl add-text-embedding-feature input_file.csv \
+  --embedding-model bert-base-nli-mean-tokens \
+  --column-vector-strategy ground-truth \
+  --centroid-sampling-amount 5 \
+  --isa-properties None \
+  --has-properties None \
+  --run-TSNE true \
+  --generate-projector-file vectors.tsv
+
 ```
 
 **File Example:**
@@ -786,11 +797,11 @@ The `run-pipeline` command is a batch running command that enable users to run s
 - `--ground-truth-file-pattern`: the pattern used to create the name of the ground truth file from the name of an input file. 
 The pattern is any string where the characters {} are substituted by the name of the input file minus the extension. 
 For example “{}_gt.csv” specifies that the ground truth file for input file abc.csv is abc_gt.csv. The default is “{}_gt.csv”
-- `-p / --pipeline`: the pipeline to run.
+- `--pipeline`: the pipeline to run.
 - `--score-column`: The column name with scores for evaluation
 - `--gpu-resources`: Optional, if given, the system will use only the specified GPU ID for running.
 - `--tag`: a tag to use in the output file to identify the results of running the given pipeline
-- `-n`: Optional, if specified, the system will run `n`processes parallelly. Default is `1`.
+- `--parallel-count`: Optional, if specified, the system will run `n`processes parallelly. Default is `1`.
 - `--output`: optional, defines a name for the output file for each input file. The pattern is a string where {} gets substituted by the name of the input file, minus the extension.
 Default is `output_{}`
 - `--output-folder`: optional, if given, the system will save the output file of each pipeline to given folder with given file naming pattern from `--output`.
@@ -805,7 +816,7 @@ Default is `output_{}`
 $ tl run-pipeline \
   --tag gt-embed \
   --gpu-resources 1 \
-  -n 4 \
+  --parallel-count 4 \
   --score-column embed-score \
   --debug \
   --ground-truth-directory iswc_challenge_data/round4/gt \

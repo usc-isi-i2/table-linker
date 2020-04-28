@@ -35,6 +35,8 @@ class EmbeddingVector:
         """
 
         self.loaded_file = pd.read_csv(input_file, dtype=object)
+        # remove evaluation label equals to 0 (which means no ground truth)
+        self.loaded_file = self.loaded_file[self.loaded_file['evaluation_label'] != '0']
         all_info = {}
         count = 0
         correspond_key = {"label_clean": "label", "kg_id": "candidates", "GT_kg_id": "kg_id"}
@@ -47,9 +49,9 @@ class EmbeddingVector:
                     if each != "" and not isinstance(each, float):
                         temp_filtered.append(each)
                 info[correspond_key[each_choice]] = temp_filtered
-            if len(info['kg_id']) == 0:
-                Utility.eprint("Skip pair {} with no ground truth nodes.".format(i))
-                continue
+            # if len(info['kg_id']) == 0:
+            #     Utility.eprint("Skip pair {} with no ground truth nodes.".format(i))
+            #     continue
             if len(info['kg_id']) > 1 or len(info['label']) > 1:
                 Utility.eprint("WARNING: pair {} has multiple ground truths?".format(i))
             self.groups[i[0]].update(info["candidates"])

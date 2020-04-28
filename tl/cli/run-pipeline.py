@@ -30,10 +30,10 @@ def add_arguments(parser):
     # debug
     parser.add_argument('--debug', action='store_true', help="if set, will print debug information.")
     # main pipeline
-    parser.add_argument('-p', '--pipeline', action='store', nargs='?', dest='pipeline', required=True,
+    parser.add_argument('--pipeline', action='store', nargs='?', dest='pipeline', required=True,
                         default="", help="the pattern used to create the name of the ground truth file from the name of an "
                                          "input file.")
-    parser.add_argument('-n', action='store', nargs='?', dest='parallel_count',
+    parser.add_argument('--parallel-count', action='store', nargs='?', dest='parallel_count',
                         default="1", help="The amount of processes to be run at the same time. Default is 1")
     # output
     parser.add_argument('--output', action='store', nargs='?', dest='output_name',
