@@ -67,6 +67,8 @@ def metrics(column, file_path=None, df=None, k=1, tag=""):
     if file_path:
         df = pd.read_csv(file_path)
 
+    # replace na to 0.0
+    df[column] = df[column].astype(float).fillna(0.0)
     df['max_score'] = df.groupby(by=['column', 'row'])[column].transform(max)
 
     # relevant df

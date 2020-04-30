@@ -25,7 +25,7 @@ class Utility(object):
         """
         labels = label_fields.split(',')
         aliases = alias_fields.split(',')
-
+        human_nodes_set = {"Q15632617", "Q95074", "Q5"}
         o = open(output_path, 'w')
 
         if kgtk_file_path.endswith(".gz"):
@@ -56,6 +56,7 @@ class Utility(object):
                         # we need to add acronym for human names
                         if is_human_name:
                             _labels = Utility.add_acronym(_labels)
+                            _aliases = Utility.add_acronym(_aliases)
                         o.write(json.dumps({'id': prev_node, 'labels': _labels, 'aliases': _aliases}))
                         o.write('\n')
                         _labels = list()
@@ -73,7 +74,7 @@ class Utility(object):
                             _aliases.append(tmp_val)
 
                     # if it is human
-                    if vals[2] == "Q5":
+                    if vals[2] in human_nodes_set:
                         is_human_name = True
 
         except:
@@ -298,36 +299,36 @@ class Utility(object):
 
         useless_words_parser = re.compile(r"({})\s".format("|".join(useless_words)))
         all_candidates = set(labels)
-        try:
-            # check comma
-            new_add_labels = set()
-            for each_label in labels:
-                if "," in each_label:
-                    comma_pos = each_label.find(",")
-                    # if have comma, it means last name maybe at first
-                    all_candidates.add(each_label[comma_pos+1:].lstrip() + " " + each_label[:comma_pos])
+        # check comma
+        new_add_labels = set()
+        for each_label in labels:
+            if "," in each_label:
+                comma_pos = each_label.find(",")
+                # if have comma, it means last name maybe at first
+                all_candidates.add(each_label[comma_pos+1:].lstrip() + " " + each_label[:comma_pos])
 
-            # check useless words and remove them (like honorifics)
-            labels = list(all_candidates)
-            for each_label in labels:
-                # remove those until nothing remained, add the processed label after each removal
-                while useless_words_parser.search(each_label):
-                    temp_search_res = useless_words_parser.search(each_label)
-                    each_label = each_label[:temp_search_res.start()] + " " + each_label[temp_search_res.end():]
-                    all_candidates.add(each_label)
+        # check useless words and remove them (like honorifics)
+        labels = list(all_candidates)
+        for each_label in labels:
+            # remove those until nothing remained, add the processed label after each removal
+            while useless_words_parser.search(each_label):
+                temp_search_res = useless_words_parser.search(each_label)
+                each_label = each_label[:temp_search_res.start()] + " " + each_label[temp_search_res.end():]
+                all_candidates.add(each_label)
 
-            # generate acronyms
-            labels = list(all_candidates)
-            for each_label in labels:
-                # ensure only 1 space between words
-                label_preprocessed = " ".join(each_label.split())
-                f_name = ''
-                names = label_preprocessed.split(' ')
-                for n in names[:-1]:
-                    f_name = '{}{}. '.format(f_name, n[0])
-                f_name += names[-1]
-                all_candidates.add(f_name)
-        except:
-            import pdb
-            pdb.set_trace()
+        # generate acronyms
+        labels = list(all_candidates)
+        for each_label in labels:
+            # ensure only 1 space between words
+            label_preprocessed = " ".join(each_label.split())
+            f_name1, f_name2 = "", ""
+            names = label_preprocessed.split(' ')
+            for n in names[:-1]:
+                f_name1 = '{}{}. '.format(f_name1, n[0])
+                f_name2 = '{}{} '.format(f_name2, n[0])
+            f_name1 += names[-1]
+            f_name2 += names[-1]
+            all_candidates.add(f_name1)
+            all_candidates.add(f_name2)
+            
         return list(all_candidates)
