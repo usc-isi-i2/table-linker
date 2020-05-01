@@ -139,6 +139,35 @@ class EmbeddingVector:
             scores.append(each_score)
         self.loaded_file[score_column_name] = scores
 
+    def create_detail_has_properties(self):
+        """
+        By loading the property file, remove unnecessary things and get something inside if needed
+        :return: None
+        """
+        model_file_path = os.path.join(repr(__file__).replace("'", "").replace("/text_embedding.py", ""), "predicate_counts_and_labels.tsv")
+        if os.path.exists(model_file_path):
+            properties_df = pd.read_csv(model_file_path, sep='\t')
+        else:
+            return
+        # process
+        need_isa_properties = {"P31"}
+        need_has_properties = set()
+        for _, each_row in properties_df.iterrows():
+            if not isinstance(each_row["label"], str) and np.isnan(each_row["label"]):
+                continue
+            if each_row["operation"] == "check_inside" or each_row["label"].endswith("of'@en"):
+                need_isa_properties.add(each_row["predicate"])
+                continue
+            elif each_row["operation"] == "bl":
+                continue
+            else:
+                if "ID" in each_row["label"] or "identifier" in each_row["label"].lower():
+                    continue
+            need_has_properties.add(each_row["predicate"])
+
+        self.kwargs["has_properties"] = list(need_has_properties)
+        self.kwargs["isa_properties"] = list(need_isa_properties)
+
     def get_vectors(self):
         """
             send the table linker format data to kgtk vector embedding
@@ -150,12 +179,16 @@ class EmbeddingVector:
         self.kgtk_format_input.to_csv(temp_file_path, index=False)
         self.kwargs["input_uris"] = temp_file_path
         self.kwargs["input_format"] = "test_format"
-        self.kwargs["logging_level"] = "none"
+        self.kwargs["_debug"] = True
         self.kwargs["output_uri"] = "none"
         self.kwargs["use_cache"] = True
+        if self.kwargs["has_properties"] == ["all"] and self.kwargs["isa_properties"] == ["P31"]:
+            self.create_detail_has_properties()
+
         # catch the stdout to string
         old_stdout = sys.stdout
         sys.stdout = output_vectors = StringIO()
+
         main_embedding_function(**self.kwargs)
         sys.stdout = old_stdout
         shutil.rmtree(destination)
