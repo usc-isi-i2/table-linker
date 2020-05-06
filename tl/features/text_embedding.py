@@ -189,7 +189,7 @@ class EmbeddingVector:
         if score_column_name is None:
             score_column_name = "score_{}".format(self.kwargs["models_names"])
 
-        if self.kwargs["vector_strategy"] == "page-rank":
+        if self.kwargs["column_vector_strategy"] == "page-rank":
             self.loaded_file = self.loaded_file.rename(columns={'|pr|': score_column_name})
         else:
             scores = []
