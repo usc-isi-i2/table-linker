@@ -55,7 +55,7 @@ def add_arguments(parser):
                              "file name given, it will save on user's home directory.")
 
     # properties to use for embedding
-    parser.add_argument('--use-default-file', action='store',
+    parser.add_argument('--use-default-file', type=Utility.str2bool, action='store',
                         dest='use_default_file', default=True,
                         help="""Whether to use the setting from default file.""")
     parser.add_argument('--label-properties', action='store', nargs='+',

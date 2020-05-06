@@ -245,7 +245,7 @@ class EmbeddingVector:
         self.kgtk_format_input.to_csv(temp_file_path, index=False)
         self.kwargs["input_uris"] = temp_file_path
         self.kwargs["input_format"] = "test_format"
-        self.kwargs["_debug"] = True
+        self.kwargs["_debug"] = False
         self.kwargs["output_uri"] = "none"
         self.kwargs["use_cache"] = True
         if self.kwargs["has_properties"] == ["all"] and self.kwargs["isa_properties"] == ["P31"] \
