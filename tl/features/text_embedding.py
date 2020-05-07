@@ -126,7 +126,8 @@ class EmbeddingVector:
         # it seems pagerank_numpy runs quickest
         for each_graph in graph_memo.values():
             res.update(nx.pagerank_numpy(each_graph, alpha=0.9))
-
+        self.loaded_file['|pr|'] = self.loaded_file['kg_id'].map(res)
+        
     def get_centroid(self, vector_strategy: str):
         """
             function used to calculate the column-vector(centroid) value
