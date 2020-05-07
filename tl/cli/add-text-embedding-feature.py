@@ -7,7 +7,7 @@ import tl.exceptions
 
 def parser():
     return {
-        'help': 'use ktgk text embedding function to add vectors for candidates for further steps.'
+        'help': 'use KGTK text embedding function to add vectors for candidates for further steps.'
     }
 
 
@@ -16,6 +16,8 @@ def add_arguments(parser):
     from kgtk.cli.text_embedding import ALL_EMBEDDING_MODELS_NAMES
     # input file
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+    # debug
+    parser.add_argument('--debug', action='store_true', help="if set, an kgtk debug logger will be saved at home directory.")
 
     # query endpoint, default use official wikidata?
     parser.add_argument('--sparql-query-endpoint', action='store', dest='query_server',
@@ -68,17 +70,27 @@ def add_arguments(parser):
                         is only valid for input in kgtk format.""")
     parser.add_argument('--isa-properties', action='store', nargs='+',
                         dest='isa_properties', default=["P31"],
-                        help="""The names of the eges for `isa` properties, Default is ["P31"] (the `instance of` node in 
+                        help="""The names of the edges for `isa` properties, Default is ["P31"] (the `instance of` node in 
                         wikidata).\n This argument is only valid for input in kgtk format.""")
     parser.add_argument('--has-properties', action='store', nargs='+',
                         dest='has_properties', default=["all"],
-                        help="""The names of the eges for `has` properties, Default is ["all"] (will automatically append all 
+                        help="""The names of the edges for `has` properties, Default is ["all"] (will automatically append all 
                         properties found for each node).\n This argument is only valid for input in kgtk format.""")
+    parser.add_argument('--property-value', action='store', nargs='+',
+                        dest='property_values', default=[],
+                        help="""For those edges found in `has` properties, the nodes specified here will display with 
+                            corresponding edge(property) values. instead of edge name. """)
 
-    # run TSNE or not
-    parser.add_argument("--run-TSNE", type=Utility.str2bool, nargs='?', action='store',
-                        default=False, dest="run_TSNE",
-                        help="whether to run TSNE or not after the embedding, default is true.")
+    parser.add_argument("--dimensional-reduction", nargs='?', action='store',
+                        default="none", dest="dimensional_reduction", choices=("pca", "tsne", "none"),
+                        help='whether to run dimensional reduction algorithm or not after the embedding, default is None (not '
+                             'run). '
+                        )
+    parser.add_argument("--dimension", type=int, nargs='?', action='store',
+                        default=2, dest="dimension_val",
+                        help='How many dimension should remained after reductions, only valid when set to run dimensional '
+                             'reduction, default value is 2 '
+                        )
 
 
 def run(**kwargs):

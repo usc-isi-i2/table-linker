@@ -8,6 +8,7 @@ import tempfile
 import numpy as np
 import pandas as pd
 import tl.exceptions
+
 from io import StringIO
 from collections import defaultdict
 from tl.utility.utility import Utility
@@ -26,7 +27,6 @@ class EmbeddingVector:
         self.loaded_file = None
         self.kgtk_format_input = None
         self.centroid = {}
-        self.only_one_candidates = set()
         self.groups = defaultdict(set)
 
     def load_input_file(self, input_file):
@@ -81,9 +81,9 @@ class EmbeddingVector:
         function used to calculate page rank
         :return:
         """
+        Utility.eprint("start calculating page rank, it may take some time.")
         import networkx as nx
         # calculate probability to next stage
-        # state_metric = np.zeros([len(all_nodes_set), len(all_nodes_set)])
         # calculate probability base on columns
         col_memo = {}
         nodes_memo = {}
@@ -123,9 +123,9 @@ class EmbeddingVector:
                         each_weight = similarity_memo[(each_node_i, each_node_j)] / sum_score
                         graph_memo[col_number].add_edge(each_node_i, each_node_j, weight=each_weight)
         res = {}
+        # it seems pagerank_numpy runs quickest
         for each_graph in graph_memo.values():
-            res.update(nx.pagerank(each_graph, alpha=0.9, max_iter=50))
-        self.loaded_file['|pr|'] = self.loaded_file['kg_id'].map(res)
+            res.update(nx.pagerank_numpy(each_graph, alpha=0.9))
 
     def get_centroid(self, vector_strategy: str):
         """
@@ -245,7 +245,7 @@ class EmbeddingVector:
         self.kgtk_format_input.to_csv(temp_file_path, index=False)
         self.kwargs["input_uris"] = temp_file_path
         self.kwargs["input_format"] = "test_format"
-        self.kwargs["_debug"] = False
+        self.kwargs["_debug"] = self.kwargs["debug"]
         self.kwargs["output_uri"] = "none"
         self.kwargs["use_cache"] = True
         if self.kwargs["has_properties"] == ["all"] and self.kwargs["isa_properties"] == ["P31"] \
@@ -283,3 +283,4 @@ class EmbeddingVector:
 
     def print_output(self):
         self.loaded_file.to_csv(sys.stdout, index=False)
+
