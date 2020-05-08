@@ -67,6 +67,13 @@ def metrics(column, file_path=None, df=None, k=1, tag=""):
     if file_path:
         df = pd.read_csv(file_path)
 
+    # remove duplicate candidates if exist
+    c_maxes = df.groupby(['column', 'row', 'kg_id'])["retrieval_score"].transform(max)
+    temp = list(df.columns).index("retrieval_score")
+    # do copy to prevent pandas SettingWithCopyWarning
+    temp_df = df.loc[df.iloc[:, temp] == c_maxes].copy()
+    df = temp_df
+
     # replace na to 0.0
     df[column] = df[column].astype(float).fillna(0.0)
     df['max_score'] = df.groupby(by=['column', 'row'])[column].transform(max)

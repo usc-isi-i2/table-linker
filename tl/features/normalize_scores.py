@@ -49,6 +49,38 @@ def normalize_scores(column='retrieval_score', output_column=None, weights=None,
     return pd.concat(o_df)
 
 
+def drop_by_score(column, file_path=None, df=None, k=20):
+    """
+    group the dataframe by column, row and then drop the candidates out of given amount k from highest score to lowest score
+
+    Args:
+        column: column with ranking score
+        file_path: input file path
+        df: or input dataframe
+        k: top k candidates
+
+    Returns:
+        filtered dataframe
+    """
+    if file_path is None and df is None:
+        raise RequiredInputParameterMissingException(
+            'One of the input parameters is required: {} or {}'.format('file_path', 'df'))
+
+    if file_path:
+        df = pd.read_csv(file_path)
+
+    # replace na to 0.0
+    df[column] = df[column].astype(float).fillna(0.0)
+    df["column"] = df["column"].astype(int)
+    df["row"] = df["row"].astype(int)
+
+    res = pd.DataFrame()
+    for key, gdf in df.groupby(by=['column', 'row']):
+        gdf = gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True]).iloc[:k, :]
+        res = res.append(gdf)
+    return res
+
+
 def divide_a_by_b(a, b):
     if b == 0.0:
         return 0.0

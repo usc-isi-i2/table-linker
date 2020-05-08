@@ -7,8 +7,8 @@ import random
 import tempfile
 import numpy as np
 import pandas as pd
-import tl.exceptions
 
+from tl.exceptions import TLException
 from io import StringIO
 from collections import defaultdict
 from tl.utility.utility import Utility
@@ -31,11 +31,18 @@ class EmbeddingVector:
 
     def load_input_file(self, input_file):
         """
-            read the input file and then wrap it to kgtk format input
+            read the input file
         """
-
         self.loaded_file = pd.read_csv(input_file, dtype=object)
+        self._to_kgtk_test_format()
+
+    def _to_kgtk_test_format(self):
+        """
+        wrap input file to kgtk format input
+        :return:
+        """
         # remove evaluation label equals to 0 (which means no ground truth)
+        self.groups = defaultdict(set)
         self.loaded_file = self.loaded_file[self.loaded_file['evaluation_label'] != '0']
         all_info = {}
         count = 0
@@ -76,7 +83,7 @@ class EmbeddingVector:
         else:
             self.get_centroid(vector_strategy)
 
-    def calculate_page_rank(self):
+    def generate_graph(self):
         """
         function used to calculate page rank
         :return:
@@ -122,12 +129,28 @@ class EmbeddingVector:
                         # pos = (pos_memo[each_node_i], pos_memo[each_node_j])
                         each_weight = similarity_memo[(each_node_i, each_node_j)] / sum_score
                         graph_memo[col_number].add_edge(each_node_i, each_node_j, weight=each_weight)
+        return graph_memo
+
+    def calculate_page_rank(self):
+        import networkx as nx
+        # just get initial page rank to do filtering
+        weights_original = {}
+        graph_memo = self.generate_graph()
+        for each_graph in graph_memo.values():
+            weights_original.update(dict(each_graph.degree(weight='weight')))
+        self.loaded_file['|pr|'] = self.loaded_file['kg_id'].map(weights_original)
+        from tl.features.normalize_scores import drop_by_score
+        self.loaded_file = drop_by_score(column="|pr|", df=self.loaded_file, k=20)
+        # also we need to update kgtk format input
+        self._to_kgtk_test_format()
+        # create the graph again base on filtered result
         res = {}
+        graph_memo = self.generate_graph()
         # it seems pagerank_numpy runs quickest
         for each_graph in graph_memo.values():
             res.update(nx.pagerank_numpy(each_graph, alpha=0.9))
         self.loaded_file['|pr|'] = self.loaded_file['kg_id'].map(res)
-        
+
     def get_centroid(self, vector_strategy: str):
         """
             function used to calculate the column-vector(centroid) value
@@ -136,14 +159,14 @@ class EmbeddingVector:
 
         if vector_strategy == "ground-truth":
             if "GT_kg_id" not in self.loaded_file:
-                raise tl.exceptions.TLException(
+                raise TLException(
                     "The input file does not have `GT_kg_id` column! Can't run with ground-truth "
                     "strategy")
             candidate_nodes = list(set(self.loaded_file["GT_kg_id"].tolist()))
         elif vector_strategy == "exact-matches":
             candidate_nodes = list(set(self.loaded_file["kg_id"].tolist()))
         else:
-            raise tl.exceptions.TLException("Unknown vector vector strategy {}".format(vector_strategy))
+            raise TLException("Unknown vector vector strategy {}".format(vector_strategy))
         candidate_nodes = [each for each in candidate_nodes if each != "" and each is not np.nan]
 
         # get corresponding column of each candidate nodes
@@ -172,7 +195,7 @@ class EmbeddingVector:
 
     def compute_distance(self, v1: typing.List[float], v2: typing.List[float]):
         if self.kwargs["distance_function"] == "cosine":
-            val = cosine(v1, v2)
+            val = 1 - cosine(v1, v2)
 
         elif self.kwargs["distance_function"] == "euclidean":
             val = euclidean(v1, v2)
@@ -182,7 +205,7 @@ class EmbeddingVector:
             else:
                 val = 1 / val
         else:
-            raise tl.exceptions.TLException("Unknown distance function {}".format(self.kwargs["distance_function"]))
+            raise TLException("Unknown distance function {}".format(self.kwargs["distance_function"]))
         return val
 
     def add_score_column(self):
