@@ -1,9 +1,7 @@
 import argparse
 import sys
 import traceback
-import tl.exceptions
-import os
-import typing
+from tl.exceptions import TLException
 
 
 def parser():
@@ -45,90 +43,10 @@ def add_arguments(parser):
                         default="", help="The name of the column used for the scoring to determine the prediction results.")
 
 
-def run_one_pipeline(config: dict):
-    """
-        Main running subprocess
-    """
-    from tl.utility.utility import Utility
-    running_option = ""
-    # setup the specific gpu usage if given
-    if config.get("gpu_id"):
-        running_option += "export CUDA_VISIBLE_DEVICES={}\n".format(config["gpu_id"])
-    input_file = config["input"]
-    update_part_name = input_file.split("/")[-1].replace(".csv", "")
-
-    if not config["command"].startswith("tl"):
-        running_option += "tl "
-
-    all_commands = set([each.replace(".py", "") \
-                        for each in os.listdir(os.path.dirname(os.path.abspath(__file__))) \
-                        if each.endswith(".py") and not each.startswith("__")])
-
-    import re
-    re_match = re.compile("(" + "|".join(all_commands) + "){1}")
-    file_insert_pos = re_match.search(config["command"])
-    config["command"] = config["command"][:file_insert_pos.end()] + " " + input_file + " " + config["command"][
-                                                                                             file_insert_pos.end():]
-    # main running table linker function
-    running_option += config["command"].replace("{}", update_part_name)
-
-    res = Utility.execute_shell_code(running_option, debug=config["debug"])
-    if res == "":
-        raise tl.exceptions.TLException("Executing Error!")
-
-    import tempfile
-    temp_path = tempfile.mkstemp(prefix='table_linker_temp_file')[1]
-    # add ground truth if ground truth given
-    if "GT_kg_id" in res or config.get("ground_truth_directory") == "":
-        with open(temp_path, "w") as f:
-            f.write(res)
-    else:
-        with open(temp_path, "w") as f:
-            f.write(res)
-        name = config.get("ground_truth_pattern").replace("{}", update_part_name)
-        gt_file_path = os.path.join(config.get("ground_truth_directory"), name)
-        running_option = "tl ground-truth-labeler {} -f {}".format(temp_path, gt_file_path)
-        res = Utility.execute_shell_code(running_option, debug=config["debug"])
-        # update file to the new result with ground truth
-        os.remove(temp_path)
-        temp_path = tempfile.mkstemp(prefix='table_linker_temp_file')[1]
-        with open(temp_path, "w") as f:
-            f.write(res)
-
-    # if output folder given, write the output of each pipeline
-    if config.get("output_folder") != "":
-        output_name = config.get("output_name")
-        name = output_name.replace("{}", update_part_name)
-        output_path = os.path.join(output_name, name)
-        with open(output_path, "w") as f:
-            f.write(res)
-
-    # evaluate the prediction
-    running_option = "tl metrics {} -c {}".format(temp_path, config["score_column"])
-    res = Utility.execute_shell_code(running_option, debug=config["debug"])
-    os.remove(temp_path)
-    return res
-
-
-def print_result(results: typing.List[str], omit_header: bool, tag: str, input_files: typing.List[str]):
-    from io import StringIO
-    import pandas as pd
-    res_dfs = [pd.read_csv(StringIO(res)) for res in results]
-    res_combined = pd.concat(res_dfs)
-    file_names = [each.split("/")[-1] for each in input_files]
-    res_combined['file'] = file_names
-    res_combined['tag'] = tag
-    cols = ["tag", "file", "precision", "recall", "f1"]
-    res_combined = res_combined[cols]
-    res_combined = res_combined.reset_index().drop(columns=["index"])
-    res_combined.to_csv(sys.stdout, index=False, header=omit_header)
-
-
 def run(**kwargs):
     if len(kwargs.get("pipeline")) == 0:
-        raise tl.exceptions.TLException("pipeline command must be given.")
+        raise TLException("pipeline command must be given.")
 
-    from tqdm import tqdm
     parallel_count = int(kwargs['parallel_count'])
     input_files = kwargs["input"]
     running_configs = []
@@ -160,13 +78,15 @@ def run(**kwargs):
         import time
         import pandas as pd
         from io import StringIO
+        from tl.utility.utility import Utility
         if parallel_count == 1:
             results = []
             for each in tqdm(running_configs):
-                results.append(run_one_pipeline(each))
+                results.append(Utility.run_one_pipeline(each))
         else:
+            # use multiprocess pool function to run in parallel mode
             p = Pool(parallel_count)
-            result = p.map_async(run_one_pipeline, running_configs)
+            result = p.map_async(Utility.run_one_pipeline, running_configs)
             pbar = tqdm(total=len(running_configs))
             previous_remain = len(running_configs)
             while not result.ready():
@@ -179,10 +99,10 @@ def run(**kwargs):
             results = result.get()
             p.close()
             p.join()
-            # results = p.map(run_one_pipeline, running_configs)
 
-        print_result(results, omit_header=kwargs['omit_headers'], input_files=input_files, tag=kwargs.get('tag'))
+        Utility.print_pipeline_running_results(results, omit_header=kwargs['omit_headers'],
+                                               input_files=input_files, tag=kwargs.get('tag'))
     except:
-        message = 'Command: clean\n'
+        message = 'Command: run-pipeline\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
-        raise tl.exceptions.TLException(message)
+        raise TLException(message)

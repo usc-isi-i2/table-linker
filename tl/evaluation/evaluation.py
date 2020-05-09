@@ -65,8 +65,9 @@ def metrics(column, file_path=None, df=None, k=1, tag=""):
             'One of the input parameters is required: {} or {}'.format('file_path', 'df'))
 
     if file_path:
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, dtype=object)
 
+    df = df.fillna(0)
     # remove duplicate candidates if exist
     c_maxes = df.groupby(['column', 'row', 'kg_id'])["retrieval_score"].transform(max)
     temp = list(df.columns).index("retrieval_score")
