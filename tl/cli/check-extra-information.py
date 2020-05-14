@@ -43,6 +43,6 @@ def run(**kwargs):
                                     query_address=kwargs["query_address"])
         odf.to_csv(sys.stdout, index=False)
     except:
-        message = 'Command: metrics\n'
+        message = 'Command: check extra information\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)

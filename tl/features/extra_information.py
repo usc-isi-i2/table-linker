@@ -3,6 +3,7 @@ import os
 import typing
 import re
 import wikipediaapi
+import math
 
 from tl.exceptions import TLException
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, URLENCODED  # type: ignore
@@ -82,43 +83,49 @@ class ExtraInformationProcessing:
 
     @staticmethod
     def get_all_wikipedia_info(qnodes: typing.Union[typing.List[str], set], query_address: str):
-        qnodes_str = " ".join(["wd:{}".format(each) for each in qnodes])
-        query = """
-            SELECT DISTINCT ?item ?article ?name
-            WHERE {{
-            values ?item {{{q_nodes}}}
-              ?article schema:about ?item ;
-                          schema:inLanguage ?lang ;
-                          schema:name ?name ;
-                          schema:isPartOf [ wikibase:wikiGroup "wikipedia" ] .
-              FILTER(?lang in ('en')) .
-              FILTER (!CONTAINS(?name, ':')) .
-            }}
-        """.format(q_nodes=qnodes_str)
-        results = ExtraInformationProcessing.send_sparql_query(query, query_address)
         memo = defaultdict(set)
-        for each in results:
-            wiki_page = each['article']['value'][each['article']['value'].find("/wiki")+6:]
-            node = each['item']['value'].split("/")[-1]
-            wiki_page_unit = WIKI_BASE.page(wiki_page)
-            if not wiki_page_unit.exists():
-                continue
-            # add wikipedia links
-            page_links = wiki_page_unit.links
-            for each_page_key in page_links.keys():
-                if RE_BRACKET.search(each_page_key):
-                    re_res = RE_BRACKET.search(each_page_key)
-                    key_no_bracket = each_page_key[:re_res.start()] + " " + each_page_key[re_res.end():]
-                    for each_key in Utility.add_acronym([key_no_bracket]):
-                        memo[each_key].add(node)
-                for each_key in Utility.add_acronym([each_page_key]):
-                    memo[each_key].add(node)
+        qnodes_str = ["wd:{}".format(each) for each in qnodes]
+        split_part = math.ceil(len(qnodes_str) / 10)
+        for i in range(split_part):
+            if i == split_part - 1:
+                each_part = qnodes_str[i * 10:]
+            else:
+                each_part = qnodes_str[i*10:(i+1)*10]
+            print(each_part)
+            query = """
+                SELECT DISTINCT ?item ?article
+                WHERE {{
+                values ?item {{{q_nodes}}}
+                  ?article schema:about ?item ;
+                              schema:inLanguage ?lang ;
+                              schema:isPartOf [ wikibase:wikiGroup "wikipedia" ] .
+                  FILTER(?lang in ('en')) .
+                }}
+            """.format(q_nodes=each_part)
+            results = ExtraInformationProcessing.send_sparql_query(query, query_address)
 
-            # search for time and parse them
-            dates = extract_dates(wiki_page_unit.text)
-            for each_date in dates:
-                if each_date:
-                    memo[datetime.fromtimestamp(each_date.timestamp(), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")].add(node)
+            for each in results:
+                wiki_page = each['article']['value'][each['article']['value'].find("/wiki")+6:]
+                node = each['item']['value'].split("/")[-1]
+                wiki_page_unit = WIKI_BASE.page(wiki_page)
+                if not wiki_page_unit.exists():
+                    continue
+                # add wikipedia links
+                page_links = wiki_page_unit.links
+                for each_page_key in page_links.keys():
+                    if RE_BRACKET.search(each_page_key):
+                        re_res = RE_BRACKET.search(each_page_key)
+                        key_no_bracket = each_page_key[:re_res.start()] + " " + each_page_key[re_res.end():]
+                        for each_key in Utility.add_acronym([key_no_bracket]):
+                            memo[each_key].add(node)
+                    for each_key in Utility.add_acronym([each_page_key]):
+                        memo[each_key].add(node)
+
+                # search for time and parse them
+                dates = extract_dates(wiki_page_unit.text)
+                for each_date in dates:
+                    if each_date:
+                        memo[datetime.fromtimestamp(each_date.timestamp(), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")].add(node)
         return memo
 
     @staticmethod
