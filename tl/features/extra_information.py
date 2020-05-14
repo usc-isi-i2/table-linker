@@ -85,13 +85,14 @@ class ExtraInformationProcessing:
     def get_all_wikipedia_info(qnodes: typing.Union[typing.List[str], set], query_address: str):
         memo = defaultdict(set)
         qnodes_str = ["wd:{}".format(each) for each in qnodes]
-        split_part = math.ceil(len(qnodes_str) / 10)
+        parallel_count = 5
+        split_part = math.ceil(len(qnodes_str) / parallel_count)
         for i in range(split_part):
             if i == split_part - 1:
-                each_part = qnodes_str[i * 10:]
+                each_part = qnodes_str[i * parallel_count:]
             else:
-                each_part = qnodes_str[i*10:(i+1)*10]
-            print(each_part)
+                each_part = qnodes_str[i*parallel_count:(i+1)*parallel_count]
+            each_part_str = " ".join(each_part)
             query = """
                 SELECT DISTINCT ?item ?article
                 WHERE {{
@@ -101,7 +102,7 @@ class ExtraInformationProcessing:
                               schema:isPartOf [ wikibase:wikiGroup "wikipedia" ] .
                   FILTER(?lang in ('en')) .
                 }}
-            """.format(q_nodes=each_part)
+            """.format(q_nodes=each_part_str)
             results = ExtraInformationProcessing.send_sparql_query(query, query_address)
 
             for each in results:
