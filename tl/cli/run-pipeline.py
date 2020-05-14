@@ -84,6 +84,9 @@ def run(**kwargs):
             for each in tqdm(running_configs):
                 results.append(Utility.run_one_pipeline(each))
         else:
+            from multiprocessing import set_start_method
+            set_start_method("spawn")
+
             # use multiprocess pool function to run in parallel mode
             p = Pool(parallel_count)
             result = p.map_async(Utility.run_one_pipeline, running_configs)

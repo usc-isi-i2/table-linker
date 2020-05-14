@@ -4,6 +4,7 @@ from tl.candidate_generation.utility import Utility
 from tl.exceptions import RequiredInputParameterMissingException
 from tl.utility.filter import Filter
 
+
 class PhraseQueryMatches(object):
     def __init__(self, es_url, es_index, es_user=None, es_pass=None):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
