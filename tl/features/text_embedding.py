@@ -23,6 +23,7 @@ class EmbeddingVector:
 
     def __init__(self, parameters):
         self.vectors_map = {}
+        self.sentence_map = {}
         self.kwargs = parameters
         self.loaded_file = None
         self.kgtk_format_input = None
@@ -43,28 +44,33 @@ class EmbeddingVector:
         """
         # remove evaluation label equals to 0 (which means no ground truth)
         self.groups = defaultdict(set)
-        self.loaded_file = self.loaded_file[self.loaded_file['evaluation_label'] != '0']
+        if "evaluation_label" in self.loaded_file.columns:
+            self.loaded_file = self.loaded_file[self.loaded_file['evaluation_label'] != '0']
         all_info = {}
         count = 0
         correspond_key = {"label_clean": "label", "kg_id": "candidates", "GT_kg_id": "kg_id"}
         for i, each_part in self.loaded_file.groupby(["column", "row"]):
             info = {}
             for each_choice in correspond_key.keys():
-                temp = list(set(each_part[each_choice].unique()))
-                temp_filtered = []
-                for each in temp:
-                    if each != "" and not isinstance(each, float):
-                        temp_filtered.append(each)
-                info[correspond_key[each_choice]] = temp_filtered
-            # if len(info['kg_id']) == 0:
-            #     Utility.eprint("Skip pair {} with no ground truth nodes.".format(i))
-            #     continue
+                if each_choice in each_part.columns:
+                    temp = list(set(each_part[each_choice].unique()))
+                    temp_filtered = []
+                    for each in temp:
+                        if each != "" and not isinstance(each, float):
+                            temp_filtered.append(each)
+                    info[correspond_key[each_choice]] = temp_filtered
+                else:
+                    info[correspond_key[each_choice]] = []
+
             if len(info['kg_id']) > 1 or len(info['label']) > 1:
                 Utility.eprint("WARNING: pair {} has multiple ground truths?".format(i))
             self.groups[i[0]].update(info["candidates"])
             self.groups[i[0]].update(info["kg_id"])
             info["label"] = info["label"][0]
-            info["kg_id"] = info["kg_id"][0]
+            if len(info["kg_id"]) > 0:
+                info["kg_id"] = info["kg_id"][0]
+            else:
+                info["kg_id"] = " "
             info["candidates"] = "|".join(info["candidates"])
 
             all_info[count] = info
@@ -228,6 +234,10 @@ class EmbeddingVector:
                 scores.append(each_score)
             self.loaded_file[score_column_name] = scores
 
+        if self.kwargs["save_embedding_feature"]:
+            self.loaded_file['sentence'] = self.loaded_file['kg_id'].map(self.sentence_map)
+            self.loaded_file['vector'] = self.loaded_file['kg_id'].map(self.vectors_map)
+
     def create_detail_has_properties(self):
         """
         By loading the property file, remove unnecessary things and get something inside if needed
@@ -272,6 +282,8 @@ class EmbeddingVector:
         self.kwargs["_debug"] = self.kwargs["debug"]
         self.kwargs["output_uri"] = "none"
         self.kwargs["use_cache"] = True
+        if self.kwargs["save_embedding_feature"]:
+            self.kwargs["save_embedding_sentence"] = True
         if self.kwargs["has_properties"] == ["all"] and self.kwargs["isa_properties"] == ["P31"] \
                 and self.kwargs["use_default_file"]:
             self.create_detail_has_properties()
@@ -289,8 +301,13 @@ class EmbeddingVector:
         for each_line in output_vectors.readlines():
             each_line = each_line.replace("\n", "").split("\t")
             each_q = each_line[0]
-            each_vector = np.array([float(each_v) for each_v in each_line[2].split(",")])
-            self.vectors_map[each_q] = each_vector
+            each_edge = each_line[1]
+            if each_edge == "embedding_sentence":
+                each_sentence = each_line[2]
+                self.sentence_map[each_q] = each_sentence
+            else:
+                each_vector = np.array([float(each_v) for each_v in each_line[2].split(",")])
+                self.vectors_map[each_q] = each_vector
 
         # save kgtk output vector file if needed
         if self.kwargs["projector_file_name"] is not None:

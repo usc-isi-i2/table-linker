@@ -1,5 +1,10 @@
+import typing
 import pandas as pd
+import numpy as np
+
+from tl.utility.utility import Utility
 from tl.exceptions import RequiredInputParameterMissingException
+from tl.exceptions import RequiredColumnMissingException
 
 
 def normalize_scores(column='retrieval_score', output_column=None, weights=None, file_path=None, df=None):
@@ -46,7 +51,8 @@ def normalize_scores(column='retrieval_score', output_column=None, weights=None,
         fdf[output_column] = gdf[column].map(lambda x: divide_a_by_b(x, max_score) * method_weights.get(i[1], 1.0))
         o_df.append(fdf)
 
-    return pd.concat(o_df)
+    out_df = Utility.sort_by_col_and_row(pd.concat(o_df))
+    return out_df
 
 
 def drop_by_score(column, file_path=None, df=None, k=20):
@@ -71,13 +77,62 @@ def drop_by_score(column, file_path=None, df=None, k=20):
 
     # replace na to 0.0
     df[column] = df[column].astype(float).fillna(0.0)
-    df["column"] = df["column"].astype(int)
-    df["row"] = df["row"].astype(int)
+    # astype float first to prevent error of "invalid literal for int() with base 10: '0.0'"
+    df["column"] = df["column"].astype(float).astype(int)
+    df["row"] = df["row"].astype(float).astype(int)
 
     res = pd.DataFrame()
     for key, gdf in df.groupby(by=['column', 'row']):
         gdf = gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True]).iloc[:k, :]
         res = res.append(gdf)
+    return res
+
+
+def drop_duplicate(column: str, score_col: typing.List[str], file_path: str = None, df: pd.DataFrame = None):
+    """
+    group the dataframe by column, row and then check if there are duplicate rows on given column,
+    remove the duplicated one and only keep the highest score one
+
+    Args:
+        column: column with labels
+        score_col: column with ranking scores
+        file_path: input file path
+        df: or input dataframe
+    Returns:
+        filtered dataframe
+    """
+    if file_path is None and df is None:
+        raise RequiredInputParameterMissingException(
+            'One of the input parameters is required: {} or {}'.format('file_path', 'df'))
+
+    if file_path:
+        df = pd.read_csv(file_path)
+
+    for each_col in [column] + score_col:
+        if each_col not in df.columns:
+            raise RequiredColumnMissingException("Column {} does not exist in given dataframe.".format(each_col))
+
+    # replace na to 0.0
+    df[score_col] = df[score_col].astype(float).fillna(0.0)
+    # astype float first to prevent error of "invalid literal for int() with base 10: '0.0'"
+    df["column"] = df["column"].astype(float).astype(int)
+    df["row"] = df["row"].astype(float).astype(int)
+
+    res = pd.DataFrame()
+    for key, gdf in df.groupby(by=['column', 'row']):
+        # for those nodes with no candidates, we need to check here
+        temp = gdf[column].unique()
+        if len(temp) == 1 and not isinstance(temp[0], str) and np.isnan(temp[0]):
+            res = res.append(gdf.iloc[0, :])
+            continue
+
+        for candidate_id, candidate_df in gdf.groupby(by=[column]):
+            if len(candidate_df) > 1:
+                candidate_df = candidate_df.sort_values(by=score_col, ascending=[False]).iloc[:1, :]
+            res = res.append(candidate_df)
+
+    # sometimes the column order may changed, resort it to ensure follow original order
+    res = res.reindex(columns=df.columns)
     return res
 
 

@@ -43,11 +43,14 @@ def add_arguments(parser):
                         help="the number of cells used to estimate the vector for a column (K in the column-vector-strategy). "
                              "The default is 0, which causes all eligible cells to be used to compute the column vector.")
 
-    # output column name
+    # output
     parser.add_argument('--output-column-name', action='store', dest='output_column_name',
                         default=None,
                         help="the name of the column where the value of the distance function will be stored. If not provided, "
                              "the name of the embedding model will be used.")
+
+    parser.add_argument('--save-embedding-feature', action='store_true', dest='save_embedding_feature',
+                        help="if set, will also save the embedding sentences and embedding vectors as extra columns")
 
     # projector file
     parser.add_argument('--generate-projector-file', action='store', dest='projector_file_name',
@@ -104,6 +107,6 @@ def run(**kwargs):
         vector_transformer.add_score_column()
         vector_transformer.print_output()
     except:
-        message = 'Command: clean\n'
+        message = 'Command: add-text-embedding-feature\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)

@@ -18,7 +18,7 @@ def add_arguments(parser):
     parser.add_argument('--ground-truth-directory', action='store', nargs='?', dest='ground_truth_directory',
                         default="", help="the path of a directory containing the ground truth files for all the input files.")
     parser.add_argument('--ground-truth-file-pattern', action='store', nargs='?', dest='ground_truth_pattern',
-                        default="{}_gt.csv", 
+                        default="{}_gt.csv",
                         help="the pattern used to create the name of the ground truth file from the name of an input file.")
     parser.add_argument('--omit-headers', action='store_false', help="if set, not store header")
     # tag
@@ -78,18 +78,18 @@ def run(**kwargs):
         import time
         import pandas as pd
         from io import StringIO
-        from tl.utility.utility import Utility
+        from tl.utility.run_pipelines_utility import PipelineUtility
         if parallel_count == 1:
             results = []
             for each in tqdm(running_configs):
-                results.append(Utility.run_one_pipeline(each))
+                results.append(PipelineUtility.run_one_pipeline(each))
         else:
             from multiprocessing import set_start_method
             set_start_method("spawn")
 
             # use multiprocess pool function to run in parallel mode
             p = Pool(parallel_count)
-            result = p.map_async(Utility.run_one_pipeline, running_configs)
+            result = p.map_async(PipelineUtility.run_one_pipeline, running_configs)
             pbar = tqdm(total=len(running_configs))
             previous_remain = len(running_configs)
             while not result.ready():
@@ -103,8 +103,8 @@ def run(**kwargs):
             p.close()
             p.join()
 
-        Utility.print_pipeline_running_results(results, omit_header=kwargs['omit_headers'],
-                                               input_files=input_files, tag=kwargs.get('tag'))
+        PipelineUtility.print_pipeline_running_results(results, omit_header=kwargs['omit_headers'],
+                                                       input_files=input_files, tag=kwargs.get('tag'))
     except:
         message = 'Command: run-pipeline\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())

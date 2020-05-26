@@ -2,9 +2,11 @@ import pandas as pd
 
 
 class FFV(object):
-    def __init__(self):
+    def __init__(self, retrieval_score_col_name="retrieval_score"):
         self.canonical_columns = ['column', 'row']
-        self.candidates_columns = ['kg_id', 'kg_labels', 'method', 'retrieval_score'] + self.canonical_columns
+        if not retrieval_score_col_name:
+            retrieval_score_col_name = "retrieval_score"
+        self.candidates_columns = ['kg_id', 'kg_labels', 'method', retrieval_score_col_name] + self.canonical_columns
 
     def is_canonical_file(self, df=None, file_path=None):
         if file_path:
@@ -13,7 +15,7 @@ class FFV(object):
             return False
 
         columns = df.columns
-        if len(columns) in (3, 4) and all(c in columns for c in self.canonical_columns):
+        if len(columns) in (3, 4, 5) and all(c in columns for c in self.canonical_columns):
             return True
         return False
 
@@ -24,4 +26,5 @@ class FFV(object):
         if df is None:
             return False
         columns = df.columns
+
         return all(c in columns for c in self.candidates_columns)

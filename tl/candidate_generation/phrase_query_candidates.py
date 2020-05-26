@@ -6,9 +6,10 @@ from tl.utility.filter import Filter
 
 
 class PhraseQueryMatches(object):
-    def __init__(self, es_url, es_index, es_user=None, es_pass=None):
+    def __init__(self, es_url, es_index, es_user=None, es_pass=None, score_column_name: str = "retrieval_score",
+                 previous_match_column_name: str = "retrieval_score"):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
-        self.utility = Utility(self.es)
+        self.utility = Utility(self.es, score_column_name, previous_match_column_name)
 
     def get_phrase_matches(self, column, properties="labels^2,aliases", size=50, file_path=None, df=None, filter_condition=None):
         """
@@ -42,8 +43,10 @@ class PhraseQueryMatches(object):
         else:
             query_input_df = df
 
-        output_df = self.utility.create_candidates_df(query_input_df, column, size, properties, 'phrase-match')
+        from tl.utility.utility import Utility
 
+        output_df = self.utility.create_candidates_df(query_input_df, column, size, properties, 'phrase-match')
+        Utility.eprint(output_df)
         if need_filter:
             output_df = Filter.combine_result(df, output_df, filter_condition)
 

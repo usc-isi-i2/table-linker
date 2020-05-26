@@ -24,6 +24,6 @@ def run(**kwargs):
         input_content = kwargs.get("input")
         tee.writeln(input_content)
     except:
-        message = 'Command: clean\n'
+        message = 'Command: tee\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)

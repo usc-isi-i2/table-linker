@@ -1,5 +1,6 @@
 import copy
 import requests
+import typing
 from tl.candidate_generation.phrase_query_json import query
 from requests.auth import HTTPBasicAuth
 
@@ -109,3 +110,20 @@ class Search(object):
                     all_labels.extend(hit['_source'].get('aliases', []))
                     candidate_dict[hit['_id']] = {'score': hit['_score'], 'label_str': '|'.join(all_labels)}
         return candidate_dict
+
+    def search_node_labels(self, search_nodes: typing.List[str]) -> dict:
+        query = {
+            "query": {
+                "ids": {
+                    "values": search_nodes
+                }
+            },
+            "size": len(search_nodes)
+        }
+        response = self.search_es(query)
+        label_dict = {}
+        for each in response:
+            node_id = each["_source"]["id"]
+            node_labels = each["_source"]["labels"] + each["_source"]["aliases"]
+            label_dict[node_id] = node_labels
+        return label_dict

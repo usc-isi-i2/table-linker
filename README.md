@@ -1,3 +1,4 @@
+
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Command Line Interface
 
   This document describes the command-line interface for the <code>Table Linker (tl)</code> system.
@@ -24,19 +25,24 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 ### `Usage:  tl [OPTIONS] COMMAND [ / COMMAND]* `
 
 **Table of Contents:**
+- [`add-color`](#command_add-color)<sup>*</sup>: Add some color on the specified score columns for better visualization.
+- [`add-text-embedding-feature`](#command_add-text-embedding-feature)<sup>*</sup>: computes text embedding vectors of the candidates and similarity to rank candidates.
 - [`canonicalize`](#command_canonicalize)<sup>*</sup>: translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
-- [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG   
+- [`check-extra-information`](#command_check-extra-information)<sup>*</sup> : Check if the given extra information exists in the given kg node and corresponding wikipedia page (if exists).
+- [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG.
+- [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value.
+- [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
+- [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
 - [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
-- [`string-similarity`](#command_string-similarity): compares the cell values in two input columns and outputs a similarity score for each pair of participating strings 
-- [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
-- [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells
-- [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value
-- [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format
-- [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
+- [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
 - [`ground-truth-labeler`](#command_ground-truth-labeler)<sup>*</sup>: compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
-- [`tee`](#command_tee): saves the input to disk and echoes the input to the standard output without modification
-- [`add-text-embedding-feature`](#command_add-text-embedding-feature): computes text embedding vectors of the candidates and similarity to rank candidates.
-- [`run-pipeline`](#command_run-pipeline): runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
+- [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
+- [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
+- [`metrics`](#command_metrics): Calculate the F1-score on the candidates tables. Only works on the dataset after ran with  `ground-truth-labeler`.
+- [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
+- [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
+- [`string-similarity`](#command_string-similarity): compares the cell values in two input columns and outputs a similarity score for each pair of participating strings 
+- [`tee`](#command_tee)<sup>*</sup>: saves the input to disk and echoes the input to the standard output without modification.
 
 
 **Note: only the commands marked with <sup>*</sup> are currently implemented**
@@ -97,6 +103,7 @@ translate an input CSV or TSV file to [canonical form](https://docs.google.com/d
 - `-o a`: specifies the name of a new column to be added. Default output column name is `label`
 - `--tsv`:  the delimiter of the input file is TAB.
 - `--csv`: the delimiter of the input file is comma.
+- `--add-other-information`: append information from other columns as an extra column of output canonical file.
 
 **Examples:**
    ```bash
@@ -126,6 +133,32 @@ column row label
 1      0   Buda’pest
 1      1   Prague
 1      2   London!
+
+$ cat chief_subset.tsv
+
+col0  col1  col2
+Russia  Pres. Vladimir Vladimirovich PUTIN
+Russia  Premier Dmitriy Anatolyevich MEDVEDEV
+Russia  First Dep. Premier  Anton Germanovich SILUANOV
+Russia  Dep. Premier  Maksim Alekseyevich AKIMOV
+Russia  Dep. Premier  Yuriy Ivanovich BORISOV
+Russia  Dep. Premier  Konstatin Anatolyevich CHUYCHENKO
+Russia  Dep. Premier  Tatyana Alekseyevna GOLIKOVA
+
+# canonicalize the input file and process col2 with adding extra information
+$ tl canonicalize -c col2  --add-other-information chief_subset.tsv > organizations_subset_col0_canonicalized.csv
+
+# note that we get an extra column here, which is the information from the input file, combined by `|`
+$ cat organizations_subset_col0_canonicalized.csv
+
+column,row,label,||other_information||
+2,0,Vladimir Vladimirovich PUTIN,Russia|Pres.
+2,1,Dmitriy Anatolyevich MEDVEDEV,Russia|Premier
+2,2,Anton Germanovich SILUANOV,Russia|First Dep. Premier
+2,3,Maksim Alekseyevich AKIMOV,Russia|Dep. Premier
+2,4,Yuriy Ivanovich BORISOV,Russia|Dep. Premier
+2,5,Konstatin Anatolyevich CHUYCHENKO,Russia|Dep. Premier
+2,6,Tatyana Alekseyevna GOLIKOVA,Russia|Dep. Premier
 ```
 
 ### Implementation
@@ -285,7 +318,7 @@ the field `_score` in the retrieved Elasticsearch objects.
 The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
  are stored in the field `_id` in the retrieved Elasticsearch objects.
  
-The `filter` arg is optional, if given, it will excute the operation specified in the string and remove the rows which not fit the requirement. If after removing, no candidates for this `(column, row)` pair left, it will append the phrase match results generated, otherwise nothing will be appeneded.
+The `filter` arg is optional, if given, it will execute the operation specified in the string and remove the rows which not fit the requirement. If after removing, no candidates for this `(column, row)` pair left, it will append the phrase match results generated, otherwise nothing will be appended.
  **Examples:**
 
 ```bash
@@ -330,6 +363,126 @@ All Add-Feature commands take a column in a [Candidate](https://docs.google.com/
 or a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file 
 and output a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file. 
 
+<a name="command_add-text-embedding-feature" />
+
+### [`add-text-embedding-feature`](#command_add-text-embedding-feature)` [OPTIONS]`
+
+The `add-text-embedding-feature` command computes text embedding vectors of the candidates and similarity to rank candidates. 
+The basic idea is to compute a vector for a column in a table and then rank the candidates for each cell by measuring 
+similarity between each candidate vector and the column vector.
+
+**Options:**
+- `--sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
+- `--output-column-name`: The output scoring column name. If not provided, the name of the embedding model will be used.
+- `--generate-projector-file`: If given, the function will generate the files needed to run the Google Project visualization.
+###### Following options are wrapped from kgtk, please refer to [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
+- `--column-vector-strategy {string}`: The centroid choosing method.
+- `--embedding-model {string}`: The pre-fitted models used for generating the vectors.
+- `--distance-function {string}`: The distance measurement function to used for scoring.
+- `--centroid-sampling-amount {int}`: The number of cells used to estimate the vector for a column.
+- `--label-properties {string}`: The names of the properties(P nodes) for `label` properties. If pass with `None`, this part will not be used. Default is `label` property.
+- `--description-properties list{string}`: The names of the properties(P nodes) for `description` properties. If pass with `None`, this part will not be used. Default is `description` property.
+- `--isa-properties list{string}`: The names of the properties(P nodes) for `isa` properties. If pass with `None`, this part will not be used. Default is `P31`.
+- `--has-properties list{string}`: The names of the properties(P nodes) for `has` properties. If pass with `None`, this part will not be used. Default is all P nodes except `P31`.
+- `--run-TSNE {bool}`: whether to run TSNE or not after the embedding vectors is generated.
+
+**Examples:**
+```bash
+# run text embedding command to add an extra column `embed-score` with ground-truth strategy and use all nodes to calculate centroid
+$ tl add-text-embedding-feature input_file.csv \
+  --column-vector-strategy ground-truth \
+  --centroid-sampling-amount 0 \
+  --output-column-name embed-score
+
+# run text embedding command to add an extra column `embed-score` with ground-truth strategy and use up to 5 nodes to calculate centroid, the generated sentence only contains label and description information. Also, apply TSNE on the embedding vectors after generated. Also, the corresponding detail vectors file will be saved to `vectors.tsv`
+$ tl add-text-embedding-feature input_file.csv \
+  --embedding-model bert-base-nli-mean-tokens \
+  --column-vector-strategy ground-truth \
+  --centroid-sampling-amount 5 \
+  --isa-properties None \
+  --has-properties None \
+  --run-TSNE true \
+  --generate-projector-file vectors.tsv
+
+```
+
+**File Example:**
+```
+    column  row                                          label  ...                                    GT_kg_label evaluation_label embed-score
+0        0    2                        Trigeminal nerve nuclei  ...                        Trigeminal nerve nuclei                1    0.925744
+1        0    3                       Trigeminal motor nucleus  ...                       Trigeminal motor nucleus                1    0.099415
+2        0    4                          Substantia innominata  ...                          Substantia innominata                1    0.070117
+3        0    6                                    Rhombic lip  ...                                    Rhombic lip                1    1.456694
+4        0    7                                 Rhinencephalon  ...                                 Rhinencephalon                1    0.471636
+5        0    9  Principal sensory nucleus of trigeminal nerve  ...  Principal sensory nucleus of trigeminal nerve                1    1.936707
+6        0   12                     Nucleus basalis of Meynert  ...                     Nucleus basalis of Meynert                1    0.130171
+7        0   14      Mesencephalic nucleus of trigeminal nerve  ...      Mesencephalic nucleus of trigeminal nerve                1    1.746346
+8        0   17                         Diagonal band of Broca  ...                         Diagonal band of Broca                1    0.520857
+9        0    1                                 Tuber cinereum  ...                                 tuber cinereum                1    0.116646
+10       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.192494
+11       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.028620
+```
+
+#### Implementation
+This command mainly wrap from kgtk's text-embedding functions.
+please refer to kgtk's readme page [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
+
+<a name="command_check-extra-information" />
+
+### [`check-extra-information`](#command_check-extra-information)` [OPTIONS]`
+
+The `check-extra-information` add a feature column by checking if any extra information from the original file get hitted and return a score base on the hitted information amount. 
+
+The program will check each node's property values and corresponding wikipedia page if exists. If any labels found there are same as the provieded extra information treat as hitted, otherwise not hitted. Usually there would be multiple columns for each input original file, we treat each coulmn as one part, the score is `count(hitted_part)/ count(all_parts)`. Maximum score is 1 for hit all extra information provided.
+
+**Options:**
+- `--sparql-query-endpoint {string}`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
+- `--extra-information-file {string}`: If the input canonical format file do not contains the column `||other_information||` genreated by command `canonicalize`, this extra information file path is necessary. Otherwise it is optional.
+- `--score-column {string}`: The name of the column used for the scoring to determine the prediction results.
+
+**Examples:**
+```bash
+# add the extra-information feature column with external extra information file
+$ tl check-extra-information input_file.csv \
+  --extra-information-file extra_info.csv \
+  --output-column-name extra_information_score > output_file.csv
+```
+
+**File Example:**
+```bash
+# add the extra-information feature column
+$ tl check-extra-information input_file.csv \
+  --output-column-name extra_information_score > output_file.csv
+  column  row  label  ||other_information||  label_clean  ...  GT_kg_id  GT_kg_label evaluation_label  gt_embed_score  extra_information_score
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin  1  1.297309  0.5
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin -1  1.290919  0.0
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin -1  0.651267  0.0
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin -1  0.815978  0.0
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin -1  0.778838  0.0
+
+...  ...  ...  ...  ...  ...  ... ...  ...  ... ...  ...
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  0.950004  0.0
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  0.763486  0.0
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  1.219794  0.5
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  1.225877  0.0
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  1.185123  0.5
+$ cat output_file.csv
+
+```
+
+#### Implementation
+Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
+Wikipedia part: achieved with the python pacakge `wikipedia-api`
 
 <a name="command_string-similarity" />
 
@@ -481,6 +634,8 @@ Then, for all candidates `c`, in the candidates set `C`, generated by retrieval 
 
 Where `weight(m)` is specified by users, defaulting to `1.0`
 
+
+
 ## Ranking Candidate Commands
 Ranking Candidate commands rank the candidate for each input cell. All Ranking Candidate commands takes as input a file in [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt)
 format and output a file in [Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr)
@@ -545,8 +700,112 @@ For each candidate `c` and the set of score-columns `S`,
 
 ## Commands on Ranking Score File
 
-[Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) files have a column which ranks 
-the candidates for each input cell.
+[Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) files have a column which ranks the candidates for each input cell.
+
+This commands in this module takes as input a [Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr)  file and outputs a file in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
+
+
+<a name="command_drop-by-score" />
+
+### [`drop-by-score`](#command_drop-by-score)` [OPTIONS]`
+
+The `drop-by-score` command outputs the top `k` score candidates for each `column, row` pair of the input file. The other candidates whose score is out of those will be removed.
+
+**Options:**
+- `-c a`:	column name with ranking scores.
+- `-k {number}`: desired number of output candidates per input cell.Defaut is `k=20`. 
+- 
+
+**Examples:**
+```bash
+# read the ranking score file test_file.csv and keep only the highest score on embed-score column
+$ tl drop-by-score test_file.csv -c embed-score -k 1 > output_file.csv
+
+# same example but with default options 
+$ tl drop-by-score test_file.csv -c embed-score > output_file.csv
+```
+
+**File Example:**
+```bash
+# read the ranking score file countries_features_ranked.csv and ouput top 2 candidates, column 'clean_labels' have the cleaned input labels
+# original file
+      column  row                          label      kg_id  retrieval_score_normalized
+        2    0   Vladimir Vladimirovich PUTIN      Q7747                    0.999676
+        2    0   Vladimir Vladimirovich PUTIN  Q12554172                    0.405809
+        2    0   Vladimir Vladimirovich PUTIN   Q1498647                    0.466929
+        2    0   Vladimir Vladimirovich PUTIN  Q17052997                    0.404006
+        2    0   Vladimir Vladimirovich PUTIN  Q17195494                    0.500758
+      ...  ...                            ...        ...                         ...
+        2   40  Vasiliy Alekseyevich NEBENZYA  Q64456113                    0.287849
+        2   40  Vasiliy Alekseyevich NEBENZYA  Q65043723                    0.319638
+        2   40  Vasiliy Alekseyevich NEBENZYA   Q7916774                    0.316741
+        2   40  Vasiliy Alekseyevich NEBENZYA   Q7916778                    0.316741
+        2   40  Vasiliy Alekseyevich NEBENZYA   Q7972769                    0.262559
+
+$ tl drop-by-score test_file.csv -c embed-score -k 1 > output_file.csv
+# output result, note than only 1 candidates remained for each (column, row) pair
+$ cat output_file.csv
+    column  row                                label      kg_id  retrieval_score_normalized
+        2    0         Vladimir Vladimirovich PUTIN      Q7747                    0.999676
+        2    1        Dmitriy Anatolyevich MEDVEDEV     Q23530                    0.999676
+        2    2           Anton Germanovich SILUANOV    Q589645                    0.999740
+        2    3           Maksim Alekseyevich AKIMOV   Q2587075                    0.619504
+        2    4              Yuriy Ivanovich BORISOV   Q4093892                    0.688664
+        2    5    Konstatin Anatolyevich CHUYCHENKO   Q4517811                    0.455497
+        2    6         Tatyana Alekseyevna GOLIKOVA    Q260432                    0.999676
+        2    7               Olga Yuryevna GOLODETS   Q3350421                    0.999676
+        2    8         Aleksey Vasilyevich GORDEYEV    Q478290                    1.000000
+        2    9           Dmitriy Nikolayevich KOZAK    Q714330                    0.601561
+        2   10           Vitaliy Leyontyevich MUTKO   Q1320362                    0.666055
+```
+
+#### Implementation
+Group by  column and row indices and pick the top `k` candidates for each input cell. Then drop the remained part of the files and output the result.
+
+
+<a name="command_drop-duplicate" />
+
+### [`drop-duplicate`](#command_drop-duplicate)` [OPTIONS]`
+
+The `drop-duplicate` command outputs the duplicate rows based on the given column information and keep the one with a higher score on the specified score column. This comamnd usually will be used when multiple candidates generating methods was called, those different method may generate same candidates multiple times which may influence future processes.
+
+**Options:**
+- `-c a`:	column name with duplicate things, usually it should be `kg_id` column.
+- `--score-column {string}`: the reference score column for deciding which row to drop.
+- 
+
+**Examples:**
+```bash
+# read the ranking score file test_file.csv and keep the higher score on `retrieval_score_normalized` column if duplicate found on (column, row, kg_id) pairs.
+$ tl drop-duplicate test_file.csv -c kg_id --score-column retrieval_score_normalized
+```
+
+**File Example:**
+```bash
+# read the ranking score file countries_features_ranked.csv and ouput top 2 candidates, column 'clean_labels' have the cleaned input labels
+# original file
+    column  row                                label      kg_id        method  retrieval_score_normalized
+      2    0         Vladimir Vladimirovich PUTIN      Q7747   exact-match                    0.999676
+      2    0         Vladimir Vladimirovich PUTIN      Q7747  phrase-match                    0.456942
+      2    1        Dmitriy Anatolyevich MEDVEDEV     Q23530   exact-match                    0.999676
+      2    2           Anton Germanovich SILUANOV    Q589645   exact-match                    0.999740
+      2    3           Maksim Alekseyevich AKIMOV   Q2587075  phrase-match                    0.619504
+      2    4              Yuriy Ivanovich BORISOV   Q4093892  phrase-match                    0.688664
+
+$ tl drop-duplicate test_file.csv -c kg_id --score-column retrieval_score_normalized > output_file.csv
+# output result, note than the duplicate row for column, row pair (2,0) was removed and the one with higher retrieval_score_normalized was kept.
+$ cat output_file.csv
+    column  row                                label      kg_id        method  retrieval_score_normalized
+      2    0         Vladimir Vladimirovich PUTIN      Q7747   exact-match                    0.999676
+      2    1        Dmitriy Anatolyevich MEDVEDEV     Q23530   exact-match                    0.999676
+      2    2           Anton Germanovich SILUANOV    Q589645   exact-match                    0.999740
+      2    3           Maksim Alekseyevich AKIMOV   Q2587075  phrase-match                    0.619504
+      2    4              Yuriy Ivanovich BORISOV   Q4093892  phrase-match                    0.688664
+
+```
+
+#### Implementation
+Group by  column and row and specified column pairs indices and pick the higher score one.
 
 <a name="command_get-kg-links" />
 
@@ -556,14 +815,10 @@ The `get-kg-links` command outputs the top `k` candidates from a sorted list,
 as linked knowledge graph objects for an input cell.
 The candidate with the highest score is ranked highest, ties are broken alphabetically.
 
-This module takes as input a 
-[Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) 
-file and outputs a file in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
-
 **Options:**
 - `-c a`:	column name with ranking scores.
 - `-l a`: column name with input cell labels. Default is `label`. These values will be stored in the output column `label` in the output file for this command.
-- `-k {number}`: desired number of output candidates per input cell.Defaut is `k=1`. Multiple values are represented by a `|` separated string
+- `-k {number}`: desired number of output candidates per input cell.Default is `k=1`. Multiple values are represented by a `|` separated string
 
 **Examples:**
 ```bash
@@ -695,95 +950,57 @@ in the Ground Truth File and the candidate is different from the corresponding k
  added by the [get-exact-matches](#command_get-exact-matches) command and are stored in the column `kg_labels`. 
  If the column is not present or in case of missing preferred label, empty string "" is added.
 
+## Utility Commands
 
-<a name="command_tee" />
+<a name="command_add-color" />
 
-### [`tee`](#command_tee)` [OPTIONS]`
+### [`add-color`](#command_color)` [OPTIONS]`
 
-The `tee` command saves the input to disk and echoes the input to the standard output without modification. The command can be put anywhere in a pipeline to save the input to a file.
-This command is a wrap of the linux command `tee`
-
-**Options:**
-- `--output`: the path where the file should be saved.
-
-**Examples:**
-```bash
-# After performing the expensive operations to get candidates and compute embeddings, save the file to disk and continue the pipeline.
-$ tl clean / 
-    / get-exact-matches -c label \
-    / ground-truth-labeler -f “./xxx_gt.csv” \
-    / add-text-embedding-feature --column-vector-strategy ground-truth -n 3 \
-    	--generate-projector-file xxx-google-projector -o embed 
-    / tee --output xxx-features.csv \
-    / normalize-scores \
-    / metrics
-```
-
-
-<a name="command_add-text-embedding-feature" />
-
-### [`add-text-embedding-feature`](#command_add-text-embedding-feature)` [OPTIONS]`
-
-The `add-text-embedding-feature` command computes text embedding vectors of the candidates and similarity to rank candidates. 
-The basic idea is to compute a vector for a column in a table and then rank the candidates for each cell by measuring 
-similarity between each candidate vector and the column vector.
+The `add-color` command is a special command that can only run as the last step of the pipeline / run separately because the generated file is a `xlsx` file but not a `csv` file. This command can be used to marked the `top-k` score of specified score columns for better visualization.
+It also support with a `ground-truth` format which can only run on a file after running with `add-text-embedding-feature` function and `ground-truth` column-vector-strategy. The rows for each candidate will then be ordered descending by gt score,  except that the first row is the ground truth candidate regardless of  whether it didn't get the highest gt cosine score
 
 **Options:**
-- `--sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
-- `--output-column-name`: The output scoring column name. If not provided, the name of the embedding model will be used.
-- `--generate-projector-file`: If given, the function will generate the files needed to run the Google Project visualization.
-###### Following options are wrapped from kgtk, please refer to [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
-- `--column-vector-strategy`: The centroid choosing method.
-- `--embedding-model`: The pre-fitted models used for generating the vectors.
-- `--distance-function`: The distance measurement function to used for scoring.
-- `--centroid-sampling-amount`: The number of cells used to estimate the vector for a column.
-- `--label-properties`: The names of the properties(P nodes) for `label` properties. If pass with `None`, this part will not be used. Default is `label` property.
-- `--description-properties`: The names of the properties(P nodes) for `description` properties. If pass with `None`, this part will not be used. Default is `description` property.
-- `--isa-properties`: The names of the properties(P nodes) for `isa` properties. If pass with `None`, this part will not be used. Default is `P31`.
-- `--has-properties`: The names of the properties(P nodes) for `has` properties. If pass with `None`, this part will not be used. Default is all P nodes except `P31`.
-- `--run-TSNE`: whether to run TSNE or not after the embedding vectors is generated.
 
+- `-c`: The score columns need to be colored.
+- `-k`: The amount of highest scores need to be colored.
+- `--output`: The output path to save the output xlsx file.
+- `--sort-by-ground-truth`: A flag option, pass with flag only to set to sort by ground truth score.
+- `--ground-truth-score-column`:  Only valid when pass with `--sort-by-ground-truth`, the column name of the ground truth score.
 **Examples:**
 ```bash
-# run text embedding command to add an extra column `embed-score` with ground-truth strategy and use all nodes to calculate centroid
-$ tl add-text-embedding-feature input_file.csv \
-  --column-vector-strategy ground-truth \
-  --centroid-sampling-amount 0 \
-  --output-column-name embed-score
+# color the `test.csv` file on column `evaluation_label` and `retrieval_score_normalized` 
+# then save to desktop
+# run with sort by ground turth condition.
+$ tl add-color ~/Desktop/test.csv -k 5 \
+-c retrieval_score_normalized evaluation_label \
+--sort-by-ground-truth \
+--ground-truth-score-column gt_embed_score_normalized \
+--output ~/Desktop/test_colored.xlsx
 
-# run text embedding command to add an extra column `embed-score` with ground-truth strategy and use up to 5 nodes to calculate centroid, the generated sentence only contains label and description information. Also, apply TSNE on the embedding vectors after generated. Also, the corresponding detail vectors file will be saved to `vectors.tsv`
-$ tl add-text-embedding-feature input_file.csv \
-  --embedding-model bert-base-nli-mean-tokens \
-  --column-vector-strategy ground-truth \
-  --centroid-sampling-amount 5 \
-  --isa-properties None \
-  --has-properties None \
-  --run-TSNE true \
-  --generate-projector-file vectors.tsv
-
+# run color only
+$ tl add-color ~/Desktop/test.csv -k 5 \
+-c retrieval_score_normalized evaluation_label \
+--output ~/Desktop/test_colored.xlsx
 ```
 
 **File Example:**
-```
-    column  row                                          label  ...                                    GT_kg_label evaluation_label embed-score
-0        0    2                        Trigeminal nerve nuclei  ...                        Trigeminal nerve nuclei                1    0.925744
-1        0    3                       Trigeminal motor nucleus  ...                       Trigeminal motor nucleus                1    0.099415
-2        0    4                          Substantia innominata  ...                          Substantia innominata                1    0.070117
-3        0    6                                    Rhombic lip  ...                                    Rhombic lip                1    1.456694
-4        0    7                                 Rhinencephalon  ...                                 Rhinencephalon                1    0.471636
-5        0    9  Principal sensory nucleus of trigeminal nerve  ...  Principal sensory nucleus of trigeminal nerve                1    1.936707
-6        0   12                     Nucleus basalis of Meynert  ...                     Nucleus basalis of Meynert                1    0.130171
-7        0   14      Mesencephalic nucleus of trigeminal nerve  ...      Mesencephalic nucleus of trigeminal nerve                1    1.746346
-8        0   17                         Diagonal band of Broca  ...                         Diagonal band of Broca                1    0.520857
-9        0    1                                 Tuber cinereum  ...                                 tuber cinereum                1    0.116646
-10       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.192494
-11       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.028620
+```bash
+# the output is same as the input file if not sort
+   column  row  retrieval_score_normalized  evaluation_label  gt_embed_score_normalized
+0       2    0                    0.999676                 1                   0.398855
+1       2    0                    0.405809                -1                   0.403718
+2       2    0                    0.466929                -1                   0.203675
+3       2    0                    0.404006                -1                   0.255186
+4       2    0                    0.500758                -1                   0.243571
+5       2    0                    0.541115                -1                   0.675757
+6       2    0                    0.417415                -1                   0.231361
+7       2    0                    0.752838                -1                   0.540415
+8       2    0                    0.413938                -1                   0.220305
+9       2    0                    0.413938                -1                   0.228466
 ```
 
 #### Implementation
-This command mainly wrap from kgtk's text-embedding functions.
-please refer to kgtk's readme page [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
-
+By using pandas's xls writer function, add some special format to some cells.
 
 <a name="command_run-pipeline" />
 
@@ -801,7 +1018,7 @@ For example “{}_gt.csv” specifies that the ground truth file for input file 
 - `--score-column`: The column name with scores for evaluation
 - `--gpu-resources`: Optional, if given, the system will use only the specified GPU ID for running.
 - `--tag`: a tag to use in the output file to identify the results of running the given pipeline
-- `--parallel-count`: Optional, if specified, the system will run `n`processes parallelly. Default is `1`.
+- `--parallel-count`: Optional, if specified, the system will run `n`processes in parallel. Default is `1`.
 - `--output`: optional, defines a name for the output file for each input file. The pattern is a string where {} gets substituted by the name of the input file, minus the extension.
 Default is `output_{}`
 - `--output-folder`: optional, if given, the system will save the output file of each pipeline to given folder with given file naming pattern from `--output`.
@@ -838,4 +1055,28 @@ gt-embed  v15_686.csv 0.115384615 0.115384615 0.115384615
 
 #### Implementation
 This command used python's subprocess to call shell functions then execute the corresponding shell codes.
+
+<a name="command_tee" />
+
+### [`tee`](#command_tee)` [OPTIONS]`
+
+The `tee` command saves the input to disk and echoes the input to the standard output without modification. The command can be put anywhere in a pipeline to save the input to a file.
+This command is a wrap of the linux command `tee`
+
+**Options:**
+- `--output`: the path where the file should be saved.
+
+**Examples:**
+```bash
+# After performing the expensive operations to get candidates and compute embeddings, save the file to disk and continue the pipeline.
+$ tl clean / 
+    / get-exact-matches -c label \
+    / ground-truth-labeler -f “./xxx_gt.csv” \
+    / add-text-embedding-feature --column-vector-strategy ground-truth -n 3 \
+    	--generate-projector-file xxx-google-projector -o embed 
+    / tee --output xxx-features.csv \
+    / normalize-scores \
+    / metrics
+```
+
 

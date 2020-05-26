@@ -6,7 +6,7 @@ import tl.exceptions
 
 def parser():
     return {
-        'help': 'generate candidates by checking the extra information.'
+        'help': 'add score column based on by checking the extra information.'
     }
 
 
@@ -18,7 +18,7 @@ def add_arguments(parser):
 
     """
     parser.add_argument('--extra-information-file', action='store', type=str,
-                        dest='extra_information_file', required=True,
+                        dest='extra_information_file', default=None,
                         help='path to the extra information file')
 
     parser.add_argument('--score-column', action='store', nargs='?', dest='score_column', required=False,
@@ -36,13 +36,10 @@ def run(**kwargs):
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-        odf = ExtraInformationProcessing. \
-            check_extra_information(df=df,
-                                    extra_information_file=kwargs["extra_information_file"],
-                                    score_column=kwargs["score_column"],
-                                    query_address=kwargs["query_address"])
+        processing_unit = ExtraInformationProcessing(**kwargs)
+        odf = processing_unit.check_extra_information(df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
-        message = 'Command: check extra information\n'
+        message = 'Command: check-extra-information\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)

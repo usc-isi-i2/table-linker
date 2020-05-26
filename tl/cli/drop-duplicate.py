@@ -6,7 +6,8 @@ import tl.exceptions
 
 def parser():
     return {
-        'help': 'drop rows base on scores of given columns'
+        'help': 'Remove duplicate rows of each candidates according to specified column and keep the one with higher score on '
+                'specified column.'
     }
 
 
@@ -18,12 +19,13 @@ def add_arguments(parser):
 
     """
     parser.add_argument('-c', '--column', action='store', type=str, dest='column', required=True,
-                        help='column name with ranking scores')
-
-    parser.add_argument('-k', action='store', type=int, dest='k', default=20,
-                        help='the top k results to be keep is 20')
+                        help='column name with labels')
 
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+
+    parser.add_argument('--score-column', action='store', nargs='+',
+                        dest='score_columns', default=[],
+                        help="""The names of the column with the ranking scores as reference.""")
 
 
 def run(**kwargs):
@@ -32,9 +34,9 @@ def run(**kwargs):
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-        odf = normalize_scores.drop_by_score(kwargs['column'], k=kwargs['k'], df=df)
+        odf = normalize_scores.drop_duplicate(kwargs['column'], kwargs["score_columns"], df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
-        message = 'Command: drop-by-score\n'
+        message = 'Command: drop-duplicate\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)
