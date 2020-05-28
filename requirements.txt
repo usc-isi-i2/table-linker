@@ -10,3 +10,4 @@ date-extractor
 wikipedia-api
 seaborn
 strsim
+rltk

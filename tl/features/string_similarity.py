@@ -2,8 +2,8 @@ import pandas as pd
 import typing
 
 from collections import defaultdict
-# from similarity.normalized_levenshtein import NormalizedLevenshtein
 from tl.exceptions import UnsupportTypeError, RequiredColumnMissingException
+import tl.features.similarity_units
 
 
 class StringSimilarity:
@@ -24,14 +24,15 @@ class StringSimilarity:
             raise RequiredColumnMissingException("No `kg_labels` column found!")
 
         for each_method in similarity_method:
-            if each_method.lower() == "normalizedlevenshtein" or each_method.lower() == "levenshtein":
-                pass
-                # this one need to be update to use our own wrapped class
-                # self.similarity_units.append(NormalizedLevenshtein(**kwargs))
-            # TODO: add more methods here
-
-            else:
-                raise UnsupportTypeError("Similarity method {} does not exist or does not support!".format(each_method))
+            # method1:a1=v1:a2=v2:a3=v3
+            try:
+                args = each_method.split(':')
+                method_name = args[0]
+                other_args = {k: v for k, v in [v.split('=') for v in args[1:]]}
+                cls = getattr(tl.features.similarity_units, '{}Similarity'.format(method_name.capitalize()))
+                self.similarity_units.append(cls(**other_args, tl_args=kwargs))
+            except:
+                raise UnsupportTypeError("Similarity method {} does not exist or wrong arguments".format(each_method))
 
     def get_similarity_score(self):
         scores = defaultdict(list)

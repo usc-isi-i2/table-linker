@@ -21,8 +21,8 @@ def add_arguments(parser):
 
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
-    parser.add_argument('-i', action='store_true', dest='case_sensitive',
-                        help='case insensitive retrieval, default is case sensitive')
+    parser.add_argument('-i', action='store_true', dest='ignore_case',
+                        help='ignore case, default is case sensitive')
 
     parser.add_argument('--method', action='store', dest='similarity_method', nargs='+',
                         default=[],
