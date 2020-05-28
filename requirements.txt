@@ -8,3 +8,5 @@ networkx
 pytz
 date-extractor
 wikipedia-api
+seaborn
+strsim
