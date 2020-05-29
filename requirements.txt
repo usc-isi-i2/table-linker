@@ -10,4 +10,4 @@ date-extractor
 wikipedia-api
 seaborn
 strsim
-rltk
+git+https://github.com/usc-isi-i2/rltk.git@dev#egg=rltk
