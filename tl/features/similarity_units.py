@@ -4,7 +4,7 @@ import rltk.similarity as sim
 
 class StringSimilarityModule(ABC):
     def __init__(self, **kwargs):
-        self._ignore_case = 'ignore_case' in kwargs['tl_args']
+        self._ignore_case = kwargs['tl_args']['ignore_case']
 
     @abstractmethod
     def get_name(self) -> str:
