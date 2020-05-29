@@ -28,9 +28,9 @@ class StringSimilarity:
             try:
                 args = each_method.split(':')
                 method_name = args[0]
-                other_args = {k: v for k, v in [v.split('=') for v in args[1:]]}
+                method_args = {k: v for k, v in [v.split('=') for v in args[1:]]}
                 cls = getattr(tl.features.similarity_units, '{}Similarity'.format(method_name.capitalize()))
-                self.similarity_units.append(cls(**other_args, tl_args=kwargs))
+                self.similarity_units.append(cls(tl_args=kwargs, **method_args))
             except:
                 raise UnsupportTypeError("Similarity method {} does not exist or wrong arguments".format(each_method))
 
