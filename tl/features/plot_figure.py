@@ -1,22 +1,20 @@
 import pandas as pd
 import typing
 import seaborn as sns
-import pandas as pd
+import copy
 import matplotlib.pyplot as plt
 
 from tl.exceptions import RequiredColumnMissingException
 from tl.evaluation.evaluation import metrics
+from pyecharts import options as opts
+from pyecharts.charts import Bar, Grid, Line
+from collections import defaultdict
 
 
 class FigurePlotterUnit:
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def plot_bar_figure(columns: typing.List[str], k: typing.List[int],
-                        df: pd.DataFrame, output_path: str = None):
+    def __init__(self, columns: typing.List[str], k: typing.List[int],
+                 df: pd.DataFrame, output_path: str = None, title=None):
         """
-        Call metric function to evaluate the results and plot it as a figure for visualization
         :param columns: the target score columns
         :param k: the target top-k values for candidates
         :param df: input dataframe
@@ -26,26 +24,42 @@ class FigurePlotterUnit:
         for each_column in columns:
             if each_column not in df.columns:
                 raise RequiredColumnMissingException("Column {} does not exist in input data.".format(each_column))
+        self.df = df
+        self.k = k
+        self.output_path = output_path
+        self.columns = columns
+        if not title:
+            self.title = "Scores Analysis"
 
+    def plot_bar_figure(self):
+        """
+        Call metric function to evaluate the results and plot it as a figure for visualization
+        """
         results = dict()
         i = 0
-        max_score = metrics(column=columns[0], df=df, k=len(df), tag="").iloc[0, 2]
-        for each_column in columns:
-            for each_k in k:
-                each_metric_result = metrics(column=each_column, df=df, k=int(each_k), tag="")
+        max_score = metrics(column=self.columns[0], df=self.df, k=len(self.df), tag="").iloc[0, 2]
+        for each_column in self.columns:
+            for each_k in self.k:
+                each_metric_result = metrics(column=each_column, df=self.df, k=int(each_k), tag="")
                 accuracy = each_metric_result.iloc[0, 2]
                 each_res = {"k": each_k, "column": each_column, "accuracy": accuracy, "normalized_accuracy": accuracy / max_score}
                 results[i] = each_res
                 i += 1
         plot_df = pd.DataFrame.from_dict(results, orient="index")
 
-        figure_object = FigurePlotterUnit.plot_figure(plot_df, max_score)
-        if output_path:
-            FigurePlotterUnit.save_to_disk(figure_object, output_path)
+        # score analysis figure
+        figure_object = self.plot_figure(plot_df, max_score)
+        self.save_to_disk(figure_object, self.output_path)
+        # ground truth analysis figure
+        self.plot_ground_truth_analysis(self.columns, self.title, self.output_path, self.df)
 
     @staticmethod
     def plot_figure(plot_df: pd.DataFrame, max_score: float):
-        fig_dims = (15, 10)
+        unique_columns = len(plot_df['column'].unique())
+        fig_y_size = 10
+        if unique_columns > 5:
+            fig_y_size += (unique_columns - 5) // 2
+        fig_dims = (15, fig_y_size)
         # set figure size and font scale
         plt.subplots(figsize=fig_dims)
         sns.set(font_scale=1.1)
@@ -62,7 +76,8 @@ class FigurePlotterUnit:
 
         # add max value line and text
         plt.plot([max_score, max_score], [y_start, y_end], linewidth=2, color="r")
-        ax.text(max_score - 0.018, count_columns / 2, "max score line {:.2f}".format(max_score), fontsize=20, rotation=90, color="#FF0000")
+        ax.text(max_score - 0.018, count_columns / 2, "max score line {:.2f}".format(max_score), fontsize=20, rotation=90,
+                color="#FF0000")
 
         # add title
         ax.set_title('Score Analysis', fontsize=25)
@@ -71,16 +86,105 @@ class FigurePlotterUnit:
         prev_part = None
         dist_each_bar = 1 / (len(plot_df['k'].unique()) + 1)
         current_pos = -2 * dist_each_bar + 0.05
+        # value_font_size = min(20 - , 10)
         for _, each_row in plot_df.iterrows():
             if prev_part != each_row["column"]:
                 current_pos += dist_each_bar
                 prev_part = each_row["column"]
             ax.text(0.1, current_pos,
                     "{:.2f} : {:.2f}".format(each_row["accuracy"], each_row["normalized_accuracy"]),
-                    fontsize=20, color="#1EC2FF")
+                    fontsize=15, color="#1EC2FF")
             current_pos += dist_each_bar
         return ax
 
     @staticmethod
     def save_to_disk(figure_object, output_path: str) -> None:
-        figure_object.get_figure().savefig(output_path)
+        figure_object.get_figure().savefig(output_path, bbox_inches='tight')
+
+    @staticmethod
+    def plot_ground_truth_analysis(all_score_columns: typing.List[str],
+                                   title: str, output_path: str,
+                                   df: pd.DataFrame) -> None:
+        """
+        use pyechart to plot html interactive figure
+        """
+        df_processed = copy.deepcopy(df)
+        for each_col in df_processed.columns:
+            df_processed[each_col] = pd.to_numeric(df_processed[each_col], errors='ignore')
+
+        xaxis_labels = []
+        memo = defaultdict(list)
+        groupby_res = df_processed[df_processed["evaluation_label"] == 1].groupby(["column", "row"])
+        for key, each_group in reversed(tuple(groupby_res)):
+            xaxis_labels.append(each_group["label_clean"].iloc[0])
+            for each_score_column in all_score_columns:
+                memo[each_score_column].append("{:.2f}".format(each_group[each_score_column].iloc[0]))
+
+        # build figure
+        bar = Bar()
+        bar.add_xaxis(xaxis_labels)
+        for k, v in memo.items():
+            bar.add_yaxis(k, v)
+
+        # set the global options
+        bar.set_global_opts(title_opts=opts.TitleOpts(title=title, pos_left='40%'),
+                            legend_opts=opts.LegendOpts(pos_left="center", pos_top="bottom", orient='horizontal'),
+                            brush_opts=opts.BrushOpts(),
+                            toolbox_opts=opts.ToolboxOpts(
+                                feature=opts.ToolBoxFeatureOpts(
+                                    save_as_image=opts.ToolBoxFeatureSaveAsImageOpts(
+                                        title="save as image"
+                                    ),
+                                    magic_type=opts.ToolBoxFeatureMagicTypeOpts(
+                                        line_title="switch to line chart",
+                                        bar_title="switch to bar chart",
+                                        stack_title="switch to stacked values",
+                                        tiled_title="switch to tiled values"
+                                    ),
+                                    data_zoom=opts.ToolBoxFeatureDataZoomOpts(
+                                        zoom_title="zoom in",
+                                        back_title="zoom reset"
+                                    ),
+                                    restore=opts.ToolBoxFeatureRestoreOpts(
+                                        title="reset"
+                                    ),
+                                    data_view=opts.ToolBoxFeatureDataViewOpts(
+                                        title="Data table view",
+                                        lang=["Table view", "Close", "Refresh"],
+                                    ),
+                                    brush=opts.ToolBoxFeatureBrushOpts(
+                                        rect_title="rectangle choice",
+                                        polygon_title="polygon choice",
+                                        clear_title="clear choices",
+                                        keep_title="keep choices"
+                                    )
+                                )
+                            ),
+                            datazoom_opts=opts.DataZoomOpts(orient="vertical"),
+                            # yaxis_opts=opts.AxisOpts(name='labels', name_gap=5000, name_rotate=15),
+                            tooltip_opts=opts.TooltipOpts(
+                                is_show=True, trigger="axis", axis_pointer_type="shadow"
+                            ),
+                            xaxis_opts=opts.AxisOpts(
+                                axistick_opts=opts.AxisTickOpts(
+                                    is_inside=True,
+                                    length=850,
+                                    linestyle_opts=opts.LineStyleOpts(
+                                        type_="dotted", opacity=0.5)
+                                )
+                            )
+                            )
+
+        # do not shown bar label values
+        bar.set_series_opts(label_opts=opts.LabelOpts(is_show=False))
+
+        bar.reversal_axis()
+
+        grid = (
+            Grid(init_opts=opts.InitOpts(
+                width="1500px", height="1000px", page_title="Table Linker visualization page")
+            ).add(
+                bar, grid_opts=opts.GridOpts(pos_top='5%', pos_bottom="10%", pos_right='5%', pos_left="20%")
+            )
+        )
+        grid.render(output_path + ".html")

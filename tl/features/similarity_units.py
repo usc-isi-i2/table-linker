@@ -28,6 +28,8 @@ def get_tokenizer(name, **kwargs):
 
 class StringSimilarityModule(ABC):
     def __init__(self, tl_args, **method_args):
+        # tl_args is necessary if operation specification (like case sensitive) is needed
+        # kwargs is necessary if tokenization (need all data in df) is needed
         # set tl args
         self._ignore_case = tl_args['ignore_case']
 

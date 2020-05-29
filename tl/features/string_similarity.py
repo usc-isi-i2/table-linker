@@ -1,9 +1,10 @@
 import pandas as pd
 import typing
+import inspect
+import tl.features.similarity_units
 
 from collections import defaultdict
 from tl.exceptions import UnsupportTypeError, RequiredColumnMissingException
-import tl.features.similarity_units
 
 
 class StringSimilarity:
@@ -23,6 +24,10 @@ class StringSimilarity:
         else:
             raise RequiredColumnMissingException("No `kg_labels` column found!")
 
+        # split the candidate labels
+        self.df[self.candidate_label_column_name] = \
+            self.df[self.candidate_label_column_name].apply(lambda x: x.split("|"))
+
         for each_method in similarity_method:
             # method1:a1=v1:a2=v2:a3=v3
             try:
@@ -35,6 +40,14 @@ class StringSimilarity:
             except:
                 raise UnsupportTypeError("Similarity method {} does not exist or wrong arguments".format(each_method))
 
+    @staticmethod
+    def get_all_similarity_models():
+        pass
+        # for name, obj in inspect.getmembers(foo):
+        #     if inspect.isclass(obj):
+        #         print
+        #         obj
+
     def get_similarity_score(self):
         scores = defaultdict(list)
         for _, each_row in self.df.iterrows():
@@ -43,7 +56,7 @@ class StringSimilarity:
                 similarity_unit_name = each_similarity_unit.get_name()
                 # get max score amount all labels of candidate node and use the highest one
                 max_score = 0
-                all_labels = each_row[self.candidate_label_column_name].split("|")
+                all_labels = each_row[self.candidate_label_column_name]
                 target_label = each_row[self.target_label_column_name]
                 for each_label in all_labels:
                     each_similarity_score = each_similarity_unit.similarity(target_label, each_label)

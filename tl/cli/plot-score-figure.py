@@ -35,8 +35,9 @@ def run(**kwargs):
     import pandas as pd
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        plot_unit = FigurePlotterUnit(columns=kwargs['column'], k=kwargs['k'], df=df, output_path=kwargs["output_uri"])
+        plot_unit.plot_bar_figure()
 
-        FigurePlotterUnit.plot_bar_figure(columns=kwargs['column'], k=kwargs['k'], df=df, output_path=kwargs["output_uri"])
     except:
         message = 'Command: plot-score-figure\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
