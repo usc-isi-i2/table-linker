@@ -1,5 +1,29 @@
 from abc import ABC, abstractmethod
+from functools import partial
 import rltk.similarity as sim
+
+
+def word_tokenizer(s):
+    return s.split(' ')
+
+
+def ngram_tokenizer(s, n, keep_start_and_end=False):
+    n = int(n)
+    keep_start_and_end = bool(keep_start_and_end)
+
+    if keep_start_and_end:
+        s = '_{}_'.format(s.lower())
+    if len(s) < n:
+        return [s]
+    return [s[i:i+n] for i in range(len(s)-n+1)]
+
+
+def get_tokenizer(name, **kwargs):
+    tokenizer = {
+        'ngram': ngram_tokenizer,
+        'word': word_tokenizer
+    }[name]
+    return partial(tokenizer, **kwargs)
 
 
 class StringSimilarityModule(ABC):
@@ -8,9 +32,15 @@ class StringSimilarityModule(ABC):
         self._ignore_case = tl_args['ignore_case']
 
         # set method args
+        tokenizer_kwargs = {}
         for k, v in method_args.items():
             setattr(self, '_{}'.format(k), v)
+            if k.startswith('tokenizer_'):
+                tokenizer_kwargs[k[len('tokenizer_'):]] = v
         self._arg_str = ','.join(['{}={}'.format(k, v) for k, v in method_args.items()])
+
+        if hasattr(self, '_tokenizer'):
+            self._tokenize = get_tokenizer(self._tokenizer, **tokenizer_kwargs)
 
     def get_name(self) -> str:
         # return the module name and corresponding config
@@ -22,6 +52,9 @@ class StringSimilarityModule(ABC):
         if self._ignore_case:
             str1 = str1.lower()
             str2 = str2.lower()
+        if hasattr(self, '_tokenize'):
+            str1 = self._tokenize(str1)
+            str2 = self._tokenize(str2)
         similarity = self._similarity(str1, str2)
         # if the score less than some threshold, return 0
         if threshold > similarity:
@@ -35,11 +68,15 @@ class StringSimilarityModule(ABC):
 
 
 class LevenshteinSimilarity(StringSimilarityModule):
+    # levenshtein
+
     def _similarity(self, str1: str, str2: str):
         return sim.levenshtein_similarity(str1, str2)
 
 
-class JarowinklerSimilarity(StringSimilarityModule):
+class JaroWinklerSimilarity(StringSimilarityModule):
+    # jaro_winkler
+
     def __init__(self, tl_args, threshold=0.7, scaling_factor=0.1, prefix_len=4):
         threshold = float(threshold)
         scaling_factor = float(scaling_factor)
@@ -53,6 +90,8 @@ class JarowinklerSimilarity(StringSimilarityModule):
 
 
 class NeedlemanSimilarity(StringSimilarityModule):
+    # needleman
+
     def __init__(self, tl_args, match=2, mismatch=-1, gap=-0.5):
         match = float(match)
         mismatch = float(mismatch)
@@ -66,15 +105,71 @@ class NeedlemanSimilarity(StringSimilarityModule):
 
 
 class SoundexSimilarity(StringSimilarityModule):
+    # soundex
+
     def _similarity(self, str1: str, str2: str):
         return sim.soundex_similarity(str1, str2)
 
 
 class MetaphoneSimilarity(StringSimilarityModule):
+    # metaphone
+
     def _similarity(self, str1: str, str2: str):
         return sim.metaphone_similarity(str1, str2)
 
 
 class NysiisSimilarity(StringSimilarityModule):
+    # nysiis
+
     def _similarity(self, str1: str, str2: str):
         return sim.nysiis_similarity(str1, str2)
+
+
+class CosineSimilarity(StringSimilarityModule):
+    # cosine:tokenizer=word
+
+    def __init__(self, tl_args, **kwargs):
+        super().__init__(tl_args, **kwargs)
+
+    def _similarity(self, str1: str, str2: str):
+        return sim.string_cosine_similarity(str1, str2)
+
+
+class JaccardSimilarity(StringSimilarityModule):
+    # jaccard:tokenizer=word
+
+    def __init__(self, tl_args, **kwargs):
+        super().__init__(tl_args, **kwargs)
+
+    def _similarity(self, str1: str, str2: str):
+        return sim.jaccard_index_similarity(set(str1), set(str2))
+
+
+class HybridJaccardSimilarity(StringSimilarityModule):
+    # hybrid_jaccard:tokenizer=word
+
+    def __init__(self, tl_args, **kwargs):
+        super().__init__(tl_args, **kwargs)
+
+    def _similarity(self, str1: str, str2: str):
+        return sim.hybrid_jaccard_similarity(set(str1), set(str2))
+
+
+class MongeElkanSimilarity(StringSimilarityModule):
+    # monge_elkan:tokenizer=word
+
+    def __init__(self, tl_args, **kwargs):
+        super().__init__(tl_args, **kwargs)
+
+    def _similarity(self, str1: str, str2: str):
+        return sim.monge_elkan_similarity(str1, str2)
+
+
+class SymmetricMongeElkanSimilarity(StringSimilarityModule):
+    # symmetric_monge_elkan:tokenizer=word
+
+    def __init__(self, tl_args, **kwargs):
+        super().__init__(tl_args, **kwargs)
+
+    def _similarity(self, str1: str, str2: str):
+        return sim.symmetric_monge_elkan_similarity(str1, str2)
