@@ -133,7 +133,7 @@ class CosineSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: list, str2: list):
         return sim.string_cosine_similarity(str1, str2)
 
 
@@ -143,7 +143,7 @@ class JaccardSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: list, str2: list):
         return sim.jaccard_index_similarity(set(str1), set(str2))
 
 
@@ -153,7 +153,7 @@ class HybridJaccardSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: list, str2: list):
         return sim.hybrid_jaccard_similarity(set(str1), set(str2))
 
 
@@ -163,7 +163,7 @@ class MongeElkanSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: list, str2: list):
         return sim.monge_elkan_similarity(str1, str2)
 
 
@@ -173,5 +173,35 @@ class SymmetricMongeElkanSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: list, str2: list):
         return sim.symmetric_monge_elkan_similarity(str1, str2)
+
+
+class TfidfSimilarity(StringSimilarityModule):
+    # tfidf:tokenizer=word
+
+    def __init__(self, tl_args, **kwargs):
+        super().__init__(tl_args, **kwargs)
+
+        self._tfidf = sim.TF_IDF()
+        df = tl_args['df']
+        col_name1 = tl_args['target_label_column_name']
+        col_name2 = tl_args['candidate_label_column_name']
+        fake_id = 0
+        for _, v in df[col_name1].items():
+            self._tfidf.add_document(str(fake_id), self._tokenize(v))
+            fake_id += 1
+        for _, v in df[col_name2].items():
+            for vv in v:
+                self._tfidf.add_document(str(fake_id), self._tokenize(vv))
+                fake_id += 1
+        self._tfidf.pre_compute()
+
+    def _similarity(self, str1: list, str2: list):
+        # because doc_id is not available
+        # here tf will be re-computed
+        tf_x = sim.compute_tf(str1)
+        tfidf_x = {k: v * self._tfidf.idf[k] for k, v in tf_x.items()}
+        tf_y = sim.compute_tf(str2)
+        tfidf_y = {k: v * self._tfidf.idf[k] for k, v in tf_y.items()}
+        return sim.tf_idf_cosine_similarity(tfidf_x, tfidf_y)
