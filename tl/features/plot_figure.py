@@ -99,7 +99,7 @@ class FigurePlotterUnit:
 
     @staticmethod
     def save_to_disk(figure_object, output_path: str) -> None:
-        figure_object.get_figure().savefig(output_path, bbox_inches='tight')
+        figure_object.get_figure().savefig(output_path + ".png", bbox_inches='tight')
 
     @staticmethod
     def plot_ground_truth_analysis(all_score_columns: typing.List[str],

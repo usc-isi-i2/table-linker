@@ -27,34 +27,45 @@ class ColorRenderUnit:
             self.parts.append(each_part_range)
 
     def add_color_by_score(self, columns: typing.List[str], k: int):
-        for each_column in columns:
+        color_formats = []
+        for i in range(len(columns)):
+            each_column_color_range = []
+
+            colors_ranges = ColorUtility.gradient_color([ColorUtility.get_random_color(), "#ffffff"], k)
+            for each in colors_ranges[:k]:
+                each_column_color_range.append(self.workbook.add_format({'bg_color': each}))
+            color_formats.append(each_column_color_range)
+
+        for each_column, each_color_format in zip(columns, color_formats):
             col_pos = self.df.columns.get_loc(each_column)
             for each_part in self.parts:
-                each_format = self.workbook.add_format({'bg_color': self.get_random_color()})
                 # Set the conditional format range.
                 start_row, end_row = each_part
                 start_col, end_col = col_pos, col_pos
-                if each_column == "evaluation_label":
+                unique_values = self.df[each_column].unique()
+                if len(unique_values) <= 3 and 1 in unique_values:
                     self.worksheet.conditional_format(start_row, start_col, end_row, end_col,
                                                       {'type': 'cell',
                                                        'criteria': '==',
                                                        'value': 1,
-                                                       'format': each_format})
+                                                       'format': each_color_format[0]})
                 elif each_column == "extra_information_score":
                     self.worksheet.conditional_format(start_row, start_col, end_row, end_col,
                                                       {'type': 'cell',
                                                        'criteria': '>',
                                                        'value': 0,
-                                                       'format': each_format})
+                                                       'format': each_color_format[0]})
                 else:
                     # Apply a conditional format to the cell range.
                     value_parts = self.df.iloc[start_row - 1: end_row, col_pos].fillna(0)
-                    criteria_value = sorted(value_parts.tolist(), reverse=True)[k - 1]
-                    self.worksheet.conditional_format(start_row, start_col, end_row, end_col,
-                                                      {'type': 'cell',
-                                                       'criteria': '>=',
-                                                       'value': criteria_value,
-                                                       'format': each_format})
+                    criteria_values = sorted(value_parts.tolist(), reverse=True)[:k]
+                    criteria_value_deduplicate = list(dict.fromkeys(criteria_values))
+                    for i, each_criteria_val in enumerate(criteria_value_deduplicate):
+                        self.worksheet.conditional_format(start_row, start_col, end_row, end_col,
+                                                          {'type': 'cell',
+                                                           'criteria': '>=',
+                                                           'value': each_criteria_val,
+                                                           'format': each_color_format[i]})
 
     def _write_to_excel(self):
         header_format = self.workbook.add_format({'bold': True})
@@ -66,9 +77,10 @@ class ColorRenderUnit:
                 row_pos = 0
                 for each_cell in self.df[each_column]:
                     row_pos += 1
-                    self.worksheet.write_url(row_pos, col_pos,
-                                             'https://www.wikidata.org/wiki/{}'.format(each_cell),
-                                             string=each_cell)
+                    if isinstance(each_cell, str):
+                        self.worksheet.write_url(row_pos, col_pos,
+                                                 'https://www.wikidata.org/wiki/{}'.format(each_cell),
+                                                 string=each_cell)
             else:
                 self.worksheet.write_column(1, col_pos, self.df[each_column].fillna(0).tolist())
 
@@ -111,7 +123,54 @@ class ColorRenderUnit:
     def save_to_file(self):
         self.writer.save()
 
+
+class ColorUtility:
     @staticmethod
     def get_random_color():
-        rand = lambda: random.randint(100, 255)
+        rand = lambda: random.randint(80, 200)
         return '#%02X%02X%02X' % (rand(), rand(), rand())
+
+    @staticmethod
+    def RGB_to_Hex(rgb):
+        RGB = rgb.split(',')
+        color = '#'
+        for i in RGB:
+            num = int(i)
+            color += str(hex(num))[-2:].replace('x', '0').upper()
+        return color
+
+    @staticmethod
+    def RGB_list_to_Hex(RGB):
+        color = '#'
+        for i in RGB:
+            num = int(i)
+            color += str(hex(num))[-2:].replace('x', '0').upper()
+        return color
+
+    @staticmethod
+    def Hex_to_RGB(hex):
+        r = int(hex[1:3], 16)
+        g = int(hex[3:5], 16)
+        b = int(hex[5:7], 16)
+        rgb = str(r) + ',' + str(g) + ',' + str(b)
+        return rgb, [r, g, b]
+
+    @staticmethod
+    def gradient_color(color_list, color_sum=700):
+        color_center_count = len(color_list)
+        color_sub_count = int(color_sum / (color_center_count - 1))
+        color_index_start = 0
+        color_map = []
+        for color_index_end in range(1, color_center_count):
+            color_rgb_start = ColorUtility.Hex_to_RGB(color_list[color_index_start])[1]
+            color_rgb_end = ColorUtility.Hex_to_RGB(color_list[color_index_end])[1]
+            r_step = (color_rgb_end[0] - color_rgb_start[0]) / color_sub_count
+            g_step = (color_rgb_end[1] - color_rgb_start[1]) / color_sub_count
+            b_step = (color_rgb_end[2] - color_rgb_start[2]) / color_sub_count
+            now_color = color_rgb_start
+            color_map.append(ColorUtility.RGB_list_to_Hex(now_color))
+            for color_index in range(1, color_sub_count):
+                now_color = [now_color[0] + r_step, now_color[1] + g_step, now_color[2] + b_step]
+                color_map.append(ColorUtility.RGB_list_to_Hex(now_color))
+            color_index_start = color_index_end
+        return color_map
