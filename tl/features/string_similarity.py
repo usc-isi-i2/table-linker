@@ -14,13 +14,16 @@ class StringSimilarity:
 
         if "label_clean" in self.df:
             self.target_label_column_name = "label_clean"
+            kwargs['target_label_column_name'] = self.target_label_column_name
         elif "label" in self.df:
             self.target_label_column_name = "label"
+            kwargs['target_label_column_name'] = self.target_label_column_name
         else:
             raise RequiredColumnMissingException("No `label` or `label_clean` column found!")
 
         if "kg_labels" in self.df:
             self.candidate_label_column_name = "kg_labels"
+            kwargs['candidate_label_column_name'] = self.candidate_label_column_name
         else:
             raise RequiredColumnMissingException("No `kg_labels` column found!")
 
