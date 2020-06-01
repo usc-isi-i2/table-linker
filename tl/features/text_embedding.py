@@ -238,6 +238,13 @@ class EmbeddingVector:
             self.loaded_file['sentence'] = self.loaded_file['kg_id'].map(self.sentence_map)
             self.loaded_file['vector'] = self.loaded_file['kg_id'].map(self.vectors_map)
 
+        if self.kwargs["ignore_empty_sentences"]:
+            # remove sentences which is same as kg ids
+            self.loaded_file = self.loaded_file[
+                self.loaded_file['kg_id'] != self.loaded_file['sentence'].apply(
+                    lambda x: x[:-1] if isinstance(x, str) else x)
+                ]
+
     def create_detail_has_properties(self):
         """
         By loading the property file, remove unnecessary things and get something inside if needed
@@ -282,8 +289,8 @@ class EmbeddingVector:
         self.kwargs["_debug"] = self.kwargs["debug"]
         self.kwargs["output_uri"] = "none"
         self.kwargs["use_cache"] = True
-        if self.kwargs["save_embedding_feature"]:
-            self.kwargs["save_embedding_sentence"] = True
+        # always send true to kgtk, so that we can get the sentences to check if they are empty or not
+        self.kwargs["save_embedding_sentence"] = True
         if self.kwargs["has_properties"] == ["all"] and self.kwargs["isa_properties"] == ["P31"] \
                 and self.kwargs["use_default_file"]:
             self.create_detail_has_properties()

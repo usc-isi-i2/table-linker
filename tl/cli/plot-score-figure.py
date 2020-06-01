@@ -29,13 +29,20 @@ def add_arguments(parser):
                         default=None,
                         help="If given, the plotted figure will be saved to given path.")
 
+    parser.add_argument('--add-wrong-candidates', action='store_true', dest='add_wrong_candidates',
+                        help='If send with this flag, top 3 scores of wrong candidates will also be added.')
+
+    parser.add_argument('--wrong-candidates-score-column', action='store', type=str, dest='wrong_candidates_score_column',
+                        default="gt_embed_score",
+                        help='Only valid when add-wrong-candidates flag sent, '
+                             'can control which column to use for choosing the wrong candidates display. '
+                             'Default is `gt_embed_score`')
+
 
 def run(**kwargs):
     from tl.features.plot_figure import FigurePlotterUnit
-    import pandas as pd
     try:
-        df = pd.read_csv(kwargs['input_file'], dtype=object)
-        plot_unit = FigurePlotterUnit(columns=kwargs['column'], k=kwargs['k'], df=df, output_path=kwargs["output_uri"])
+        plot_unit = FigurePlotterUnit(**kwargs)
         plot_unit.plot_bar_figure()
 
     except:

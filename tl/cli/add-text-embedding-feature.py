@@ -95,6 +95,9 @@ def add_arguments(parser):
                              'reduction, default value is 2 '
                         )
 
+    parser.add_argument('--ignore-empty-sentences', action='store_true', dest='ignore_empty_sentences',
+                        help="if set, the candidate rows with empty embedding sentences (only Q nodes) will be ignored")
+
 
 def run(**kwargs):
     try:

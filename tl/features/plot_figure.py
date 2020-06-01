@@ -7,29 +7,36 @@ import matplotlib.pyplot as plt
 from tl.exceptions import RequiredColumnMissingException
 from tl.evaluation.evaluation import metrics
 from pyecharts import options as opts
-from pyecharts.charts import Bar, Grid, Line
+from pyecharts.charts import Bar, Grid
 from collections import defaultdict
 
 
 class FigurePlotterUnit:
-    def __init__(self, columns: typing.List[str], k: typing.List[int],
-                 df: pd.DataFrame, output_path: str = None, title=None):
+    def __init__(self, **kwargs):
         """
         :param columns: the target score columns
         :param k: the target top-k values for candidates
         :param df: input dataframe
         :param output_path: output path, if given, will save this figure as a png image
+        :param add_wrong_candidates: bool, control whether to add wrong candidates on output ground truth analysis
         :return:
         """
-        for each_column in columns:
-            if each_column not in df.columns:
+        self.df = pd.read_csv(kwargs['input_file'], dtype=object)
+        self.columns = kwargs["column"]
+        for each_column in self.columns:
+            if each_column not in self.df.columns:
                 raise RequiredColumnMissingException("Column {} does not exist in input data.".format(each_column))
-        self.df = df
-        self.k = k
-        self.output_path = output_path
-        self.columns = columns
-        if not title:
-            self.title = "Scores Analysis"
+
+        self.k = kwargs["k"]
+        self.output_path = kwargs["output_uri"]
+
+        self.add_wrong_candidates = kwargs["add_wrong_candidates"]
+        self.wrong_candidates_score_column = kwargs["wrong_candidates_score_column"]
+        input_file_name = kwargs['input_file'].name.split("/")[-1].rsplit(".")[0]
+        if not kwargs.get("title"):
+            self.title = "Scores Analysis of {}".format(input_file_name)
+        else:
+            self.title = kwargs["title"]
 
     def plot_bar_figure(self):
         """
@@ -51,7 +58,9 @@ class FigurePlotterUnit:
         figure_object = self.plot_figure(plot_df, max_score)
         self.save_to_disk(figure_object, self.output_path)
         # ground truth analysis figure
-        self.plot_ground_truth_analysis(self.columns, self.title, self.output_path, self.df)
+        self.plot_ground_truth_analysis(self.columns, self.title, self.output_path,
+                                        self.df, self.add_wrong_candidates,
+                                        self.wrong_candidates_score_column)
 
     @staticmethod
     def plot_figure(plot_df: pd.DataFrame, max_score: float):
@@ -104,7 +113,10 @@ class FigurePlotterUnit:
     @staticmethod
     def plot_ground_truth_analysis(all_score_columns: typing.List[str],
                                    title: str, output_path: str,
-                                   df: pd.DataFrame) -> None:
+                                   df: pd.DataFrame,
+                                   add_wrong_candidates: bool = False,
+                                   wrong_candidates_score_column: str = None,
+                                   ) -> None:
         """
         use pyechart to plot html interactive figure
         """
@@ -114,12 +126,27 @@ class FigurePlotterUnit:
 
         xaxis_labels = []
         memo = defaultdict(list)
+
         groupby_res = df_processed[df_processed["evaluation_label"] == 1].groupby(["column", "row"])
         for key, each_group in reversed(tuple(groupby_res)):
+            if add_wrong_candidates:
+                df_wrong_examples = df_processed[(df_processed["column"] == key[0]) &
+                                                 (df_processed["row"] == key[1]) &
+                                                 (df_processed["evaluation_label"] == -1)] \
+                                        .sort_values(by=[wrong_candidates_score_column], ascending=False).iloc[:3, :]
+                # add wrong candidate information
+                i = 0
+
+                for _, each_row in df_wrong_examples.iterrows():
+                    i += 1
+                    xaxis_labels.append(each_row["label_clean"] + " \n(wrong candidate {})".format(i))
+                    for each_score_column in all_score_columns:
+                        memo[each_score_column].append("{:.2f}".format(each_row[each_score_column]))
+
+            # add ground truth information
             xaxis_labels.append(each_group["label_clean"].iloc[0])
             for each_score_column in all_score_columns:
                 memo[each_score_column].append("{:.2f}".format(each_group[each_score_column].iloc[0]))
-
         # build figure
         bar = Bar()
         bar.add_xaxis(xaxis_labels)
