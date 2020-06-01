@@ -189,10 +189,14 @@ class TfidfSimilarity(StringSimilarityModule):
         col_name2 = tl_args['candidate_label_column_name']
         fake_id = 0
         for _, v in df[col_name1].items():
+            if self._ignore_case:
+                v = v.lower()
             self._tfidf.add_document(str(fake_id), self._tokenize(v))
             fake_id += 1
         for _, v in df[col_name2].items():
             for vv in v:
+                if self._ignore_case:
+                    vv = vv.lower()
                 self._tfidf.add_document(str(fake_id), self._tokenize(vv))
                 fake_id += 1
         self._tfidf.pre_compute()
