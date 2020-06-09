@@ -1,7 +1,10 @@
 
+
+
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Command Line Interface
 
-  This document describes the command-line interface for the <code>Table Linker (tl)</code> system.
+Table-Linker: this is an entity linkage tool which links the given string to wikidata Q nodes. 
+This document describes the command-line interface for the <code>Table Linker (tl)</code> system.
 
 
 ## Installation Instructions
@@ -40,8 +43,9 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
 - [`metrics`](#command_metrics): Calculate the F1-score on the candidates tables. Only works on the dataset after ran with  `ground-truth-labeler`.
 - [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
+- [`plot-score-figure`](#command_plot-score-figure)<sup>*</sup>: visulize the score of the input data with 2 different kind of bar charts.
 - [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
-- [`string-similarity`](#command_string-similarity): compares the cell values in two input columns and outputs a similarity score for each pair of participating strings 
+- [`string-similarity`](#command_string-similarity)<sup>*</sup>: compares the cell values in two input columns and outputs a similarity score for each pair of participating strings 
 - [`tee`](#command_tee)<sup>*</sup>: saves the input to disk and echoes the input to the standard output without modification.
 
 
@@ -384,7 +388,19 @@ similarity between each candidate vector and the column vector.
 - `--description-properties list{string}`: The names of the properties(P nodes) for `description` properties. If pass with `None`, this part will not be used. Default is `description` property.
 - `--isa-properties list{string}`: The names of the properties(P nodes) for `isa` properties. If pass with `None`, this part will not be used. Default is `P31`.
 - `--has-properties list{string}`: The names of the properties(P nodes) for `has` properties. If pass with `None`, this part will not be used. Default is all P nodes except `P31`.
-- `--run-TSNE {bool}`: whether to run TSNE or not after the embedding vectors is generated.
+- `--property-value list{string}`: For those edges found in `has` properties, the nodes specified here will display with  corresponding edge(property) values. instead of edge name.
+- `--dimensional-reduction {string}`: Whether to run dimensional reduction algorithm or not after the embedding vectors is generated.
+- `--dimension {int}`: The specific target dimensions required to reduce to. Default is `2`.
+- `--ignore-empty-sentences`: If send with this flag, the nodes (usually they are some recently added nodes) which does not existed in the given wikidata query endpoint but found from elastic search index will be ignored and removed.
+- `--use-default-file {bool}`: If set to `False`, the system will use all properties found from the query endpoint. If set to `True`, the system will use a special-config file which remove some useless properties like `ID` and check some more details property values like `gender`.
+
+**Detail explainations:**
+ - column-vector-strategy
+Currently 3 modes of strategies are supported: `ground-truth`, `page-rank` and `page-rank-precomputed`.
+ -- `ground-truth`: Only works after running with `ground-truth-labeler`. It will compute the  score base on the distance to the centroid point.
+ -- `page-rank`: Based on the given candidate nodes, it will compute a page-rank score. The idea is adapt from this [paper](http://mgrani.github.io/media/papers/16zwi.sei.gra-DoSeR-A-Knowledge.pdf).
+ -- `page-rank-precomputed`: This page rank is different from previous one. The page rank here used the page rank calculation method from [graph-tool](https://graph-tool.skewed.de/static/doc/centrality.html?highlight=pagerank#graph_tool.centrality.pagerank). All nodes existed in wikidata will be considered and computed, then stored in the index and we will retrieve those node's pagerank when needed.
+
 
 **Examples:**
 ```bash
@@ -490,34 +506,63 @@ Wikipedia part: achieved with the python pacakge `wikipedia-api`
 The `string-similarity` command compares the cell values in two input columns and outputs a similarity score for
  each pair of participating strings in the output column. 
  
-The `string-similarity` command supports the following string similarity algorithms,
+The `string-similarity` command supports the following tokenizer, some of the string similarity may require to specify one of them during calculating.
+- `word`: This is a simple tokenizer, it will split the input string by white space `/s`.
+- `ngram`: This is a ngram tokenizer, it will generate ngram candidates of each input string, user can specify the value of n. For example, the jaccard similarity with ngram tokenizer and n=3: `jaccard:tokenizer=ngram:tokenizer_n=3`.
 
-- [Normalized Levenshtein](https://en.wikipedia.org/wiki/Levenshtein_distance): The levenshtein distance between two words in the minimum number single-character edits needed to change one word into the other. Normalized levenshtein is computed as the levenshtein distance divided by the length of the longest string.
+The `string-similarity` command supports the following string similarity algorithms, all of those similarity functions are implemented from [RLTK]([https://github.com/usc-isi-i2/rltk](https://github.com/usc-isi-i2/rltk)). These similarity methods are ordered in alphabet.
+
+- [cosine](https://sites.temple.edu/tudsc/2017/03/30/measuring-similarity-between-texts-in-python/#:~:text=The%20cosine%20similarity%20is%20the,the%20similarity%20between%20two%20documents.
+) (`tokenizer` needed)
+The similarity between the two strings is the cosine of the angle between these two vectors representation.
+- [hybrid_jaccard]()  (`tokenizer` needed)
+The jaccard similarity hybird with `jaro_winkler_similarity`.
+- [jaccard](https://en.wikipedia.org/wiki/Jaccard_index) (`tokenizer` needed)
+The Jaccard Index Similarity is then computed as intersection(set1, set2) / union(set1, set2).
+- [jaro_winkler](https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance#Jaro%E2%80%93Winkler_Similarity) (no parameters needed)
+Jaro Winkler is a string edit distance designed for short strings. In Jaro Winkler, substitution of 2 close characters is considered less important than the substitution of 2 characters that are far from each other. 
+The similarity is computed as `1 - Jaro-Winkler distance`. The value is between `[0.0, 1.0]`.
+- [levenshtein](https://en.wikipedia.org/wiki/Levenshtein_distance) (no parameters needed)
+The levenshtein distance between two words in the minimum number single-character edits needed to change one word into the other. Normalized levenshtein is computed as the levenshtein distance divided by the length of the longest string.
  The similarity is computed as `1 - normalized distance`.  The value is between `[0.0, 1.0]`.
-- [Jaro Winkler](https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance#Jaro%E2%80%93Winkler_Similarity): Jaro Winkler is a string edit distance designed for short strings. In Jaro Winkler, substitution of 2 close characters is considered less important than the substitution of 2 characters that are far from each other. 
-The similarity is computed as `1 - Jaro-Winkler distance`. The value is between `[0.0, 1.0]`
+ - [metaphone](https://en.wikipedia.org/wiki/Metaphone) (no parameters needed)
+Metaphone fundamentally improves on the Soundex algorithm by using information about variations and inconsistencies in English spelling and pronunciation to produce a more accurate encoding, which does a better job of matching words and names which sound similar. As with Soundex, similar-sounding words should share the same keys. Metaphone is available as a built-in operator in a number of systems.
+- [monge_elkan]() (`tokenizer` needed)
+monge elkan score implement similarity.
+- [needleman](https://en.wikipedia.org/wiki/Needleman%E2%80%93Wunsch_algorithm#Similarity_matrix
+) (no parameters needed)
+This Needleman Wunsch Similarity is computed as needlman_wunsch_score over maximum score of s1 and s2.
+- [nysiis](https://en.wikipedia.org/wiki/New_York_State_Identification_and_Intelligence_System) (no parameters needed)
+New York State Immunization Information System (NYSIIS) Phonetic Code is a phonetic algorithm. 1 for same NYSIIS code, 0 for different.
+- [soundex](https://en.wikipedia.org/wiki/Soundex) (no parameters needed)
+soundex score implement similarity.
+- [symmetric_monge_elkan]() (`tokenizer` needed)
+symmetric monge elkan score implement similarity.
+- [tfidf](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) (`tokenizer` needed)
+tf-idf score implement similarity.
+
+
 
 In future, more string similarity algorithms will be supported
  
 **Options:**
-- `-c {a,b}`: input columns containing the cells to be compared. The two columns are represented as a comma separated string.
-- `--lev`: Use Normalized Levenshtein 
-- `--jw`: Use Jaro Winkler
+- `-c {a,b}`: input columns containing the cells to be compared. The two columns are represented as a comma separated string. Default value is set as `a=label_clean` and `b=kg_labels`. Column `b` could have multiple labels splitted by `|` while column `a` could have only 1 label.
+- `--method list{string}`: the string similarity method to use, please refer to the introduction parts above for details. Mutiple method values is accepted here. You can send multiple methods in one time.
 - `-i`: case insensitive comparison. Default is case sensitive
 
-The string similarity scores are added to a output columns, whose name will be in the format <col_1>\_<col_2>\_\<algorithm>.
+The string similarity scores are added to a output columns. 
+If the specific columns (not `["label_clean", "kg_labels"]`)is given, the compared column names will be added to the column name whose name will be in the format `<col_1>\_<col_2>\_\<algorithm>`.
+Otherwise the column name will only be in the format `<algorithm>`.
  
-If none of `--lev` or `--jw` options are specified, `--lev` is used. In case both `--lev` and `--jw` options are specified, 
-two output columns will be added as described above, recording string similarity scores for each algorithm.
 
 **Examples:**
 
 ```bash
 # compute similarity score for the columns 'clean_labels' and 'kg_label', use Normalized Levenshtein, case sensitive comparison
-$ tl string-similarity -c clean_labels,kg_label --lev < countries_candidates.csv
+$ tl string-similarity --method levenshtein < countries_candidates.csv
 
-# compute similarity score for the columns 'doc_labels' and 'doc_aliases', use Jaro Winkler, case insensitive comparison
-$ tl string-similarity -c doc_labels,doc_aliases  --jw -i countries_candidates.csv
+# compute similarity score for the columns 'doc_labels' and 'doc_aliases', use Jaccard similarity based on ngram=3 tokenizer, tf-idf score with word tokenizer and Needleman similarity, case insensitive comparison
+$ tl string-similarity -c doc_labels,doc_aliases  --method jaccard:tokenizer=ngram:tokenizer_n=3 tfidf:tokenizer=word needleman countries_candidates.csv
 ```
 
 **File Example:**
@@ -527,7 +572,7 @@ $ tl string-similarity -c doc_labels,doc_aliases  --jw -i countries_candidates.c
 $ tl string-similarity -c clean_labels,kg_labels --lev < countries_candidates.csv > countries_ss_features.csv \
 && mlr --opprint cut -f label,method,retrieval_score -x countries_ss_features.csv
 
-column row clean_labels kg_id     kg_labels                             clean_labels_kg_labels_lev
+column row clean_labels kg_id     kg_labels                             clean_labels_kg_labels_LevenshteinSimilarity()
 1      0   Budapest     Q1781     Budapest|Buda Pest|Buda-Pest|Buda     1
 1      0   Budapest     Q16467392 Budapest (chanson)                    0.44
 1      0   Budapest     Q55420238 Budapest|Budapest, a song             1
@@ -712,7 +757,7 @@ This commands in this module takes as input a [Ranking Score](https://docs.googl
 The `drop-by-score` command outputs the top `k` score candidates for each `column, row` pair of the input file. The other candidates whose score is out of those will be removed.
 
 **Options:**
-- `-c a`:	column name with ranking scores.
+- `-c a`: column name with ranking scores.
 - `-k {number}`: desired number of output candidates per input cell.Defaut is `k=20`. 
 - 
 
@@ -770,7 +815,7 @@ Group by  column and row indices and pick the top `k` candidates for each input 
 The `drop-duplicate` command outputs the duplicate rows based on the given column information and keep the one with a higher score on the specified score column. This comamnd usually will be used when multiple candidates generating methods was called, those different method may generate same candidates multiple times which may influence future processes.
 
 **Options:**
-- `-c a`:	column name with duplicate things, usually it should be `kg_id` column.
+- `-c a`: column name with duplicate things, usually it should be `kg_id` column.
 - `--score-column {string}`: the reference score column for deciding which row to drop.
 - 
 
@@ -816,7 +861,7 @@ as linked knowledge graph objects for an input cell.
 The candidate with the highest score is ranked highest, ties are broken alphabetically.
 
 **Options:**
-- `-c a`:	column name with ranking scores.
+- `-c a`: column name with ranking scores.
 - `-l a`: column name with input cell labels. Default is `label`. These values will be stored in the output column `label` in the output file for this command.
 - `-k {number}`: desired number of output candidates per input cell.Default is `k=1`. Multiple values are represented by a `|` separated string
 
@@ -861,7 +906,7 @@ This command takes as input a [Input](https://docs.google.com/document/d/1eYoS47
 
 **Options:**
 - `-f {path}`: the original input file path.
-- `-c a`:	column name with ranking scores.
+- `-c a`: column name with ranking scores.
 - `-k {number}`: desired number of output candidates per input cell.Defaut is `k=1`. Multiple values are represented by `|` separated string
 
 **Examples:**
@@ -954,7 +999,7 @@ in the Ground Truth File and the candidate is different from the corresponding k
 
 <a name="command_add-color" />
 
-### [`add-color`](#command_color)` [OPTIONS]`
+### [`add-color`](#command_add-color)` [OPTIONS]`
 
 The `add-color` command is a special command that can only run as the last step of the pipeline / run separately because the generated file is a `xlsx` file but not a `csv` file. This command can be used to marked the `top-k` score of specified score columns for better visualization.
 It also support with a `ground-truth` format which can only run on a file after running with `add-text-embedding-feature` function and `ground-truth` column-vector-strategy. The rows for each candidate will then be ordered descending by gt score,  except that the first row is the ground truth candidate regardless of  whether it didn't get the highest gt cosine score
@@ -1001,6 +1046,45 @@ $ tl add-color ~/Desktop/test.csv -k 5 \
 
 #### Implementation
 By using pandas's xls writer function, add some special format to some cells.
+
+
+<a name="command_plot-score-figure" />
+
+### [`plot-score-figure`](#command_plot-score-figure)` [OPTIONS]`
+
+The `plot-score-figure` command is a special command that can only run as the last step of the pipeline / run separately because the generated file is a `png` file or a `html` file but not a `csv` file. This command can be used to evaulate the predictions results and generated scores of the table linker.
+It only support the plot on the results after running with `ground-truth-labler` as ground truth information is needed for evaluation. 
+The first plot will be a `png` image, which includes the top `k` scores of the specified score columns in accuracy and corresponding normalized score.
+The second plot will be a `html` page, which includes the scores of specified columns on correct candidates and some high score wrong candidates if required. This page allow users to do interaction operations like remove the view of the score on specific columns, enlarge and many other choices...
+
+**Options:**
+
+- `-c list{string}`: The score columns need to be colored.
+- `-k list{int}`: The amount of highest scores need to be colored.
+- `--output`: The output path to save the output file, please do not add the suffix of the file name.
+- `--add-wrong-candidates`: A flag option, pass with flag only to add the wrong candidates on second plot.
+- `--wrong-candidates-score-column {string}`:  Only valid when pass with `--add-wrong-candidates`, the column name of the wrong candidates column need to display.
+
+**Examples:**
+```bash
+# plot the figures for `test.csv` file on column `evaluation_label` and `retrieval_score_normalized` 
+# then save to desktop, also add the evaluation wrong candidates on second graph
+$ tl plot-score-figure ~/Desktop/test.csv -k 1 2 5 \
+-c retrieval_score_normalized evaluation_label \
+--add-wrong-candidates retrieval_score_normalized \
+--output ~/Desktop/output_figure
+
+# run default plot
+$ tl plot-score-figure ~/Desktop/test.csv -k 1 2 5 \
+-c retrieval_score_normalized evaluation_label \
+--output ~/Desktop/output_figure
+```
+
+**File Example:**
+The output is not a table, please refer to [here](https://drive.google.com/drive/u/2/folders/14YCA2cWhARr6GMS0KDmCiV-uw7r4AwfE) (access needed).
+
+#### Implementation
+By using python package `seaborn` and `pyecharts`, we plotted the output figures.
 
 <a name="command_run-pipeline" />
 
@@ -1073,7 +1157,7 @@ $ tl clean /
     / get-exact-matches -c label \
     / ground-truth-labeler -f “./xxx_gt.csv” \
     / add-text-embedding-feature --column-vector-strategy ground-truth -n 3 \
-    	--generate-projector-file xxx-google-projector -o embed 
+      --generate-projector-file xxx-google-projector -o embed 
     / tee --output xxx-features.csv \
     / normalize-scores \
     / metrics

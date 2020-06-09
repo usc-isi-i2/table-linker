@@ -4,14 +4,21 @@ import gzip
 import pandas as pd
 import re
 import typing
+import os
 import traceback
 
+from collections import defaultdict
+from tl.exceptions import FileNotExistError
 from requests.auth import HTTPBasicAuth
 
 
 class Utility(object):
     @staticmethod
-    def build_elasticsearch_file(kgtk_file_path, label_fields, mapping_file_path, output_path, alias_fields=None):
+    def build_elasticsearch_file(kgtk_file_path, label_fields,
+                                 mapping_file_path, output_path,
+                                 alias_fields=None, pagerank_fields=None,
+                                 black_list_file_path=None
+                                 ):
         """
         builds a json lines file and a mapping file to support retrieval of candidates
         It is assumed that the file is sorted by subject and predicate, in order to be able to process it in a streaming fashion
@@ -22,12 +29,25 @@ class Utility(object):
             mapping_file_path: output mapping file path for elasticsearch
             output_path: output json lines path, converted from the input kgtk file
             alias_fields: field in the kgtk file to be used as aliases
-
+            pagerank_fields: field in the kgtk file to be used as pagerank
+            black_list_file_path: path to black list file
         Returns: Nothing
 
         """
+        file_names = ["KGTK input file", "Mapping file", "Black list file"]
+        file_paths = [kgtk_file_path, mapping_file_path, black_list_file_path]
+        for each_file_name, each_file_path in zip(file_names, file_paths):
+            if each_file_path and not os.path.exists(each_file_path):
+                raise FileNotExistError("{} {} does not exist!".format(each_file_name, each_file_path))
+
+        with open(black_list_file_path, "r") as f:
+            black_list_dict = json.load(f)
+            black_list_dict = {k: set(v) for k, v in black_list_dict.items()}
+
+        skipped_node_count = 0
         labels = label_fields.split(',')
         aliases = alias_fields.split(',')
+        pagerank = pagerank_fields.split(',')
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
         o = open(output_path, 'w')
 
@@ -38,13 +58,15 @@ class Utility(object):
 
         _labels = list()
         _aliases = list()
+        _pagerank = list()
+        current_node_info = defaultdict(set)
         prev_node = None
         i = 0
         is_human_name = False
         try:
             for line in kgtk_file:
                 i += 1
-                if i % 100000 == 0:
+                if i % 1000000 == 0:
                     print('Processed {} lines...'.format(i))
                 if isinstance(line, bytes):
                     line = line.decode('utf-8')
@@ -56,17 +78,30 @@ class Utility(object):
                         prev_node = id
 
                     if id != prev_node:
-                        # we need to add acronym for human names
-                        if is_human_name:
-                            _labels = Utility.add_acronym(_labels)
-                            _aliases = Utility.add_acronym(_aliases)
-                        o.write(json.dumps({'id': prev_node, 'labels': _labels, 'aliases': _aliases}))
+                        if not Utility.check_in_black_list(black_list_dict, current_node_info):
+                            # we need to add acronym for human names
+                            if is_human_name:
+                                _labels = Utility.add_acronym(_labels)
+                                _aliases = Utility.add_acronym(_aliases)
+                            o.write(json.dumps(
+                                {'id': prev_node,
+                                 'labels': _labels,
+                                 'aliases': _aliases,
+                                 'pagerank': _pagerank
+                                 })
+                            )
+                        else:
+                            skipped_node_count += 1
+                        # initialize for next node
                         o.write('\n')
                         _labels = list()
                         _aliases = list()
+                        _pagerank = list()
+                        current_node_info = defaultdict(set)
                         prev_node = id
                         is_human_name = False
 
+                    current_node_info[vals[1]].add(str(vals[2]))
                     if vals[1] in labels:
                         tmp_val = Utility.remove_language_tag(vals[2])
                         if tmp_val.strip() != '':
@@ -75,6 +110,10 @@ class Utility(object):
                         tmp_val = Utility.remove_language_tag(vals[2])
                         if tmp_val.strip() != '':
                             _aliases.append(tmp_val)
+                    elif vals[1] in pagerank:
+                        tmp_val = Utility.to_float(vals[2])
+                        if tmp_val:
+                            _pagerank.append(tmp_val)
 
                     # if it is human
                     if vals[2] in human_nodes_set:
@@ -83,8 +122,9 @@ class Utility(object):
         except:
             print(traceback.print_exc())
 
-        mapping_dict = Utility.create_mapping_es(['id', 'labels', 'aliases'])
+        mapping_dict = Utility.create_mapping_es(['id', 'labels', 'aliases'], ["pagerank"])
         open(mapping_file_path, 'w').write(json.dumps(mapping_dict))
+        print("Totally skipped {} nodes in black list".format(skipped_node_count))
         print('Done!')
 
     @staticmethod
@@ -92,9 +132,17 @@ class Utility(object):
         return re.sub(r'@.*$', '', label_str).replace("'", "")
 
     @staticmethod
-    def create_mapping_es(str_fields):
+    def to_float(input_str):
+        try:
+            return float(input_str)
+        except:
+            return None
+
+    @staticmethod
+    def create_mapping_es(str_fields_need_index: typing.List[str], str_fields_no_index: typing.List[str] = None):
         properties_dict = {}
-        for str_field in str_fields:
+        # add property part
+        for str_field in str_fields_need_index:
             properties_dict[str_field] = {}
             properties_dict[str_field]['type'] = "text"
             properties_dict[str_field]['fields'] = {
@@ -107,6 +155,12 @@ class Utility(object):
                     "normalizer": "lowercase_normalizer"
                 }
             }
+        if str_fields_no_index:
+            for str_field in str_fields_no_index:
+                properties_dict[str_field] = {
+                    "index": "no"
+                }
+        # finish mapping dict
         mapping_dict = {
             "mappings": {
                 "doc": {
@@ -156,29 +210,33 @@ class Utility(object):
         f = open(kgtk_jl_path)
         load_batch = []
         counter = 0
-        i = 0
+        # i = 0
         for line in f:
-            i += 1
+            # i += 1
             counter += 1
-            if i > 1918500:
-                json_x = json.loads(line.replace('\n', ''))
-                load_batch.append(json.dumps({"index": {"_id": json_x['id']}}))
-                load_batch.append(line.replace('\n', ''))
-                if len(load_batch) % batch_size == 0:
-                    counter += len(load_batch)
-                    print('done {} rows'.format(counter))
-                    response = None
-                    try:
-                        response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
-                                                      mapping_file_path,
-                                                      es_user=es_user, es_pass=es_pass)
-                        if response.status_code >= 400:
-                            print(response.text)
-                    except:
-                        print('Exception while loading a batch to es')
+            # if i > 1918500:
+            each_res = line.replace('\n', '')
+            if not each_res:
+                continue
+            json_x = json.loads(each_res)
+
+            load_batch.append(json.dumps({"index": {"_id": json_x['id']}}))
+            load_batch.append(line.replace('\n', ''))
+            if len(load_batch) % batch_size == 0:
+                counter += len(load_batch)
+                print('done {} rows'.format(counter))
+                response = None
+                try:
+                    response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
+                                                  mapping_file_path,
+                                                  es_user=es_user, es_pass=es_pass)
+                    if response.status_code >= 400:
                         print(response.text)
-                        print(response.status_code)
-                    load_batch = []
+                except:
+                    print('Exception while loading a batch to es')
+                    print(response.text)
+                    print(response.status_code)
+                load_batch = []
 
         if len(load_batch) > 0:
 
@@ -353,3 +411,10 @@ class Utility(object):
         out_df["row"] = out_df["row"].astype(float).astype(int)
         out_df = out_df.sort_values(by=['column', 'row'])
         return out_df
+
+    @staticmethod
+    def check_in_black_list(black_list: dict, current_node_info: dict):
+        for key, val in black_list.items():
+            if key in current_node_info and len(val.intersection(current_node_info[key])) > 0:
+                return True
+        return False

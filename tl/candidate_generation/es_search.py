@@ -2,9 +2,11 @@ import copy
 import requests
 import typing
 from tl.candidate_generation.phrase_query_json import query
+from tl.utility.singleton import singleton
 from requests.auth import HTTPBasicAuth
 
 
+@singleton
 class Search(object):
     def __init__(self, es_url, es_index, es_user=None, es_pass=None):
         self.es_url = es_url
@@ -126,4 +128,21 @@ class Search(object):
             node_id = each["_source"]["id"]
             node_labels = each["_source"]["labels"] + each["_source"]["aliases"]
             label_dict[node_id] = node_labels
+        return label_dict
+
+    def search_node_pagerank(self, search_nodes: typing.List[str]) -> dict:
+        query = {
+            "query": {
+                "ids": {
+                    "values": search_nodes
+                }
+            },
+            "size": len(search_nodes)
+        }
+        response = self.search_es(query)
+        label_dict = {}
+        for each in response:
+            node_id = each["_source"]["id"]
+            node_pagerank = each["_source"]["pagerank"]
+            label_dict[node_id] = node_pagerank
         return label_dict

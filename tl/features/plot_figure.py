@@ -135,11 +135,9 @@ class FigurePlotterUnit:
                                                  (df_processed["evaluation_label"] == -1)] \
                                         .sort_values(by=[wrong_candidates_score_column], ascending=False).iloc[:3, :]
                 # add wrong candidate information
-                i = 0
-
                 for _, each_row in df_wrong_examples.iterrows():
-                    i += 1
-                    xaxis_labels.append(each_row["label_clean"] + " \n(wrong candidate {})".format(i))
+                    longest_string = max(each_row["kg_labels"].split("|"), key=len)
+                    xaxis_labels.append(each_row["label_clean"] + " \n({})".format(longest_string))
                     for each_score_column in all_score_columns:
                         memo[each_score_column].append("{:.2f}".format(each_row[each_score_column]))
 

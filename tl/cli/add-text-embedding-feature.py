@@ -25,7 +25,7 @@ def add_arguments(parser):
 
     # embedding model choice
     parser.add_argument('--column-vector-strategy', action='store', dest='column_vector_strategy',
-                        default="exact-matches", choices=("ground-truth", "exact-matches", "page-rank"),
+                        default="exact-matches", choices=("ground-truth", "exact-matches", "page-rank-precomputed"),
                         help="the name of the strategy to use to create the vector for the column.")
     parser.add_argument('--embedding-model', action='store', nargs='+', dest='all_models_names',
                         default="bert-base-wikipedia-sections-mean-tokens", choices=ALL_EMBEDDING_MODELS_NAMES,
@@ -94,7 +94,6 @@ def add_arguments(parser):
                         help='How many dimension should remained after reductions, only valid when set to run dimensional '
                              'reduction, default value is 2 '
                         )
-
     parser.add_argument('--ignore-empty-sentences', action='store_true', dest='ignore_empty_sentences',
                         help="if set, the candidate rows with empty embedding sentences (only Q nodes) will be ignored")
 

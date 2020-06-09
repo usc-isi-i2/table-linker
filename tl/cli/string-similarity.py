@@ -24,13 +24,13 @@ def add_arguments(parser):
     parser.add_argument('-i', action='store_true', dest='ignore_case',
                         help='ignore case, default is case sensitive')
 
+    parser.add_argument('-c', action='store', dest='target_columns', nargs='+',
+                        default=["label_clean", "kg_labels"],
+                        help="The target columns aimed to calculate the string similarity. Should only send 2 values.")
+
     parser.add_argument('--method', action='store', dest='similarity_method', nargs='+',
                         default=[],
                         help="The string similarity methods to use, can have multiple methods.")
-
-    parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column',
-                        default='similarity_score',
-                        help=' the output column name to store the similarity score')
 
 
 def run(**kwargs):

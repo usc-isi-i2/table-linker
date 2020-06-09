@@ -1,19 +1,19 @@
-import os
-import sys
+import io
 import math
-import shutil
-import typing
-import random
-import tempfile
 import numpy as np
+import os
 import pandas as pd
+import random
+import sys
+import typing
 
-from tl.exceptions import TLException
-from io import StringIO
 from collections import defaultdict
-from tl.utility.utility import Utility
-from scipy.spatial.distance import cosine, euclidean
+from io import StringIO
 from kgtk.cli.text_embedding import main as main_embedding_function
+from scipy.spatial.distance import cosine, euclidean
+from tl.utility.utility import Utility
+from tl.candidate_generation.es_search import Search
+from tl.exceptions import TLException
 
 
 class EmbeddingVector:
@@ -29,6 +29,8 @@ class EmbeddingVector:
         self.kgtk_format_input = None
         self.centroid = {}
         self.groups = defaultdict(set)
+        self.es = Search(self.kwargs["url"], self.kwargs["index"],
+                         es_user=self.kwargs.get("user"), es_pass=self.kwargs.get("password"))
 
     def load_input_file(self, input_file):
         """
@@ -85,11 +87,13 @@ class EmbeddingVector:
         """
         vector_strategy = self.kwargs.get("column_vector_strategy", "exact-matches")
         if vector_strategy == "page-rank":
-            self.calculate_page_rank()
+            self._calculate_page_rank()
+        elif vector_strategy == "page-rank-precomputed":
+            self._get_precomputed_page_rank()
         else:
-            self.get_centroid(vector_strategy)
+            self._get_centroid(vector_strategy)
 
-    def generate_graph(self):
+    def _generate_graph(self):
         """
         function used to calculate page rank
         :return:
@@ -137,11 +141,11 @@ class EmbeddingVector:
                         graph_memo[col_number].add_edge(each_node_i, each_node_j, weight=each_weight)
         return graph_memo
 
-    def calculate_page_rank(self):
+    def _calculate_page_rank(self):
         import networkx as nx
         # just get initial page rank to do filtering
         weights_original = {}
-        graph_memo = self.generate_graph()
+        graph_memo = self._generate_graph()
         for each_graph in graph_memo.values():
             weights_original.update(dict(each_graph.degree(weight='weight')))
         self.loaded_file['|pr|'] = self.loaded_file['kg_id'].map(weights_original)
@@ -151,13 +155,22 @@ class EmbeddingVector:
         self._to_kgtk_test_format()
         # create the graph again base on filtered result
         res = {}
-        graph_memo = self.generate_graph()
+        graph_memo = self._generate_graph()
         # it seems pagerank_numpy runs quickest
         for each_graph in graph_memo.values():
             res.update(nx.pagerank_numpy(each_graph, alpha=0.9))
         self.loaded_file['|pr|'] = self.loaded_file['kg_id'].map(res)
 
-    def get_centroid(self, vector_strategy: str):
+    def _get_precomputed_page_rank(self):
+        """
+        get the precomputed pagerank from whole wikidata graph
+        :return:
+        """
+        pageranks = {k: v[0] if len(v) > 0 else 0
+                     for k, v in self.es.search_node_pagerank(self.loaded_file['kg_id'].unique().tolist()).items()}
+        self.loaded_file["|pr|"] = self.loaded_file['kg_id'].map(pageranks).fillna(0)
+
+    def _get_centroid(self, vector_strategy: str):
         """
             function used to calculate the column-vector(centroid) value
         """
@@ -219,7 +232,7 @@ class EmbeddingVector:
         if score_column_name is None:
             score_column_name = "score_{}".format(self.kwargs["models_names"])
 
-        if self.kwargs["column_vector_strategy"] == "page-rank":
+        if self.kwargs["column_vector_strategy"] in {"page-rank", "page-rank-precomputed"}:
             self.loaded_file = self.loaded_file.rename(columns={'|pr|': score_column_name})
         else:
             scores = []
@@ -245,7 +258,7 @@ class EmbeddingVector:
                     lambda x: x[:-1] if isinstance(x, str) else x)
                 ]
 
-    def create_detail_has_properties(self):
+    def _create_detail_has_properties(self):
         """
         By loading the property file, remove unnecessary things and get something inside if needed
         :return: None
@@ -268,7 +281,9 @@ class EmbeddingVector:
             elif each_row["operation"] == "bl":
                 continue
             else:
-                if "ID" in each_row["label"] or "identifier" in each_row["label"].lower():
+                if "ID" in each_row["label"] or \
+                        "identifier" in each_row["label"].lower() or \
+                        "common" in each_row["label"].lower():
                     continue
             need_has_properties.add(each_row["predicate"])
 
@@ -280,11 +295,15 @@ class EmbeddingVector:
             send the table linker format data to kgtk vector embedding
             the load the output and get the vector map
         """
+        # no vector calculation needed for precomputed pagerank
+        if self.kwargs.get("column_vector_strategy") == "page-rank-precomputed":
+            return
+
         # transform format to kgtk format input
-        destination = tempfile.mkdtemp(prefix='table_linker_temp_file')
-        temp_file_path = os.path.join(destination, "test_input_to_kgtk")
-        self.kgtk_format_input.to_csv(temp_file_path, index=False)
-        self.kwargs["input_uris"] = temp_file_path
+        temp_file = io.StringIO()
+        self.kgtk_format_input.to_csv(temp_file, index=False)
+        temp_file.seek(0)
+        self.kwargs["input_file"] = temp_file
         self.kwargs["input_format"] = "test_format"
         self.kwargs["_debug"] = self.kwargs["debug"]
         self.kwargs["output_uri"] = "none"
@@ -293,7 +312,7 @@ class EmbeddingVector:
         self.kwargs["save_embedding_sentence"] = True
         if self.kwargs["has_properties"] == ["all"] and self.kwargs["isa_properties"] == ["P31"] \
                 and self.kwargs["use_default_file"]:
-            self.create_detail_has_properties()
+            self._create_detail_has_properties()
 
         # catch the stdout to string
         old_stdout = sys.stdout
@@ -301,7 +320,6 @@ class EmbeddingVector:
 
         main_embedding_function(**self.kwargs)
         sys.stdout = old_stdout
-        shutil.rmtree(destination)
         # read the output vectors
         output_vectors.seek(0)
         _ = output_vectors.readline()

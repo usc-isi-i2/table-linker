@@ -6,6 +6,7 @@ import tl.features.similarity_units
 
 from collections import defaultdict
 from tl.exceptions import UnsupportTypeError, RequiredColumnMissingException
+DEFAULT_COLUMN_COMB_NAME = ("label_clean", "kg_labels")
 
 
 class StringSimilarity:
@@ -13,21 +14,33 @@ class StringSimilarity:
         self.similarity_units = []
         self.df = copy.deepcopy(kwargs["df"])
         self.original_df = kwargs["df"]
+        self.target_label_column_name, self.candidate_label_column_name = kwargs.get("target_columns", (None, None))
 
-        if "label_clean" in self.df:
-            self.target_label_column_name = "label_clean"
-            kwargs['target_label_column_name'] = self.target_label_column_name
-        elif "label" in self.df:
-            self.target_label_column_name = "label"
-            kwargs['target_label_column_name'] = self.target_label_column_name
-        else:
-            raise RequiredColumnMissingException("No `label` or `label_clean` column found!")
+        for each_col in [self.target_label_column_name, self.candidate_label_column_name]:
+            if each_col and each_col not in self.df:
+                raise RequiredColumnMissingException("No specified column name `{}` found!".format(each_col))
 
-        if "kg_labels" in self.df:
-            self.candidate_label_column_name = "kg_labels"
-            kwargs['candidate_label_column_name'] = self.candidate_label_column_name
+        if not self.target_label_column_name:
+            if "label_clean" in self.df:
+                self.target_label_column_name = "label_clean"
+                kwargs['target_label_column_name'] = self.target_label_column_name
+            elif "label" in self.df:
+                self.target_label_column_name = "label"
+                kwargs['target_label_column_name'] = self.target_label_column_name
+            else:
+                raise RequiredColumnMissingException("No `label` or `label_clean` column found!")
+
+        if not self.candidate_label_column_name:
+            if "kg_labels" in self.df:
+                self.candidate_label_column_name = "kg_labels"
+                kwargs['candidate_label_column_name'] = self.candidate_label_column_name
+            else:
+                raise RequiredColumnMissingException("No `kg_labels` column found!")
+
+        if (self.target_label_column_name, self.candidate_label_column_name) != DEFAULT_COLUMN_COMB_NAME:
+            self.compared_column_names = self.target_label_column_name + "_" + self.candidate_label_column_name
         else:
-            raise RequiredColumnMissingException("No `kg_labels` column found!")
+            self.compared_column_names = None
 
         # split the candidate labels
         self.df[self.candidate_label_column_name] = \
@@ -69,6 +82,8 @@ class StringSimilarity:
                         each_similarity_score = each_similarity_unit.similarity(target_label, each_label)
                         if each_similarity_score > max_score:
                             max_score = each_similarity_score
+                if self.compared_column_names:
+                    similarity_unit_name = self.compared_column_names + "_" + similarity_unit_name
                 scores[similarity_unit_name].append(max_score)
 
         # append the scores to input df
