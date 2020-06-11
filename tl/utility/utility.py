@@ -140,7 +140,6 @@ class Utility(object):
         counter = 0
 
         for line in f:
-            counter += 1
             json_x = json.loads(line.replace('\n', ''))
             load_batch.append(json.dumps({"index": {"_id": json_x['id']}}))
             load_batch.append(line.replace('\n', ''))
