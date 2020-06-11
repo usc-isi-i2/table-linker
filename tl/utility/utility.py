@@ -138,29 +138,27 @@ class Utility(object):
         f = open(kgtk_jl_path)
         load_batch = []
         counter = 0
-        i = 0
+
         for line in f:
-            i += 1
             counter += 1
-            if i > 1918500:
-                json_x = json.loads(line.replace('\n', ''))
-                load_batch.append(json.dumps({"index": {"_id": json_x['id']}}))
-                load_batch.append(line.replace('\n', ''))
-                if len(load_batch) % batch_size == 0:
-                    counter += len(load_batch)
-                    print('done {} rows'.format(counter))
-                    response = None
-                    try:
-                        response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
-                                                      mapping_file_path,
-                                                      es_user=es_user, es_pass=es_pass)
-                        if response.status_code >= 400:
-                            print(response.text)
-                    except:
-                        print('Exception while loading a batch to es')
+            json_x = json.loads(line.replace('\n', ''))
+            load_batch.append(json.dumps({"index": {"_id": json_x['id']}}))
+            load_batch.append(line.replace('\n', ''))
+            if len(load_batch) % batch_size == 0:
+                counter += len(load_batch)
+                print('done {} rows'.format(counter))
+                response = None
+                try:
+                    response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
+                                                  mapping_file_path,
+                                                  es_user=es_user, es_pass=es_pass)
+                    if response.status_code >= 400:
                         print(response.text)
-                        print(response.status_code)
-                    load_batch = []
+                except:
+                    print('Exception while loading a batch to es')
+                    print(response.text)
+                    print(response.status_code)
+                load_batch = []
 
         if len(load_batch) > 0:
 
