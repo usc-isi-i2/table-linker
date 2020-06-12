@@ -17,7 +17,7 @@ def add_arguments(parser):
         parser: (argparse.ArgumentParser)
 
     """
-    parser.add_argument('-c', '--column', action='store', type=str, dest='column', required=True, nargs='+',
+    parser.add_argument('-c', '--column', action='store', type=str, dest='column', nargs='+',
                         help='column names with ranking scores, can be multiple')
 
     parser.add_argument('-k', action='store', type=int, dest='k', default=[1, 3, 5], nargs='+',
@@ -31,6 +31,9 @@ def add_arguments(parser):
 
     parser.add_argument('--add-wrong-candidates', action='store_true', dest='add_wrong_candidates',
                         help='If send with this flag, top 3 scores of wrong candidates will also be added.')
+
+    parser.add_argument('--all-columns', action='store_true', dest='use_all_columns',
+                        help='if set with this flag, `-c` option will have no effect and all numeric columns will be colored.')
 
     parser.add_argument('--wrong-candidates-score-column', action='store', type=str, dest='wrong_candidates_score_column',
                         default="gt_embed_score",

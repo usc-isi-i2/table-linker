@@ -4,8 +4,9 @@ import seaborn as sns
 import copy
 import matplotlib.pyplot as plt
 
-from tl.exceptions import RequiredColumnMissingException
+from tl.exceptions import RequiredColumnMissingException, ZeroScoreError
 from tl.evaluation.evaluation import metrics
+from tl.utility.utility import Utility
 from pyecharts import options as opts
 from pyecharts.charts import Bar, Grid
 from collections import defaultdict
@@ -22,7 +23,10 @@ class FigurePlotterUnit:
         :return:
         """
         self.df = pd.read_csv(kwargs['input_file'], dtype=object)
-        self.columns = kwargs["column"]
+        if kwargs["use_all_columns"]:
+            self.columns = Utility.get_all_numeric_columns(self.df)
+        else:
+            self.columns = kwargs["column"]
         for each_column in self.columns:
             if each_column not in self.df.columns:
                 raise RequiredColumnMissingException("Column {} does not exist in input data.".format(each_column))
@@ -45,6 +49,8 @@ class FigurePlotterUnit:
         results = dict()
         i = 0
         max_score = metrics(column=self.columns[0], df=self.df, k=len(self.df), tag="").iloc[0, 2]
+        if max_score == 0:
+            raise ZeroScoreError("The max accuracy of this dataset is zero, unable to plot the figure!")
         for each_column in self.columns:
             for each_k in self.k:
                 each_metric_result = metrics(column=each_column, df=self.df, k=int(each_k), tag="")

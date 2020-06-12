@@ -17,13 +17,16 @@ def add_arguments(parser):
         parser: (argparse.ArgumentParser)
 
     """
-    parser.add_argument('-c', '--column', action='store', type=str, nargs='+', dest='column', required=True,
+    parser.add_argument('-c', '--column', action='store', type=str, nargs='+', dest='column',
                         help='column name need to be colored, can have multiple columns.')
 
     parser.add_argument('-k', action='store', type=int, dest='k', default=5,
                         help='the top k results to be colored is 20')
 
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+
+    parser.add_argument('--all-columns', action='store_true', dest='use_all_columns',
+                        help='if set with this flag, `-c` option will have no effect and all numeric columns will be colored.')
 
     parser.add_argument('--sort-by-ground-truth', action='store_true', dest='sort_by_gt',
                         help="Only works with the file after running with `ground-truth-labeler`. "
@@ -39,6 +42,7 @@ def add_arguments(parser):
                         default=None,
                         help="The output path to store the output xlsx file.")
 
+
 def run(**kwargs):
     from tl.features.add_color import ColorRenderUnit
     import pandas as pd
@@ -46,7 +50,7 @@ def run(**kwargs):
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
         color_render = ColorRenderUnit(df, kwargs["sort_by_gt"], kwargs["gt_score_column"], kwargs["output_uri"])
-        color_render.add_color_by_score(kwargs['column'], k=kwargs['k'])
+        color_render.add_color_by_score(kwargs['column'], k=kwargs['k'], use_all_columns=kwargs["use_all_columns"])
         color_render.add_border()
         color_render.save_to_file()
 

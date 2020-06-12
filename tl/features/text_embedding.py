@@ -167,7 +167,7 @@ class EmbeddingVector:
         :return:
         """
         pageranks = {k: v[0] if len(v) > 0 else 0
-                     for k, v in self.es.search_node_pagerank(self.loaded_file['kg_id'].unique().tolist()).items()}
+                     for k, v in self.es.search_node_pagerank(self.loaded_file['kg_id'].dropna().unique().tolist()).items()}
         self.loaded_file["|pr|"] = self.loaded_file['kg_id'].map(pageranks).fillna(0)
 
     def _get_centroid(self, vector_strategy: str):
@@ -230,7 +230,11 @@ class EmbeddingVector:
     def add_score_column(self):
         score_column_name = self.kwargs["output_column_name"]
         if score_column_name is None:
-            score_column_name = "score_{}".format(self.kwargs["models_names"])
+            score_column_name = "score_{}".format(self.kwargs["column_vector_strategy"])
+            i = 1
+            while score_column_name in self.loaded_file:
+                i += 1
+                score_column_name = "score_{}_{}".format(self.kwargs["column_vector_strategy"], i)
 
         if self.kwargs["column_vector_strategy"] in {"page-rank", "page-rank-precomputed"}:
             self.loaded_file = self.loaded_file.rename(columns={'|pr|': score_column_name})

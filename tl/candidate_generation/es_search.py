@@ -47,6 +47,7 @@ class Search(object):
                     }
                 }
             should.append(query_part)
+
         return {
             "query": {
                 "bool": {

@@ -26,8 +26,12 @@ class ColorRenderUnit:
             each_part_range = [each_group.index[0] + 1, each_group.index[-1] + 1]
             self.parts.append(each_part_range)
 
-    def add_color_by_score(self, columns: typing.List[str], k: int):
+    def add_color_by_score(self, columns: typing.List[str], k: int, use_all_columns: bool = False):
         color_formats = []
+        # if use all columns, find all numeric columns
+        if use_all_columns:
+            columns = Utility.get_all_numeric_columns(self.df, skip_columns={"row", "column"})
+
         for i in range(len(columns)):
             each_column_color_range = []
 

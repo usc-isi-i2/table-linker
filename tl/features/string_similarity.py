@@ -29,6 +29,8 @@ class StringSimilarity:
                 kwargs['target_label_column_name'] = self.target_label_column_name
             else:
                 raise RequiredColumnMissingException("No `label` or `label_clean` column found!")
+        else:
+            kwargs["candidate_label_column_name"] = self.candidate_label_column_name
 
         if not self.candidate_label_column_name:
             if "kg_labels" in self.df:
@@ -36,6 +38,8 @@ class StringSimilarity:
                 kwargs['candidate_label_column_name'] = self.candidate_label_column_name
             else:
                 raise RequiredColumnMissingException("No `kg_labels` column found!")
+        else:
+            kwargs["target_label_column_name"] = self.target_label_column_name
 
         if (self.target_label_column_name, self.candidate_label_column_name) != DEFAULT_COLUMN_COMB_NAME:
             self.compared_column_names = self.target_label_column_name + "_" + self.candidate_label_column_name

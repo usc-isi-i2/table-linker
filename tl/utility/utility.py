@@ -413,6 +413,30 @@ class Utility(object):
         return out_df
 
     @staticmethod
+    def get_all_numeric_columns(input_df: pd.DataFrame,
+                                skip_columns: typing.Optional[typing.Union[set, typing.List[str]]] = None
+                                ) -> typing.List[str]:
+        if skip_columns is None:
+            skip_columns = {"row", "column", "evaluation_label"}
+        elif isinstance(skip_columns, list):
+            skip_columns = set(skip_columns)
+
+        columns = []
+        for each_column_name in input_df.columns:
+            each_column_content = input_df[each_column_name]
+            if each_column_name in skip_columns:
+                continue
+            if "float" in each_column_content.dtype.name or "int" in each_column_content.dtype.name:
+                columns.append(each_column_name)
+            else:
+                try:
+                    each_column_content.astype(float)
+                    columns.append(each_column_name)
+                except:
+                    pass
+        return columns
+
+    @staticmethod
     def check_in_black_list(black_list: dict, current_node_info: dict):
         for key, val in black_list.items():
             if key in current_node_info and len(val.intersection(current_node_info[key])) > 0:
