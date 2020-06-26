@@ -7,7 +7,7 @@ import tl.exceptions
 def parser():
     return {
         'help': 'Remove duplicate rows of each candidates according to specified column and keep the one with higher score on '
-                'specified column.'
+                'specified column or keep the one with specified search method.'
     }
 
 
@@ -27,6 +27,12 @@ def add_arguments(parser):
                         dest='score_columns', default=[],
                         help="""The names of the column with the ranking scores as reference.""")
 
+    parser.add_argument('--keep-method', action='store',
+                        dest='keep_method', default="exact-match",
+                        help="""The names of the search method need to keep. 
+                        If set this, the score column will be ignored when this specified method exists. 
+                        If this specified method not exists, still follow the score column order.""")
+
 
 def run(**kwargs):
     from tl.features import normalize_scores
@@ -34,7 +40,7 @@ def run(**kwargs):
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
 
-        odf = normalize_scores.drop_duplicate(kwargs['column'], kwargs["score_columns"], df=df)
+        odf = normalize_scores.drop_duplicate(kwargs['column'], kwargs["score_columns"], kwargs["keep_method"], df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: drop-duplicate\n'

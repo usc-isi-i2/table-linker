@@ -32,6 +32,9 @@ def add_arguments(parser):
     parser.add_argument('--add-wrong-candidates', action='store_true', dest='add_wrong_candidates',
                         help='If send with this flag, top 3 scores of wrong candidates will also be added.')
 
+    parser.add_argument('--output-score-table', action='store_true', dest='output_score_table',
+                        help='If send with this flag, an extra .csv file which records the scores of the plot will be saved.')
+
     parser.add_argument('--all-columns', action='store_true', dest='use_all_columns',
                         help='if set with this flag, `-c` option will have no effect and all numeric columns will be colored.')
 
@@ -46,7 +49,7 @@ def run(**kwargs):
     from tl.features.plot_figure import FigurePlotterUnit
     try:
         plot_unit = FigurePlotterUnit(**kwargs)
-        plot_unit.plot_bar_figure()
+        plot_unit.plot_bar_figure(kwargs["output_score_table"])
 
     except:
         message = 'Command: plot-score-figure\n'

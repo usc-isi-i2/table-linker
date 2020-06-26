@@ -42,23 +42,30 @@ class FigurePlotterUnit:
         else:
             self.title = kwargs["title"]
 
-    def plot_bar_figure(self):
+    def plot_bar_figure(self, output_score_table=False):
         """
         Call metric function to evaluate the results and plot it as a figure for visualization
         """
         results = dict()
         i = 0
-        max_score = metrics(column=self.columns[0], df=self.df, k=len(self.df), tag="").iloc[0, 2]
+        max_score = metrics(column=self.columns[0], df=self.df, k=len(self.df), tag="")["recall"].iloc[0]
         if max_score == 0:
             raise ZeroScoreError("The max accuracy of this dataset is zero, unable to plot the figure!")
         for each_column in self.columns:
-            for each_k in self.k:
-                each_metric_result = metrics(column=each_column, df=self.df, k=int(each_k), tag="")
-                accuracy = each_metric_result.iloc[0, 2]
-                each_res = {"k": each_k, "column": each_column, "accuracy": accuracy, "normalized_accuracy": accuracy / max_score}
+            metric_result = metrics(column=each_column, df=self.df, k=self.k, tag="")
+            for _, each_row in metric_result.iterrows():
+                accuracy = each_row["recall"]
+                each_res = {"k": each_row["k"],
+                            "column": each_column,
+                            "accuracy": accuracy,
+                            "normalized_accuracy": accuracy / max_score
+                            }
                 results[i] = each_res
                 i += 1
         plot_df = pd.DataFrame.from_dict(results, orient="index")
+        # save the data if needed
+        if output_score_table:
+            plot_df.to_csv(self.output_path + "_score.csv", index=False)
 
         # score analysis figure
         figure_object = self.plot_figure(plot_df, max_score)

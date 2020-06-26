@@ -88,7 +88,7 @@ def drop_by_score(column, file_path=None, df=None, k=20):
     return res
 
 
-def drop_duplicate(column: str, score_col: typing.List[str], file_path: str = None, df: pd.DataFrame = None):
+def drop_duplicate(column: str, score_col: typing.List[str], keep_method: str, file_path: str = None, df: pd.DataFrame = None):
     """
     group the dataframe by column, row and then check if there are duplicate rows on given column,
     remove the duplicated one and only keep the highest score one
@@ -96,6 +96,7 @@ def drop_duplicate(column: str, score_col: typing.List[str], file_path: str = No
     Args:
         column: column with labels
         score_col: column with ranking scores
+        keep_method: the method need to keep
         file_path: input file path
         df: or input dataframe
     Returns:
@@ -128,7 +129,11 @@ def drop_duplicate(column: str, score_col: typing.List[str], file_path: str = No
 
         for candidate_id, candidate_df in gdf.groupby(by=[column]):
             if len(candidate_df) > 1:
-                candidate_df = candidate_df.sort_values(by=score_col, ascending=[False]).iloc[:1, :]
+                # only do keep method when the method specified exists
+                if keep_method is not None and keep_method in candidate_df["method"].unique():
+                    candidate_df = candidate_df[candidate_df["method"] == keep_method]
+                if score_col and len(candidate_df) > 1:
+                    candidate_df = candidate_df.sort_values(by=score_col, ascending=[False]).iloc[:1, :]
             res = res.append(candidate_df)
 
     # sometimes the column order may changed, resort it to ensure follow original order

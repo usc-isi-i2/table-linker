@@ -15,7 +15,7 @@ def ngram_tokenizer(s, n, keep_start_and_end=False):
         s = '_{}_'.format(s.lower())
     if len(s) < n:
         return [s]
-    return [s[i:i+n] for i in range(len(s)-n+1)]
+    return [s[i:i + n] for i in range(len(s) - n + 1)]
 
 
 def get_tokenizer(name, **kwargs):
@@ -26,12 +26,22 @@ def get_tokenizer(name, **kwargs):
     return partial(tokenizer, **kwargs)
 
 
+"""
+How to add new stringSimilarityModule classes:
+1. Please ensure the new class name is "*Similarity", so that the system will automatically find them
+2. Please follow the abstract class defined below and use the superclass of this abstract class to define new similarity module
+3. Basically, only the function `_similarity` is necessary to be implemented.
+4. if your similarity calculation required the full text for indexing or other help functions, 
+   please include this in __init__ function. You can refer to "TfidfSimilarity" class as an example.  
+"""
+
+
 class StringSimilarityModule(ABC):
     def __init__(self, tl_args, **method_args):
         # tl_args is necessary if operation specification (like case sensitive) is needed
         # kwargs is necessary if tokenization (need all data in df) is needed
         # set tl args
-        self._ignore_case = tl_args['ignore_case']
+        self._ignore_case = tl_args.get('ignore_case', False)
 
         # set method args
         tokenizer_kwargs = {}
@@ -84,11 +94,12 @@ class JaroWinklerSimilarity(StringSimilarityModule):
         scaling_factor = float(scaling_factor)
         prefix_len = int(prefix_len)
         super().__init__(tl_args,
-            threshold=threshold, scaling_factor=scaling_factor, prefix_len=prefix_len)
+                         threshold=threshold, scaling_factor=scaling_factor, prefix_len=prefix_len)
 
     def _similarity(self, str1: str, str2: str):
         return sim.jaro_winkler_similarity(str1, str2,
-            threshold=self._threshold, scaling_factor=self._scaling_factor, prefix_len=self._prefix_len)
+                                           threshold=self._threshold, scaling_factor=self._scaling_factor,
+                                           prefix_len=self._prefix_len)
 
 
 class NeedlemanSimilarity(StringSimilarityModule):
@@ -99,11 +110,11 @@ class NeedlemanSimilarity(StringSimilarityModule):
         mismatch = float(mismatch)
         gap = float(gap)
         super().__init__(tl_args,
-            match=match, mismatch=mismatch, gap=gap)
+                         match=match, mismatch=mismatch, gap=gap)
 
     def _similarity(self, str1: str, str2: str):
         return sim.needleman_wunsch_similarity(str1, str2,
-            match=self._match, mismatch=self._mismatch, gap=self._gap)
+                                               match=self._match, mismatch=self._mismatch, gap=self._gap)
 
 
 class SoundexSimilarity(StringSimilarityModule):

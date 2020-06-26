@@ -60,19 +60,20 @@ class Search(object):
     def create_phrase_query(self, search_term, size, properties):
 
         search_term_tokens = search_term.split(' ')
-        query_type = "phrase"
+        # query_type = "phrase"
         slop = 0
 
-        if len(search_term_tokens) == 1:
+        if len(search_term_tokens) <= 3:
             query_type = 'best_fields'
 
-        if len(search_term_tokens) <= 3:
-            slop = 2
-            query_type = "most_fields"
-
-        if len(search_term_tokens) > 3:
+        # if len(search_term_tokens) <= 3:
+        #     slop = 2
+        #     query_type = "phrase"
+        # if len(search_term_tokens) > 3:
+        else:
             query_type = "phrase"
             slop = 10
+            # slop = len(search_term_tokens) - 1
 
         query = self.query
         query['query']['bool']['must'][0]['multi_match']['query'] = search_term
@@ -83,6 +84,26 @@ class Search(object):
 
         if properties:
             query['query']['bool']['must'][0]['multi_match']['fields'] = properties
+
+        return query
+
+    def create_fuzzy_query(self, search_term, size, properties):
+        query = {
+            "query": {
+                "bool": {
+                    "should": [
+                        {
+                            "multi_match": {
+                                "query": search_term,
+                                "fields": properties,
+                                "fuzziness": "AUTO"
+                            }
+                        }
+                    ]
+                }
+            },
+            "size": size
+        }
 
         return query
 
@@ -106,7 +127,8 @@ class Search(object):
                 hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties))
             elif query_type == 'phrase-match':
                 hits = self.search_es(self.create_phrase_query(search_term, size, properties))
-
+            elif query_type == 'fuzzy-match':
+                hits = self.search_es(self.create_fuzzy_query(search_term, size, properties))
             if hits is not None:
                 for hit in hits:
                     all_labels = hit['_source'].get('labels', [])

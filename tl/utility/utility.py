@@ -6,9 +6,10 @@ import re
 import typing
 import os
 import traceback
+import pprint
 
 from collections import defaultdict
-from tl.exceptions import FileNotExistError
+from tl.exceptions import FileNotExistError, UploadError
 from requests.auth import HTTPBasicAuth
 
 
@@ -34,20 +35,23 @@ class Utility(object):
         Returns: Nothing
 
         """
-        file_names = ["KGTK input file", "Mapping file", "Black list file"]
-        file_paths = [kgtk_file_path, mapping_file_path, black_list_file_path]
+        file_names = ["KGTK input file", "Black list file"]
+        file_paths = [kgtk_file_path, black_list_file_path]
         for each_file_name, each_file_path in zip(file_names, file_paths):
             if each_file_path and not os.path.exists(each_file_path):
                 raise FileNotExistError("{} {} does not exist!".format(each_file_name, each_file_path))
 
-        with open(black_list_file_path, "r") as f:
-            black_list_dict = json.load(f)
-            black_list_dict = {k: set(v) for k, v in black_list_dict.items()}
+        if black_list_file_path:
+            with open(black_list_file_path, "r") as f:
+                black_list_dict = json.load(f)
+                black_list_dict = {k: set(v) for k, v in black_list_dict.items()}
+        else:
+            black_list_dict = {}
 
         skipped_node_count = 0
         labels = label_fields.split(',')
         aliases = alias_fields.split(',')
-        pagerank = pagerank_fields.split(',')
+        pagerank = pagerank_fields.split(',') if pagerank_fields else []
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
         o = open(output_path, 'w')
 
@@ -158,6 +162,7 @@ class Utility(object):
         if str_fields_no_index:
             for str_field in str_fields_no_index:
                 properties_dict[str_field] = {
+                    "type": "text",
                     "index": "no"
                 }
         # finish mapping dict
@@ -269,14 +274,19 @@ class Utility(object):
 
         if response.status_code == 200:
             print('Index: {} already exists...'.format(es_index))
-        elif response.status_code == 404:
+        elif response.status_code // 100 == 4:
             if mapping_file_path is not None:
                 # no need to create index if mapping file is not specified, it'll be created at load time
                 mapping = json.load(open(mapping_file_path))
                 if es_user and es_pass:
-                    return requests.put(es_url_index, auth=HTTPBasicAuth(es_user, es_pass), json=mapping)
+                    response = requests.put(es_url_index, auth=HTTPBasicAuth(es_user, es_pass), json=mapping)
                 else:
-                    return requests.put(es_url_index, json=mapping)
+                    response = requests.put(es_url_index, json=mapping)
+                if response.text and "error" in json.loads(response.text):
+                    pp = pprint.PrettyPrinter(indent=4)
+                    pp.pprint(json.loads(response.text))
+                    raise UploadError("Creating new index failed! Please check the error response above!")
+
         else:
             print('An exception has occurred: ')
             print(response.text)

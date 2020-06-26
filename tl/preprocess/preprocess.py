@@ -36,7 +36,7 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
             if add_other_information:
                 remained_columns = v.keys().tolist()
                 remained_columns.remove(column)
-                remained_values = "|".join(v[remained_columns].values.tolist())
+                remained_values = "|".join(v[remained_columns].dropna().values.tolist())
                 out.append({
                     'column': df.columns.get_loc(column),
                     'row': i,
