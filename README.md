@@ -1,6 +1,7 @@
 
 
 
+
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Command Line Interface
 
 Table-Linker: this is an entity linkage tool which links the given string to wikidata Q nodes. 
@@ -37,6 +38,8 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
 - [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
+- [`get-phrase-matches`](#command_get-phrase-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search phrase match.
+- [`get-fuzzy-matches`](#command_get-fuzzy-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search fuzzy match.
 - [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
 - [`ground-truth-labeler`](#command_ground-truth-labeler)<sup>*</sup>: compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
 - [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
@@ -357,8 +360,65 @@ column  row  label      clean_labels  kg_id      kg_labels                      
 0       0    Hungary    Hungary       Q40662208  CCC Hungary|Cru Hungary                          phrase-match  30.940805
 ```
 
+### [`get-phrase-matches`](#command_get-fuzzy-matches)` [OPTIONS]`
+retrieves the identifiers of KG entities base on fuzzy match queries.
+
+**Options:**
+- `-c a`: the column used for retrieving candidates.
+- `-p {a,b,c}`:  a comma separated names of properties in the KG to search for phrase match query with boost for each property.
+ Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
+- `-n {number}`: maximum number of candidates to retrieve, default is 50.
+
+This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
+labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
+The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as 
+defined above.
+
+The string `fuzzy-match` is recorded in the column `method` to indicate the source of the candidates.
+
+The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in 
+the field `_score` in the retrieved Elasticsearch objects.
+
+The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
+ are stored in the field `_id` in the retrieved Elasticsearch objects.
+
+ **Examples:**
+
+```bash
+   # generate candidates for the cells in the column 'label_clean'
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-fuzzy-matches -c label_clean  < canonical-input.csv
+
+   # generate candidates for the resulting column 'label_clean' with property alias boosted to 1.5 and fetch 20 candidates per query
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd get-fuzzy-matches -c label_clean -p "alias^1.5"  -n 20 < canonical-input.csv
+
+   # generate candidates for the cells in the column 'label_clean' with exact-match method and fuzzy-match
+   # then normalized the score
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd clean -c label \
+     / get-exact-matches -c label_clean \
+     / get-fuzzy-matches -c label_clean -n 5 --filter \
+     / normalize-scores -c retrieval_score
+```
+
+**File Example:**
+
+```
+# generate candidates for the canonical file, countries_canonical.csv
+$ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-phrase-matches -c clean_labels  < countries_canonical.csv > countries_candidates.csv
+$ cat countries_candidates.csv
+
+column  row  label      clean_labels  kg_id      kg_labels                                        method        retrieval_score
+1       0    Buda’pest  Budapest      Q603551    Budapest|Budapest Georgia                        phrase-match  42.405098
+1       0    Buda’pest  Budapest      Q20571386  .budapest|dot budapest                           phrase-match  42.375305
+1       1    Prague     Prague        Q2084234   Prague|Prague  Nebraska                          phrase-match  37.18586
+1       1    Prague     Prague        Q1953283   Prague|Prague Oklahoma                           phrase-match  36.9689
+1       2    London!    London        Q261303    London|London                                    phrase-match  33.492584
+1       2    London!    London        Q23939248  London|Greater London|London region              phrase-match  33.094616
+0       0    Hungary    Hungary       Q5943060   Hungary|European Parliament election in Hungary  phrase-match  33.324196
+0       0    Hungary    Hungary       Q40662208  CCC Hungary|Cru Hungary                          phrase-match  30.940805
+```
+
 ### Implementation
-Details to follow
+Using fuzzy match base on the edit distance, for example, if a input query string is `Gura`, possible candidate could be: `Guma`, `Guna` and `Guba`... Those string has edit distance value `1` to the original input. The smaller edit distance value is, the higher `retrieval_score` will return.
 
 ## Adding Features Commands
 
@@ -817,7 +877,7 @@ The `drop-duplicate` command outputs the duplicate rows based on the given colum
 **Options:**
 - `-c a`: column name with duplicate things, usually it should be `kg_id` column.
 - `--score-column {string}`: the reference score column for deciding which row to drop.
-- 
+- `--keep-method {string}`: if specified, if meet the same candidates with this specified method, this specified method will be considered first no matter the score is.
 
 **Examples:**
 ```bash
@@ -842,6 +902,16 @@ $ tl drop-duplicate test_file.csv -c kg_id --score-column retrieval_score_normal
 $ cat output_file.csv
     column  row                                label      kg_id        method  retrieval_score_normalized
       2    0         Vladimir Vladimirovich PUTIN      Q7747   exact-match                    0.999676
+      2    1        Dmitriy Anatolyevich MEDVEDEV     Q23530   exact-match                    0.999676
+      2    2           Anton Germanovich SILUANOV    Q589645   exact-match                    0.999740
+      2    3           Maksim Alekseyevich AKIMOV   Q2587075  phrase-match                    0.619504
+      2    4              Yuriy Ivanovich BORISOV   Q4093892  phrase-match                    0.688664
+
+$ tl drop-duplicate test_file.csv -c kg_id --score-column retrieval_score_normalized --keep-method phrase-match > output_file.csv
+# output result, note than the duplicate row for column, row pair (2,0) was removed, but here we specifiy to keep phrase match, so exact-match's candidate was removed.
+$ cat output_file.csv
+    column  row                                label      kg_id        method  retrieval_score_normalized
+      2    0         Vladimir Vladimirovich PUTIN      Q7747  phrase-match                    0.456942
       2    1        Dmitriy Anatolyevich MEDVEDEV     Q23530   exact-match                    0.999676
       2    2           Anton Germanovich SILUANOV    Q589645   exact-match                    0.999740
       2    3           Maksim Alekseyevich AKIMOV   Q2587075  phrase-match                    0.619504

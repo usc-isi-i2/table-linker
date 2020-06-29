@@ -119,12 +119,12 @@ def drop_duplicate(column: str, score_col: typing.List[str], keep_method: str, f
     df["column"] = df["column"].astype(float).astype(int)
     df["row"] = df["row"].astype(float).astype(int)
 
-    res = pd.DataFrame()
+    res = []
     for key, gdf in df.groupby(by=['column', 'row']):
         # for those nodes with no candidates, we need to check here
         temp = gdf[column].unique()
         if len(temp) == 1 and not isinstance(temp[0], str) and np.isnan(temp[0]):
-            res = res.append(gdf.iloc[0, :])
+            res.append(gdf.iloc[0].to_dict())
             continue
 
         for candidate_id, candidate_df in gdf.groupby(by=[column]):
@@ -134,9 +134,10 @@ def drop_duplicate(column: str, score_col: typing.List[str], keep_method: str, f
                     candidate_df = candidate_df[candidate_df["method"] == keep_method]
                 if score_col and len(candidate_df) > 1:
                     candidate_df = candidate_df.sort_values(by=score_col, ascending=[False]).iloc[:1, :]
-            res = res.append(candidate_df)
+            res.append(candidate_df.iloc[0].to_dict())
 
     # sometimes the column order may changed, resort it to ensure follow original order
+    res = pd.DataFrame(res)
     res = res.reindex(columns=df.columns)
     return res
 

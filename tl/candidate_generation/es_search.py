@@ -1,6 +1,8 @@
 import copy
 import requests
 import typing
+import hashlib
+
 from tl.candidate_generation.phrase_query_json import query
 from tl.utility.singleton import singleton
 from requests.auth import HTTPBasicAuth
@@ -14,20 +16,26 @@ class Search(object):
         self.es_user = es_user
         self.es_pass = es_pass
         self.query = copy.deepcopy(query)
+        self.query_cache = dict()
 
     def search_es(self, query):
         es_search_url = '{}/{}/_search'.format(self.es_url, self.es_index)
+        cache_key = self.get_query_hash(query)
 
-        # return the top matched QNode using ES
-        if self.es_user and self.es_pass:
-            response = requests.post(es_search_url, json=query, auth=HTTPBasicAuth(self.es_user, self.es_pass))
-        else:
-            response = requests.post(es_search_url, json=query)
+        if cache_key not in self.query_cache:
+            # return the top matched QNode using ES
+            if self.es_user and self.es_pass:
+                response = requests.post(es_search_url, json=query, auth=HTTPBasicAuth(self.es_user, self.es_pass))
+            else:
+                response = requests.post(es_search_url, json=query)
 
-        if response.status_code == 200:
-            return response.json()['hits']['hits']
+            if response.status_code == 200:
+                response_output = response.json()['hits']['hits']
+            else:
+                response_output = None
+            self.query_cache[cache_key] = response_output
 
-        return None
+        return self.query_cache[cache_key]
 
     def create_exact_match_query(self, search_term, lower_case, size, properties):
         should = list()
@@ -169,3 +177,15 @@ class Search(object):
             node_pagerank = each["_source"]["pagerank"]
             label_dict[node_id] = node_pagerank
         return label_dict
+
+    def get_query_hash(self, query: dict):
+        """
+        get the hash key for the query for cache
+        :param query: input query dict
+        :return: a str represent the hash key
+        """
+        hash_generator = hashlib.md5()
+        hash_generator.update(str(query).encode('utf-8'))
+        hash_search_result = hash_generator.hexdigest()
+        hash_key = str(hash_search_result)
+        return hash_key
