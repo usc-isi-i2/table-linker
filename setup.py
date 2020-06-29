@@ -16,7 +16,7 @@ with open('requirements.txt', 'r') as f:
 packages = find_packages()
 
 setup(
-    name='tl',
+    name='table-linker',
     version=__version__,
     packages=packages,
     url='https://github.com/usc-isi-i2/table-linker',
