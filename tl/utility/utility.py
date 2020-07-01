@@ -491,16 +491,14 @@ class Utility(object):
         :return:
         """
         query = "http://{}:{}/_cluster/health?pretty=true".format(es_url, es_port)
-        if es_user and es_pass:
-            response = requests.get(query, auth=HTTPBasicAuth(es_user, es_pass))
-        else:
-            response = requests.get(query)
-
-        if response.status_code != 200:
-            return False
-        else:
-            status = response.json()['status']
-            if status in {"yellow", "green"}:
-                return True
+        try:
+            if es_user and es_pass:
+                response = requests.get(query, auth=HTTPBasicAuth(es_user, es_pass))
             else:
-                return False
+                response = requests.get(query)
+
+            if response.status_code == 200 and response.json()['status'] in {"yellow", "green"}:
+                return True
+        except:
+            pass
+        return False
