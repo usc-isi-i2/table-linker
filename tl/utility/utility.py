@@ -53,7 +53,7 @@ class Utility(object):
         aliases = alias_fields.split(',')
         pagerank = pagerank_fields.split(',') if pagerank_fields else []
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
-        o = open(output_path, 'w')
+        output_file = open(output_path, 'w')
 
         if kgtk_file_path.endswith(".gz"):
             kgtk_file = gzip.open(kgtk_file_path)
@@ -67,6 +67,7 @@ class Utility(object):
         prev_node = None
         i = 0
         is_human_name = False
+
         try:
             for line in kgtk_file:
                 i += 1
@@ -80,24 +81,14 @@ class Utility(object):
                     id = vals[0]
                     if prev_node is None:
                         prev_node = id
-
                     if id != prev_node:
-                        if not Utility.check_in_black_list(black_list_dict, current_node_info):
-                            # we need to add acronym for human names
-                            if is_human_name:
-                                _labels = Utility.add_acronym(_labels)
-                                _aliases = Utility.add_acronym(_aliases)
-                            o.write(json.dumps(
-                                {'id': prev_node,
-                                 'labels': _labels,
-                                 'aliases': _aliases,
-                                 'pagerank': _pagerank
-                                 })
-                            )
-                        else:
-                            skipped_node_count += 1
+                        skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases, _pagerank=_pagerank,
+                                                                     black_list_dict=black_list_dict,
+                                                                     current_node_info=current_node_info,
+                                                                     is_human_name=is_human_name, prev_node=prev_node,
+                                                                     skipped_node_count=skipped_node_count,
+                                                                     output_file=output_file)
                         # initialize for next node
-                        o.write('\n')
                         _labels = list()
                         _aliases = list()
                         _pagerank = list()
@@ -123,6 +114,13 @@ class Utility(object):
                     if vals[2] in human_nodes_set:
                         is_human_name = True
 
+            # do one more write for last node
+            skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases, _pagerank=_pagerank,
+                                                         black_list_dict=black_list_dict,
+                                                         current_node_info=current_node_info,
+                                                         is_human_name=is_human_name, prev_node=prev_node,
+                                                         skipped_node_count=skipped_node_count,
+                                                         output_file=output_file)
         except:
             print(traceback.print_exc())
 
@@ -130,6 +128,39 @@ class Utility(object):
         open(mapping_file_path, 'w').write(json.dumps(mapping_dict))
         print("Totally skipped {} nodes in black list".format(skipped_node_count))
         print('Done!')
+
+    @staticmethod
+    def _write_one_node(**kwargs):
+        """
+        inner function called by build_elasticsearch_file only
+        :param kwargs:
+        :return:
+        """
+        _labels = kwargs["_labels"]
+        _aliases = kwargs["_aliases"]
+        _pagerank = kwargs["_pagerank"]
+        black_list_dict = kwargs["black_list_dict"]
+        current_node_info = kwargs["current_node_info"]
+        is_human_name = kwargs["is_human_name"]
+        prev_node = kwargs["prev_node"]
+        skipped_node_count = kwargs["skipped_node_count"]
+        output_file = kwargs["output_file"]
+        if not Utility.check_in_black_list(black_list_dict, current_node_info):
+            # we need to add acronym for human names
+            if is_human_name:
+                _labels = Utility.add_acronym(_labels)
+                _aliases = Utility.add_acronym(_aliases)
+            output_file.write(json.dumps(
+                {'id': prev_node,
+                 'labels': _labels,
+                 'aliases': _aliases,
+                 'pagerank': _pagerank
+                 })
+            )
+        else:
+            skipped_node_count += 1
+        output_file.write('\n')
+        return skipped_node_count
 
     @staticmethod
     def remove_language_tag(label_str):
@@ -452,3 +483,24 @@ class Utility(object):
             if key in current_node_info and len(val.intersection(current_node_info[key])) > 0:
                 return True
         return False
+
+    @staticmethod
+    def check_es_ready(es_url: str, es_port: str, es_user=None, es_pass=None) -> bool:
+        """
+        check if elastic search index initialize finished
+        :return:
+        """
+        query = "http://{}:{}/_cluster/health?pretty=true".format(es_url, es_port)
+        if es_user and es_pass:
+            response = requests.get(query, auth=HTTPBasicAuth(es_user, es_pass))
+        else:
+            response = requests.get(query)
+
+        if response.status_code != 200:
+            return False
+        else:
+            status = response.json()['status']
+            if status in {"yellow", "green"}:
+                return True
+            else:
+                return False
