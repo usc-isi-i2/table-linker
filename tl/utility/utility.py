@@ -53,6 +53,7 @@ class Utility(object):
         aliases = alias_fields.split(',')
         pagerank = pagerank_fields.split(',') if pagerank_fields else []
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
+        skip_edges = set(labels + aliases)
         output_file = open(output_path, 'w')
 
         if kgtk_file_path.endswith(".gz"):
@@ -87,7 +88,7 @@ class Utility(object):
                                                                      current_node_info=current_node_info,
                                                                      is_human_name=is_human_name, prev_node=prev_node,
                                                                      skipped_node_count=skipped_node_count,
-                                                                     output_file=output_file)
+                                                                     output_file=output_file, skip_edges=skip_edges)
                         # initialize for next node
                         _labels = list()
                         _aliases = list()
@@ -120,11 +121,11 @@ class Utility(object):
                                                          current_node_info=current_node_info,
                                                          is_human_name=is_human_name, prev_node=prev_node,
                                                          skipped_node_count=skipped_node_count,
-                                                         output_file=output_file)
+                                                         output_file=output_file, skip_edges=skip_edges)
         except:
             print(traceback.print_exc())
 
-        mapping_dict = Utility.create_mapping_es(['id', 'labels', 'aliases'], ["pagerank"])
+        mapping_dict = Utility.create_mapping_es(['id', 'labels', 'aliases'], ["pagerank", "edges"])
         open(mapping_file_path, 'w').write(json.dumps(mapping_dict))
         print("Totally skipped {} nodes in black list".format(skipped_node_count))
         print('Done!')
@@ -145,16 +146,20 @@ class Utility(object):
         prev_node = kwargs["prev_node"]
         skipped_node_count = kwargs["skipped_node_count"]
         output_file = kwargs["output_file"]
+        skip_edges = kwargs["skip_edges"]
+
         if not Utility.check_in_black_list(black_list_dict, current_node_info):
             # we need to add acronym for human names
             if is_human_name:
                 _labels = Utility.add_acronym(_labels)
                 _aliases = Utility.add_acronym(_aliases)
+            _edges = Utility.generate_edges_information(current_node_info, skip_edges)
             output_file.write(json.dumps(
                 {'id': prev_node,
                  'labels': _labels,
                  'aliases': _aliases,
-                 'pagerank': _pagerank
+                 'pagerank': _pagerank,
+                 'edges': _edges,
                  })
             )
         else:
@@ -502,3 +507,12 @@ class Utility(object):
         except:
             pass
         return False
+
+    @staticmethod
+    def generate_edges_information(current_node_info: dict, skip_edges: set):
+        res = set()
+        for edge, nodes in current_node_info.items():
+            if edge not in skip_edges:
+                for each_node in nodes:
+                    res.add("{}#{}".format(edge, each_node))
+        return list(res)

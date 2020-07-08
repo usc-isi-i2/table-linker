@@ -44,7 +44,7 @@ def add_arguments(parser):
                              "The default is 0, which causes all eligible cells to be used to compute the column vector.")
 
     # output
-    parser.add_argument('--output-column-name', action='store', dest='output_column_name',
+    parser.add_argument('-o', '--output-column-name', action='store', dest='output_column_name',
                         default=None,
                         help="the name of the column where the value of the distance function will be stored. If not provided, "
                              "the name of the embedding model will be used.")

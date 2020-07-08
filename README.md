@@ -1,7 +1,3 @@
-
-
-
-
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Command Line Interface
 
 Table-Linker: this is an entity linkage tool which links the given string to wikidata Q nodes. 
@@ -38,13 +34,13 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
 - [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
-- [`get-phrase-matches`](#command_get-phrase-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search phrase match.
 - [`get-fuzzy-matches`](#command_get-fuzzy-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search fuzzy match.
+- [`get-phrase-matches`](#command_get-phrase-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search phrase match.
 - [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
 - [`ground-truth-labeler`](#command_ground-truth-labeler)<sup>*</sup>: compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
 - [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
 - [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
-- [`metrics`](#command_metrics): Calculate the F1-score on the candidates tables. Only works on the dataset after ran with  `ground-truth-labeler`.
+- [`metrics`](#command_metrics)<sup>*</sup>: Calculate the F1-score on the candidates tables. Only works on the dataset after ran with  `ground-truth-labeler`.
 - [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
 - [`plot-score-figure`](#command_plot-score-figure)<sup>*</sup>: visulize the score of the input data with 2 different kind of bar charts.
 - [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
@@ -248,6 +244,7 @@ This command retrieves the identifiers of KG entities whose label or aliases mat
 - `-p {a,b,c}`:  a comma separated names of properties in the KG to search for exact match query: default is `labels,aliases`. 
 - `-i`: case insensitive retrieval, default is case sensitive.
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
+- `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
 labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
@@ -311,6 +308,7 @@ retrieves the identifiers of KG entities base on phrase match queries.
  Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
 - `--filter {str}`: a string indicate the filtering requirement.
+- `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
 labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
@@ -360,7 +358,7 @@ column  row  label      clean_labels  kg_id      kg_labels                      
 0       0    Hungary    Hungary       Q40662208  CCC Hungary|Cru Hungary                          phrase-match  30.940805
 ```
 
-### [`get-phrase-matches`](#command_get-fuzzy-matches)` [OPTIONS]`
+### [`get-fuzzy-matches`](#command_get-fuzzy-matches)` [OPTIONS]`
 retrieves the identifiers of KG entities base on fuzzy match queries.
 
 **Options:**
@@ -368,6 +366,7 @@ retrieves the identifiers of KG entities base on fuzzy match queries.
 - `-p {a,b,c}`:  a comma separated names of properties in the KG to search for phrase match query with boost for each property.
  Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
+- `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
 labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
@@ -436,22 +435,23 @@ The basic idea is to compute a vector for a column in a table and then rank the 
 similarity between each candidate vector and the column vector.
 
 **Options:**
-- `--sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
-- `--output-column-name`: The output scoring column name. If not provided, the name of the embedding model will be used.
-- `--generate-projector-file`: If given, the function will generate the files needed to run the Google Project visualization.
-###### Following options are wrapped from kgtk, please refer to [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
 - `--column-vector-strategy {string}`: The centroid choosing method.
-- `--embedding-model {string}`: The pre-fitted models used for generating the vectors.
-- `--distance-function {string}`: The distance measurement function to used for scoring.
 - `--centroid-sampling-amount {int}`: The number of cells used to estimate the vector for a column.
-- `--label-properties {string}`: The names of the properties(P nodes) for `label` properties. If pass with `None`, this part will not be used. Default is `label` property.
 - `--description-properties list{string}`: The names of the properties(P nodes) for `description` properties. If pass with `None`, this part will not be used. Default is `description` property.
-- `--isa-properties list{string}`: The names of the properties(P nodes) for `isa` properties. If pass with `None`, this part will not be used. Default is `P31`.
-- `--has-properties list{string}`: The names of the properties(P nodes) for `has` properties. If pass with `None`, this part will not be used. Default is all P nodes except `P31`.
-- `--property-value list{string}`: For those edges found in `has` properties, the nodes specified here will display with  corresponding edge(property) values. instead of edge name.
-- `--dimensional-reduction {string}`: Whether to run dimensional reduction algorithm or not after the embedding vectors is generated.
+- `--debug`: A flag input, if send with this flag, more detail debugging information will be printed during running.
 - `--dimension {int}`: The specific target dimensions required to reduce to. Default is `2`.
+- `--dimensional-reduction {string}`: Whether to run dimensional reduction algorithm or not after the embedding vectors is generated.
+- `--distance-function {string}`: The distance measurement function to used for scoring.
+- `--embedding-model {string}`: The pre-fitted models used for generating the vectors.
+- `--generate-projector-file {string}`: If given, the function will generate the files needed to run the Google Project visualization to specific position.
+- `--has-properties list{string}`: The names of the properties(P nodes) for `has` properties. If pass with `None`, this part will not be used. Default is all P nodes except `P31`.
 - `--ignore-empty-sentences`: If send with this flag, the nodes (usually they are some recently added nodes) which does not existed in the given wikidata query endpoint but found from elastic search index will be ignored and removed.
+- `--isa-properties list{string}`: The names of the properties(P nodes) for `isa` properties. If pass with `None`, this part will not be used. Default is `P31`.
+- `--label-properties {string}`: The names of the properties(P nodes) for `label` properties. If pass with `None`, this part will not be used. Default is `label` property.
+- `--output-column-name {string}`: The output scoring column name. If not provided, the name of the embedding model will be used.
+- `--property-value list{string}`: For those edges found in `has` properties, the nodes specified here will display with  corresponding edge(property) values. instead of edge name.
+- `--save-embedding-feature`:  A flag option, if send with this flag, the embedding related featrues (embedding vectors and embedding sentences) will be appended as 2 extra columns.
+- `--sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
 - `--use-default-file {bool}`: If set to `False`, the system will use all properties found from the query endpoint. If set to `True`, the system will use a special-config file which remove some useless properties like `ID` and check some more details property values like `gender`.
 
 **Detail explainations:**
@@ -1134,6 +1134,8 @@ The second plot will be a `html` page, which includes the scores of specified co
 - `--output`: The output path to save the output file, please do not add the suffix of the file name.
 - `--add-wrong-candidates`: A flag option, pass with flag only to add the wrong candidates on second plot.
 - `--wrong-candidates-score-column {string}`:  Only valid when pass with `--add-wrong-candidates`, the column name of the wrong candidates column need to display.
+- `--output-score-table`: A flag option, if send with this flag, an extra .csv file which records the scores of the plot will be saved.
+- `--all-columns`: A flag option, if send with this flag, all numeri columns will be treated as target columns need to be colored.
 
 **Examples:**
 ```bash
@@ -1201,11 +1203,11 @@ $ tl run-pipeline \
 ```
 
 **File Example:**
-```
-tag         file      precision recall      f1
-gt-embed  v15_685.csv 0.473684211 0.473684211 0.473684211
-gt-embed  v15_686.csv 0.115384615 0.115384615 0.115384615
-```
+The output will be a csv looks like:
+|tag     |        file |precision   |recall    |f1           |
+|--------|-------------|------------|------------|------------|
+|gt-embed|  v15_685.csv| 0.473684211| 0.473684211| 0.473684211|
+|gt-embed|  v15_686.csv| 0.115384615| 0.115384615| 0.115384615|
 
 #### Implementation
 This command used python's subprocess to call shell functions then execute the corresponding shell codes.
@@ -1232,5 +1234,3 @@ $ tl clean /
     / normalize-scores \
     / metrics
 ```
-
-

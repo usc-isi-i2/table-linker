@@ -100,7 +100,7 @@ class ColorRenderUnit:
         for each_col in self.df.columns:
             self.df[each_col] = pd.to_numeric(self.df[each_col], errors='ignore')
 
-    def sort_by_gt(self, gt_score_column):
+    def sort_by_gt(self, gt_score_column: str):
         """
         The rows for each candidate are ordered descending by gt cosine,
         except that the first row is the ground truth candidate regardless of
