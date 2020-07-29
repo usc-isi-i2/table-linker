@@ -2,6 +2,7 @@ import copy
 import requests
 import typing
 import hashlib
+import logging
 
 from tl.candidate_generation.phrase_query_json import query
 from tl.utility.singleton import singleton
@@ -17,6 +18,7 @@ class Search(object):
         self.es_pass = es_pass
         self.query = copy.deepcopy(query)
         self.query_cache = dict()
+        self.logger = logging.getLogger(__name__)
 
     def search_es(self, query):
         es_search_url = '{}/{}/_search'.format(self.es_url, self.es_index)
@@ -33,6 +35,8 @@ class Search(object):
                 response_output = response.json()['hits']['hits']
             else:
                 response_output = None
+                self.logger.error("Query ES error with response {}!".format(response.status_code))
+                self.logger.error(response.json())
             self.query_cache[cache_key] = response_output
 
         return self.query_cache[cache_key]
@@ -144,7 +148,7 @@ class Search(object):
                     candidate_dict[hit['_id']] = {'score': hit['_score'], 'label_str': '|'.join(all_labels)}
         return candidate_dict
 
-    def search_node_labels(self, search_nodes: typing.List[str]) -> dict:
+    def get_node_info(self, search_nodes: typing.List[str]) -> dict:
         query = {
             "query": {
                 "ids": {
@@ -154,25 +158,19 @@ class Search(object):
             "size": len(search_nodes)
         }
         response = self.search_es(query)
+        return response
+
+    def search_node_labels(self, search_nodes: typing.List[str]) -> dict:
         label_dict = {}
-        for each in response:
+        for each in self.get_node_info(search_nodes):
             node_id = each["_source"]["id"]
             node_labels = each["_source"]["labels"] + each["_source"]["aliases"]
             label_dict[node_id] = node_labels
         return label_dict
 
     def search_node_pagerank(self, search_nodes: typing.List[str]) -> dict:
-        query = {
-            "query": {
-                "ids": {
-                    "values": search_nodes
-                }
-            },
-            "size": len(search_nodes)
-        }
-        response = self.search_es(query)
         label_dict = {}
-        for each in response:
+        for each in self.get_node_info(search_nodes):
             node_id = each["_source"]["id"]
             node_pagerank = each["_source"]["pagerank"]
             label_dict[node_id] = node_pagerank

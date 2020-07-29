@@ -514,5 +514,7 @@ class Utility(object):
         for edge, nodes in current_node_info.items():
             if edge not in skip_edges:
                 for each_node in nodes:
+                    # if len(edge) >= 6 and edge[:3] == '"""' and edge[-3:] == '"""':
+                        # edge = edge[3:-3]
                     res.add("{}#{}".format(edge, each_node))
         return list(res)

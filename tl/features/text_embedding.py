@@ -6,7 +6,9 @@ import pandas as pd
 import random
 import sys
 import typing
+import tempfile
 
+from pathlib import Path
 from collections import defaultdict
 from io import StringIO
 from kgtk.cli.text_embedding import main as main_embedding_function
@@ -304,10 +306,10 @@ class EmbeddingVector:
             return
 
         # transform format to kgtk format input
-        temp_file = io.StringIO()
+        temp_file = tempfile.NamedTemporaryFile(mode='r+', suffix=".csv")
         self.kgtk_format_input.to_csv(temp_file, index=False)
         temp_file.seek(0)
-        self.kwargs["input_file"] = temp_file
+        self.kwargs["input_file"] = Path(temp_file.name)
         self.kwargs["input_format"] = "test_format"
         self.kwargs["_debug"] = self.kwargs["debug"]
         self.kwargs["output_uri"] = "none"

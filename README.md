@@ -1,3 +1,4 @@
+
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Command Line Interface
 
 Table-Linker: this is an entity linkage tool which links the given string to wikidata Q nodes. 
@@ -31,6 +32,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`check-extra-information`](#command_check-extra-information)<sup>*</sup> : Check if the given extra information exists in the given kg node and corresponding wikipedia page (if exists).
 - [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG.
 - [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value.
+- [`compute-tf-idf`](#command_compute-tf-idf)<sup>*</sup>: compute the "tf-idf" like score base on the candidates. It is not the real tf-idf score algorithm but using a algorithm similar to tf-idf score.
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
 - [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
@@ -559,6 +561,102 @@ $ cat output_file.csv
 #### Implementation
 Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
 Wikipedia part: achieved with the python pacakge `wikipedia-api`
+
+<a name="command_compute-tf-idf" />
+
+### [`compute-tf-idf`](#command_compute-tf-idf)` [OPTIONS]`
+
+The `compute-tf-idf` function add a feature column by computing the tf-idf like score base on current all input candidates of the file.
+
+Unlike tf-idf score, here each unit is an edge / node values instead of a word in the text.
+ For example, assume we have 3 nodes with very similar labels as:
+Node1`Q207638` (`Gambela Region`), with following edges:
+```
+P17: Q115,
+P31: Q10864048,
+P2006190001: Q207638,
+```
+Node2 `Q3094932` (`Gambela Zuria`), with following edges:
+```
+P17: Q115,
+P31: Q13221722,
+P2006190001: Q207638,
+P2006190002: Q4777700,
+P2006190003: Q3094932,
+```
+Node3 `Q4837972` (`Babo Gambela`), with following edges:
+```
+P17: Q115,
+P31: Q13221722,
+P2006190001: Q202107,
+P2006190002: Q1709377,
+P2006190003: Q4837972,
+```
+We can then represent each nodes with a vector like:
+```
+'Gambela': {'Q207638': [1, 1, 0, 0, 1, 1, 0], 
+'Q3094932': [1, 0, 1, 1, 1, 1, 1], 
+'Q4837972': [1, 0, 1, 1, 1, 1, 1]}
+```
+with the property map
+`{'P17': 0, 'Q10864048': 1, 'Q13221722': 2, 'P2006190003': 3, 'P2006190001': 4, 'P31': 5, 'P2006190002': 6}`
+Here 1 indicates this node exist, 0 indicates not exist. Also, a little explain on how the property map was generated:
+For all edges with name `P31`, we will also consider the node2 for this edge, otherwise we only consider the edge name but ignore node2 of the edge.
+```
+{'tf': 3, 'df': 3, 'idf': 0.0},                  # edge 0, P17
+{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 1, Q10864048
+{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 2, Q13221722
+{'tf': 3, 'df': 3, 'idf': 0.0},                  # edge 3, P2006190003
+{'tf': 2, 'df': 1, 'idf': 0.47712125471966244},  # edge 4, P2006190001
+{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 5, P31
+{'tf': 3, 'df': 3, 'idf': 0.0}                   # edge 6, P2006190002
+```
+Then, we will compute the score for those 3 nodes as:
+ score = sum(for each node in properties: `tf_score` * `idf_score` * `1 if this node exist in target` * `similarity score`) 
+ Here similarity score is optional, in default it will use `retrieval_score_normalized`, If no similarity score is provided similairy score will be set as 1.
+ Finally we can get the tf-idf score as:
+```
+Q207638: 0.9542425094393249, 
+Q3094932: 1.0565475543340874, 
+Q4837972: 1.0565475543340874
+ ```
+If further support with `high-preceision candidates` and string similarity score mentioned, we can get a more precious score.
+
+
+**Options:**
+- `-o / --output-column {string}`: The output scoring column name. If not provided, the column name will be `tf_idf_score`.
+- `--similarity-column {string}`: The similairty column applied for using on similarity score during calculating the tf-idf score.
+
+**Examples:**
+```bash
+# compute the tf-idf score, use the similarity score from column `LevenshteinSimilarity()`
+$ tl --url http://kg2018a.isi.edu:9200 --index wiki_labels_aliases_3 \
+  compute-tf-idf --similarity-column "LevenshteinSimilarity()" input_file.csv
+```
+
+**File Example:**
+```bash
+# compute the tf-idf score with default similairty column (retrieval_score_normalized)
+$ tl --url http://kg2018a.isi.edu:9200 --index wiki_labels_aliases_3 \
+  compute-tf-idf input_file.csv
+
+$ cat input_file.csv
+column  row  label  ||other_information||  ...  method       retrieval_score  retrieval_score_normalized
+ 0      0  Gambela    ...                       exact-match  8.503553         1.000000
+ 0      0  Gambela    ...                       exact-match  3.996364         0.469964
+ 0      0  Gambela    ...                       phrase-match 30.137339        0.917484
+
+$ cat output_file.csv
+column  row  label  ||other_information||  ...  method       retrieval_score retrieval_score_normalized   tf_idf_score
+ 0      0  Gambela    ...                       exact-match  8.503553         1.000000                    20.141398
+ 0      0  Gambela    ...                       exact-match  3.996364         0.469964                    0.662052
+ 0      0  Gambela    ...                       phrase-match 30.137339        0.917484                    0.323122
+```
+
+#### Implementation
+Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
+Wikipedia part: achieved with the python pacakge `wikipedia-api`
+
 
 <a name="command_string-similarity" />
 

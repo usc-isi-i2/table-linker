@@ -88,7 +88,8 @@ def drop_by_score(column, file_path=None, df=None, k=20):
     return res
 
 
-def drop_duplicate(column: str, score_col: typing.List[str], keep_method: str, file_path: str = None, df: pd.DataFrame = None):
+def drop_duplicate(column: str, score_col: typing.List[str], keep_method: str = None, file_path: str = None,
+                   df: pd.DataFrame = None):
     """
     group the dataframe by column, row and then check if there are duplicate rows on given column,
     remove the duplicated one and only keep the highest score one
