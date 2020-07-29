@@ -132,21 +132,26 @@ class Search(object):
     def search_term_candidates(self, search_term_str, size, properties, query_type, lower_case=False):
         candidate_dict = {}
         search_terms = search_term_str.split('|')
+        parameter = self.get_query_hash((search_term_str, size, properties, query_type, lower_case))
 
-        for search_term in search_terms:
-            hits = None
-            if query_type == 'exact-match':
-                hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties))
-            elif query_type == 'phrase-match':
-                hits = self.search_es(self.create_phrase_query(search_term, size, properties))
-            elif query_type == 'fuzzy-match':
-                hits = self.search_es(self.create_fuzzy_query(search_term, size, properties))
-            if hits is not None:
-                for hit in hits:
-                    all_labels = hit['_source'].get('labels', [])
-                    all_labels.extend(hit['_source'].get('aliases', []))
-                    candidate_dict[hit['_id']] = {'score': hit['_score'], 'label_str': '|'.join(all_labels)}
-        return candidate_dict
+        if parameter not in self.query_cache:
+            for search_term in search_terms:
+                hits = None
+                if query_type == 'exact-match':
+                    hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties))
+                elif query_type == 'phrase-match':
+                    hits = self.search_es(self.create_phrase_query(search_term, size, properties))
+                elif query_type == 'fuzzy-match':
+                    hits = self.search_es(self.create_fuzzy_query(search_term, size, properties))
+                if hits is not None:
+                    hits_copy = hits.copy()  # prevent change on query cache
+                    for hit in hits_copy:
+                        all_labels = hit['_source'].get('labels', [])
+                        all_labels.extend(hit['_source'].get('aliases', []))
+                        candidate_dict[hit['_id']] = {'score': hit['_score'], 'label_str': '|'.join(all_labels)}
+            self.query_cache[parameter] = candidate_dict
+
+        return self.query_cache[parameter]
 
     def get_node_info(self, search_nodes: typing.List[str]) -> dict:
         query = {
@@ -176,7 +181,7 @@ class Search(object):
             label_dict[node_id] = node_pagerank
         return label_dict
 
-    def get_query_hash(self, query: dict):
+    def get_query_hash(self, query: typing.Union[tuple, dict, list]):
         """
         get the hash key for the query for cache
         :param query: input query dict
