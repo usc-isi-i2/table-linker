@@ -25,7 +25,7 @@ def add_arguments(parser):
 
     # embedding model choice
     parser.add_argument('--column-vector-strategy', action='store', dest='column_vector_strategy',
-                        default="exact-matches", choices=("ground-truth", "exact-matches", "page-rank-precomputed"),
+                        default="exact-matches", choices=("ground-truth", "exact-matches", "page-rank-precomputed", "page-rank"),
                         help="the name of the strategy to use to create the vector for the column.")
     parser.add_argument('--embedding-model', action='store', nargs='+', dest='all_models_names',
                         default="bert-base-wikipedia-sections-mean-tokens", choices=ALL_EMBEDDING_MODELS_NAMES,
