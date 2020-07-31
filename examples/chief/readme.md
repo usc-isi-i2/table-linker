@@ -9,9 +9,10 @@ To start, run following script, it will do:
 2. Normalize the retrieval score and drop duplicate candidates from different match methods.
 3. Apply ground turth labeler to add ground truth column.
 4. Add text embedding vector scores with `ground-truth` mode and then normalize this score.
-5. Add text embedding vctor scores with `pre computed page rank` mode and then normalize this score.
-6. Compute the extra information score.
-7. Compute the string similairty between the input string and candidate labels.
+5. Add text embedding vector scores with `page rank` mode and then normalize this score. The page rank idea is adapted from paper `DoSeR - A Knowledge-Base-Agnostic Framework for Entity Disambiguation Using Semantic Embeddings` by `Stefan Zwicklbauer, Christin Seifert, Michael Granitzer`.
+6. Add text embedding vector scores with `pre computed page rank` mode and then normalize this score.
+7. Compute the extra information score.
+8. Compute the string similairty between the input string and candidate labels.
 
 Then, the output file will contains different features which can be used / analysis for the future.
 For details explaination and introduction to each function, please refer to the main page's readme file.
@@ -38,6 +39,9 @@ canonicalize --csv -c 2 --add-other-information input/russia_chieves.csv \
 / add-text-embedding-feature \
 --column-vector-strategy page-rank-precomputed --output-column-name pagerank-precomputed \
 / normalize-scores -c pagerank-precomputed \
+/ add-text-embedding-feature \
+--column-vector-strategy page-rank --output-column-name pagerank \
+/ normalize-scores -c pagerank \
 / check-extra-information \
 --sparql-query-endpoint https://dsbox02.isi.edu:8888/bigdata/namespace/wdq/sparql \
 / string-similarity -i --method levenshtein jaro_winkler needleman soundex metaphone nysiis cosine:tokenizer=ngram:tokenizer_n=3 jaccard:tokenizer=ngram:tokenizer_n=3 hybrid_jaccard:tokenizer=word monge_elkan:tokenizer=word symmetric_monge_elkan:tokenizer=word tfidf:tokenizer=word > new_es_chief3.csv
