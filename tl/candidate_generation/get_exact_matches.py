@@ -5,9 +5,9 @@ from tl.exceptions import RequiredInputParameterMissingException
 
 
 class ExactMatches(object):
-    def __init__(self, es_url, es_index, es_user=None, es_pass=None):
+    def __init__(self, es_url, es_index, es_user=None, es_pass=None, output_column_name: str = "retrieval_score"):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
-        self.utility = Utility(self.es)
+        self.utility = Utility(self.es, output_column_name)
 
     def get_exact_matches(self, column, properties="labels,aliases", lower_case=False, size=50, file_path=None,
                           df=None):
@@ -21,7 +21,6 @@ class ExactMatches(object):
             size: maximum number of candidates to retrieve, default is 50.
             file_path: input file in canonical format
             df: input dataframe in canonical format
-
         Returns: a dataframe in candidates format
 
         """

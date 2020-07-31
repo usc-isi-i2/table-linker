@@ -27,6 +27,13 @@ def add_arguments(parser):
     parser.add_argument('-n', action='store', type=int, dest='size', default=50,
                         help='maximum number of candidates to retrieve')
 
+    parser.add_argument('-o', '--output-column', action='store', type=str, dest='score_column_name', default="retrieval_score",
+                        help='the output column name where the normalized scores will be stored.Default is retrieval_score')
+
+    parser.add_argument('--previous-match-column-name', action='store', type=str, dest='previous_match_column_name',
+                        default="retrieval_score",
+                        help='the output column name of previous match results')
+
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
     # used for filtering
@@ -42,10 +49,13 @@ def run(**kwargs):
 
         em = phrase_query_candidates.PhraseQueryMatches(es_url=kwargs['url'], es_index=kwargs['index'],
                                                         es_user=kwargs['user'],
-                                                        es_pass=kwargs['password'])
-        odf = em.get_phrase_matches(kwargs['column'], properties=kwargs['properties'], size=kwargs['size'], 
+                                                        es_pass=kwargs['password'],
+                                                        score_column_name=kwargs["score_column_name"],
+                                                        previous_match_column_name=kwargs["previous_match_column_name"])
+
+        odf = em.get_phrase_matches(kwargs['column'], properties=kwargs['properties'], size=kwargs['size'],
                                     df=df, filter_condition=kwargs['filter_condition'])
-        
+
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-phrase-matches\n'

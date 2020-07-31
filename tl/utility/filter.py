@@ -61,7 +61,6 @@ class Filter(object):
                         final_res = each_res
                     else:
                         final_res = each_res & final_res
-                # final_res =  final_res & (input_df[each_compare[0]].astype(float), each_compare[2])
             else:
                 if each_compare == "&":
                     final_res = each_res & final_res

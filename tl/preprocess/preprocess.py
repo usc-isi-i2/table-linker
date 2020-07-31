@@ -1,9 +1,11 @@
 import ftfy
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException
+from tl.exceptions import RequiredColumnMissingException
 
 
-def canonicalize(columns, output_column='label', file_path=None, df=None, file_type='csv'):
+def canonicalize(columns, output_column='label', file_path=None, df=None, file_type='csv',
+                 add_other_information=False, output_other_info="||other_information||"):
     """
     translate an input CSV or TSV file to canonical form
 
@@ -13,7 +15,8 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
         file_path: input file path
         df: or input dataframe
         file_type: csv or tsv
-
+        add_other_information: choose whether to add other information or not to canonicalize files
+        output_other_info: the column name for the other information
     Returns: a dataframe in canonical form
 
     """
@@ -28,7 +31,24 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
     out = list()
     for i, v in df.iterrows():
         for column in columns:
-            out.append({'column': df.columns.get_loc(column), 'row': i, output_column: v[column]})
+            if column not in df.columns:
+                raise RequiredColumnMissingException("The input column {} does not exist in given data.".format(column))
+            if add_other_information:
+                remained_columns = v.keys().tolist()
+                remained_columns.remove(column)
+                remained_values = "|".join(v[remained_columns].dropna().values.tolist())
+                out.append({
+                    'column': df.columns.get_loc(column),
+                    'row': i,
+                    output_column: v[column],
+                    output_other_info: remained_values
+                })
+            else:
+                out.append({
+                    'column': df.columns.get_loc(column),
+                    'row': i,
+                    output_column: v[column]
+                })
     return pd.DataFrame(out).sort_values(by=['column', 'row'])
 
 

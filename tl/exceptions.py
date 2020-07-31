@@ -39,6 +39,26 @@ class RequiredInputParameterMissingException(Exception):
     pass
 
 
+class RequiredColumnMissingException(Exception):
+    pass
+
+
+class UnsupportTypeError(Exception):
+    pass
+
+
+class FileNotExistError(Exception):
+    pass
+
+
+class ZeroScoreError(Exception):
+    pass
+
+
+class UploadError(Exception):
+    pass
+
+
 def tl_exception_handler(func, *args, **kwargs):
     exception_handler = TLExceptionHandler()
     return_code = exception_handler(func, *args, **kwargs)

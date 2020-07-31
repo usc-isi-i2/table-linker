@@ -1,6 +1,8 @@
+
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Command Line Interface
 
-  This document describes the command-line interface for the <code>Table Linker (tl)</code> system.
+Table-Linker: this is an entity linkage tool which links the given string to wikidata Q nodes. 
+This document describes the command-line interface for the <code>Table Linker (tl)</code> system.
 
 
 ## Installation Instructions
@@ -24,19 +26,28 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 ### `Usage:  tl [OPTIONS] COMMAND [ / COMMAND]* `
 
 **Table of Contents:**
+- [`add-color`](#command_add-color)<sup>*</sup>: Add some color on the specified score columns for better visualization.
+- [`add-text-embedding-feature`](#command_add-text-embedding-feature)<sup>*</sup>: computes text embedding vectors of the candidates and similarity to rank candidates.
 - [`canonicalize`](#command_canonicalize)<sup>*</sup>: translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
-- [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG   
+- [`check-extra-information`](#command_check-extra-information)<sup>*</sup> : Check if the given extra information exists in the given kg node and corresponding wikipedia page (if exists).
+- [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG.
+- [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value.
+- [`compute-tf-idf`](#command_compute-tf-idf)<sup>*</sup>: compute the "tf-idf" like score base on the candidates. It is not the real tf-idf score algorithm but using a algorithm similar to tf-idf score.
+- [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
+- [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
 - [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
-- [`string-similarity`](#command_string-similarity): compares the cell values in two input columns and outputs a similarity score for each pair of participating strings 
-- [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
-- [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells
-- [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value
-- [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format
-- [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
+- [`get-fuzzy-matches`](#command_get-fuzzy-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search fuzzy match.
+- [`get-phrase-matches`](#command_get-phrase-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search phrase match.
+- [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
 - [`ground-truth-labeler`](#command_ground-truth-labeler)<sup>*</sup>: compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
-- [`tee`](#command_tee): saves the input to disk and echoes the input to the standard output without modification
-- [`add-text-embedding-feature`](#command_add-text-embedding-feature): computes text embedding vectors of the candidates and similarity to rank candidates.
-- [`run-pipeline`](#command_run-pipeline): runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
+- [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
+- [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
+- [`metrics`](#command_metrics)<sup>*</sup>: Calculate the F1-score on the candidates tables. Only works on the dataset after ran with  `ground-truth-labeler`.
+- [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
+- [`plot-score-figure`](#command_plot-score-figure)<sup>*</sup>: visulize the score of the input data with 2 different kind of bar charts.
+- [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
+- [`string-similarity`](#command_string-similarity)<sup>*</sup>: compares the cell values in two input columns and outputs a similarity score for each pair of participating strings 
+- [`tee`](#command_tee)<sup>*</sup>: saves the input to disk and echoes the input to the standard output without modification.
 
 
 **Note: only the commands marked with <sup>*</sup> are currently implemented**
@@ -97,6 +108,7 @@ translate an input CSV or TSV file to [canonical form](https://docs.google.com/d
 - `-o a`: specifies the name of a new column to be added. Default output column name is `label`
 - `--tsv`:  the delimiter of the input file is TAB.
 - `--csv`: the delimiter of the input file is comma.
+- `--add-other-information`: append information from other columns as an extra column of output canonical file.
 
 **Examples:**
    ```bash
@@ -126,6 +138,32 @@ column row label
 1      0   Buda’pest
 1      1   Prague
 1      2   London!
+
+$ cat chief_subset.tsv
+
+col0  col1  col2
+Russia  Pres. Vladimir Vladimirovich PUTIN
+Russia  Premier Dmitriy Anatolyevich MEDVEDEV
+Russia  First Dep. Premier  Anton Germanovich SILUANOV
+Russia  Dep. Premier  Maksim Alekseyevich AKIMOV
+Russia  Dep. Premier  Yuriy Ivanovich BORISOV
+Russia  Dep. Premier  Konstatin Anatolyevich CHUYCHENKO
+Russia  Dep. Premier  Tatyana Alekseyevna GOLIKOVA
+
+# canonicalize the input file and process col2 with adding extra information
+$ tl canonicalize -c col2  --add-other-information chief_subset.tsv > organizations_subset_col0_canonicalized.csv
+
+# note that we get an extra column here, which is the information from the input file, combined by `|`
+$ cat organizations_subset_col0_canonicalized.csv
+
+column,row,label,||other_information||
+2,0,Vladimir Vladimirovich PUTIN,Russia|Pres.
+2,1,Dmitriy Anatolyevich MEDVEDEV,Russia|Premier
+2,2,Anton Germanovich SILUANOV,Russia|First Dep. Premier
+2,3,Maksim Alekseyevich AKIMOV,Russia|Dep. Premier
+2,4,Yuriy Ivanovich BORISOV,Russia|Dep. Premier
+2,5,Konstatin Anatolyevich CHUYCHENKO,Russia|Dep. Premier
+2,6,Tatyana Alekseyevna GOLIKOVA,Russia|Dep. Premier
 ```
 
 ### Implementation
@@ -208,6 +246,7 @@ This command retrieves the identifiers of KG entities whose label or aliases mat
 - `-p {a,b,c}`:  a comma separated names of properties in the KG to search for exact match query: default is `labels,aliases`. 
 - `-i`: case insensitive retrieval, default is case sensitive.
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
+- `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
 labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
@@ -271,6 +310,7 @@ retrieves the identifiers of KG entities base on phrase match queries.
  Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
 - `--filter {str}`: a string indicate the filtering requirement.
+- `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
 labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
@@ -285,7 +325,7 @@ the field `_score` in the retrieved Elasticsearch objects.
 The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
  are stored in the field `_id` in the retrieved Elasticsearch objects.
  
-The `filter` arg is optional, if given, it will excute the operation specified in the string and remove the rows which not fit the requirement. If after removing, no candidates for this `(column, row)` pair left, it will append the phrase match results generated, otherwise nothing will be appeneded.
+The `filter` arg is optional, if given, it will execute the operation specified in the string and remove the rows which not fit the requirement. If after removing, no candidates for this `(column, row)` pair left, it will append the phrase match results generated, otherwise nothing will be appended.
  **Examples:**
 
 ```bash
@@ -320,8 +360,66 @@ column  row  label      clean_labels  kg_id      kg_labels                      
 0       0    Hungary    Hungary       Q40662208  CCC Hungary|Cru Hungary                          phrase-match  30.940805
 ```
 
+### [`get-fuzzy-matches`](#command_get-fuzzy-matches)` [OPTIONS]`
+retrieves the identifiers of KG entities base on fuzzy match queries.
+
+**Options:**
+- `-c a`: the column used for retrieving candidates.
+- `-p {a,b,c}`:  a comma separated names of properties in the KG to search for phrase match query with boost for each property.
+ Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
+- `-n {number}`: maximum number of candidates to retrieve, default is 50.
+- `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
+
+This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
+labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
+The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as 
+defined above.
+
+The string `fuzzy-match` is recorded in the column `method` to indicate the source of the candidates.
+
+The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in 
+the field `_score` in the retrieved Elasticsearch objects.
+
+The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
+ are stored in the field `_id` in the retrieved Elasticsearch objects.
+
+ **Examples:**
+
+```bash
+   # generate candidates for the cells in the column 'label_clean'
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-fuzzy-matches -c label_clean  < canonical-input.csv
+
+   # generate candidates for the resulting column 'label_clean' with property alias boosted to 1.5 and fetch 20 candidates per query
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd get-fuzzy-matches -c label_clean -p "alias^1.5"  -n 20 < canonical-input.csv
+
+   # generate candidates for the cells in the column 'label_clean' with exact-match method and fuzzy-match
+   # then normalized the score
+   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd clean -c label \
+     / get-exact-matches -c label_clean \
+     / get-fuzzy-matches -c label_clean -n 5 --filter \
+     / normalize-scores -c retrieval_score
+```
+
+**File Example:**
+
+```
+# generate candidates for the canonical file, countries_canonical.csv
+$ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-phrase-matches -c clean_labels  < countries_canonical.csv > countries_candidates.csv
+$ cat countries_candidates.csv
+
+column  row  label      clean_labels  kg_id      kg_labels                                        method        retrieval_score
+1       0    Buda’pest  Budapest      Q603551    Budapest|Budapest Georgia                        phrase-match  42.405098
+1       0    Buda’pest  Budapest      Q20571386  .budapest|dot budapest                           phrase-match  42.375305
+1       1    Prague     Prague        Q2084234   Prague|Prague  Nebraska                          phrase-match  37.18586
+1       1    Prague     Prague        Q1953283   Prague|Prague Oklahoma                           phrase-match  36.9689
+1       2    London!    London        Q261303    London|London                                    phrase-match  33.492584
+1       2    London!    London        Q23939248  London|Greater London|London region              phrase-match  33.094616
+0       0    Hungary    Hungary       Q5943060   Hungary|European Parliament election in Hungary  phrase-match  33.324196
+0       0    Hungary    Hungary       Q40662208  CCC Hungary|Cru Hungary                          phrase-match  30.940805
+```
+
 ### Implementation
-Details to follow
+Using fuzzy match base on the edit distance, for example, if a input query string is `Gura`, possible candidate could be: `Guma`, `Guna` and `Guba`... Those string has edit distance value `1` to the original input. The smaller edit distance value is, the higher `retrieval_score` will return.
 
 ## Adding Features Commands
 
@@ -330,6 +428,235 @@ All Add-Feature commands take a column in a [Candidate](https://docs.google.com/
 or a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file 
 and output a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file. 
 
+<a name="command_add-text-embedding-feature" />
+
+### [`add-text-embedding-feature`](#command_add-text-embedding-feature)` [OPTIONS]`
+
+The `add-text-embedding-feature` command computes text embedding vectors of the candidates and similarity to rank candidates. 
+The basic idea is to compute a vector for a column in a table and then rank the candidates for each cell by measuring 
+similarity between each candidate vector and the column vector.
+
+**Options:**
+- `--column-vector-strategy {string}`: The centroid choosing method.
+- `--centroid-sampling-amount {int}`: The number of cells used to estimate the vector for a column.
+- `--description-properties list{string}`: The names of the properties(P nodes) for `description` properties. If pass with `None`, this part will not be used. Default is `description` property.
+- `--debug`: A flag input, if send with this flag, more detail debugging information will be printed during running.
+- `--dimension {int}`: The specific target dimensions required to reduce to. Default is `2`.
+- `--dimensional-reduction {string}`: Whether to run dimensional reduction algorithm or not after the embedding vectors is generated.
+- `--distance-function {string}`: The distance measurement function to used for scoring.
+- `--embedding-model {string}`: The pre-fitted models used for generating the vectors.
+- `--generate-projector-file {string}`: If given, the function will generate the files needed to run the Google Project visualization to specific position.
+- `--has-properties list{string}`: The names of the properties(P nodes) for `has` properties. If pass with `None`, this part will not be used. Default is all P nodes except `P31`.
+- `--ignore-empty-sentences`: If send with this flag, the nodes (usually they are some recently added nodes) which does not existed in the given wikidata query endpoint but found from elastic search index will be ignored and removed.
+- `--isa-properties list{string}`: The names of the properties(P nodes) for `isa` properties. If pass with `None`, this part will not be used. Default is `P31`.
+- `--label-properties {string}`: The names of the properties(P nodes) for `label` properties. If pass with `None`, this part will not be used. Default is `label` property.
+- `--output-column-name {string}`: The output scoring column name. If not provided, the name of the embedding model will be used.
+- `--property-value list{string}`: For those edges found in `has` properties, the nodes specified here will display with  corresponding edge(property) values. instead of edge name.
+- `--save-embedding-feature`:  A flag option, if send with this flag, the embedding related featrues (embedding vectors and embedding sentences) will be appended as 2 extra columns.
+- `--sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
+- `--use-default-file {bool}`: If set to `False`, the system will use all properties found from the query endpoint. If set to `True`, the system will use a special-config file which remove some useless properties like `ID` and check some more details property values like `gender`.
+
+**Detail explainations:**
+ - column-vector-strategy
+Currently 3 modes of strategies are supported: `ground-truth`, `page-rank` and `page-rank-precomputed`.
+ -- `ground-truth`: Only works after running with `ground-truth-labeler`. It will compute the  score base on the distance to the centroid point.
+ -- `page-rank`: Based on the given candidate nodes, it will compute a page-rank score. The idea is adapt from this [paper](http://mgrani.github.io/media/papers/16zwi.sei.gra-DoSeR-A-Knowledge.pdf).
+ -- `page-rank-precomputed`: This page rank is different from previous one. The page rank here used the page rank calculation method from [graph-tool](https://graph-tool.skewed.de/static/doc/centrality.html?highlight=pagerank#graph_tool.centrality.pagerank). All nodes existed in wikidata will be considered and computed, then stored in the index and we will retrieve those node's pagerank when needed.
+
+
+**Examples:**
+```bash
+# run text embedding command to add an extra column `embed-score` with ground-truth strategy and use all nodes to calculate centroid
+$ tl add-text-embedding-feature input_file.csv \
+  --column-vector-strategy ground-truth \
+  --centroid-sampling-amount 0 \
+  --output-column-name embed-score
+
+# run text embedding command to add an extra column `embed-score` with ground-truth strategy and use up to 5 nodes to calculate centroid, the generated sentence only contains label and description information. Also, apply TSNE on the embedding vectors after generated. Also, the corresponding detail vectors file will be saved to `vectors.tsv`
+$ tl add-text-embedding-feature input_file.csv \
+  --embedding-model bert-base-nli-mean-tokens \
+  --column-vector-strategy ground-truth \
+  --centroid-sampling-amount 5 \
+  --isa-properties None \
+  --has-properties None \
+  --run-TSNE true \
+  --generate-projector-file vectors.tsv
+
+```
+
+**File Example:**
+```
+    column  row                                          label  ...                                    GT_kg_label evaluation_label embed-score
+0        0    2                        Trigeminal nerve nuclei  ...                        Trigeminal nerve nuclei                1    0.925744
+1        0    3                       Trigeminal motor nucleus  ...                       Trigeminal motor nucleus                1    0.099415
+2        0    4                          Substantia innominata  ...                          Substantia innominata                1    0.070117
+3        0    6                                    Rhombic lip  ...                                    Rhombic lip                1    1.456694
+4        0    7                                 Rhinencephalon  ...                                 Rhinencephalon                1    0.471636
+5        0    9  Principal sensory nucleus of trigeminal nerve  ...  Principal sensory nucleus of trigeminal nerve                1    1.936707
+6        0   12                     Nucleus basalis of Meynert  ...                     Nucleus basalis of Meynert                1    0.130171
+7        0   14      Mesencephalic nucleus of trigeminal nerve  ...      Mesencephalic nucleus of trigeminal nerve                1    1.746346
+8        0   17                         Diagonal band of Broca  ...                         Diagonal band of Broca                1    0.520857
+9        0    1                                 Tuber cinereum  ...                                 tuber cinereum                1    0.116646
+10       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.192494
+11       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.028620
+```
+
+#### Implementation
+This command mainly wrap from kgtk's text-embedding functions.
+please refer to kgtk's readme page [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
+
+<a name="command_check-extra-information" />
+
+### [`check-extra-information`](#command_check-extra-information)` [OPTIONS]`
+
+The `check-extra-information` add a feature column by checking if any extra information from the original file get hitted and return a score base on the hitted information amount. 
+
+The program will check each node's property values and corresponding wikipedia page if exists. If any labels found there are same as the provieded extra information treat as hitted, otherwise not hitted. Usually there would be multiple columns for each input original file, we treat each coulmn as one part, the score is `count(hitted_part)/ count(all_parts)`. Maximum score is 1 for hit all extra information provided.
+
+**Options:**
+- `--sparql-query-endpoint {string}`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
+- `--extra-information-file {string}`: If the input canonical format file do not contains the column `||other_information||` genreated by command `canonicalize`, this extra information file path is necessary. Otherwise it is optional.
+- `--score-column {string}`: The name of the column used for the scoring to determine the prediction results.
+
+**Examples:**
+```bash
+# add the extra-information feature column with external extra information file
+$ tl check-extra-information input_file.csv \
+  --extra-information-file extra_info.csv \
+  --output-column-name extra_information_score > output_file.csv
+```
+
+**File Example:**
+```bash
+# add the extra-information feature column
+$ tl check-extra-information input_file.csv \
+  --output-column-name extra_information_score > output_file.csv
+  column  row  label  ||other_information||  label_clean  ...  GT_kg_id  GT_kg_label evaluation_label  gt_embed_score  extra_information_score
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin  1  1.297309  0.5
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin -1  1.290919  0.0
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin -1  0.651267  0.0
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin -1  0.815978  0.0
+
+2  0 Vladimir Vladimirovich PUTIN Russia|Pres. Vladimir Vladimirovich PUTIN  ... Q7747 Vladimir Putin -1  0.778838  0.0
+
+...  ...  ...  ...  ...  ...  ... ...  ...  ... ...  ...
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  0.950004  0.0
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  0.763486  0.0
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  1.219794  0.5
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  1.225877  0.0
+
+2 40  Vasiliy Alekseyevich NEBENZYA  Russia|Permanent Representative to the UN, New...  Vasiliy Alekseyevich NEBENZYA  ...  Q1000053  Vasily Nebenzya -1  1.185123  0.5
+$ cat output_file.csv
+
+```
+
+#### Implementation
+Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
+Wikipedia part: achieved with the python pacakge `wikipedia-api`
+
+<a name="command_compute-tf-idf" />
+
+### [`compute-tf-idf`](#command_compute-tf-idf)` [OPTIONS]`
+
+The `compute-tf-idf` function add a feature column by computing the tf-idf like score base on current all input candidates of the file.
+
+Unlike tf-idf score, here each unit is an edge / node values instead of a word in the text.
+ For example, assume we have 3 nodes with very similar labels as:
+Node1`Q207638` (`Gambela Region`), with following edges:
+```
+P17: Q115,
+P31: Q10864048,
+P2006190001: Q207638,
+```
+Node2 `Q3094932` (`Gambela Zuria`), with following edges:
+```
+P17: Q115,
+P31: Q13221722,
+P2006190001: Q207638,
+P2006190002: Q4777700,
+P2006190003: Q3094932,
+```
+Node3 `Q4837972` (`Babo Gambela`), with following edges:
+```
+P17: Q115,
+P31: Q13221722,
+P2006190001: Q202107,
+P2006190002: Q1709377,
+P2006190003: Q4837972,
+```
+We can then represent each nodes with a vector like:
+```
+'Gambela': {'Q207638': [1, 1, 0, 0, 1, 1, 0], 
+'Q3094932': [1, 0, 1, 1, 1, 1, 1], 
+'Q4837972': [1, 0, 1, 1, 1, 1, 1]}
+```
+with the property map
+`{'P17': 0, 'Q10864048': 1, 'Q13221722': 2, 'P2006190003': 3, 'P2006190001': 4, 'P31': 5, 'P2006190002': 6}`
+Here 1 indicates this node exist, 0 indicates not exist. Also, a little explain on how the property map was generated:
+For all edges with name `P31`, we will also consider the node2 for this edge, otherwise we only consider the edge name but ignore node2 of the edge.
+```
+{'tf': 3, 'df': 3, 'idf': 0.0},                  # edge 0, P17
+{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 1, Q10864048
+{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 2, Q13221722
+{'tf': 3, 'df': 3, 'idf': 0.0},                  # edge 3, P2006190003
+{'tf': 2, 'df': 1, 'idf': 0.47712125471966244},  # edge 4, P2006190001
+{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 5, P31
+{'tf': 3, 'df': 3, 'idf': 0.0}                   # edge 6, P2006190002
+```
+Then, we will compute the score for those 3 nodes as:
+ score = sum(for each node in properties: `tf_score` * `idf_score` * `1 if this node exist in target` * `similarity score`) 
+ Here similarity score is optional, in default it will use `retrieval_score_normalized`, If no similarity score is provided similairy score will be set as 1.
+ Finally we can get the tf-idf score as:
+```
+Q207638: 0.9542425094393249, 
+Q3094932: 1.0565475543340874, 
+Q4837972: 1.0565475543340874
+ ```
+If further support with `high-preceision candidates` and string similarity score mentioned, we can get a more precious score.
+
+
+**Options:**
+- `-o / --output-column {string}`: The output scoring column name. If not provided, the column name will be `tf_idf_score`.
+- `--similarity-column {string}`: The similairty column applied for using on similarity score during calculating the tf-idf score.
+
+**Examples:**
+```bash
+# compute the tf-idf score, use the similarity score from column `LevenshteinSimilarity()`
+$ tl --url http://kg2018a.isi.edu:9200 --index wiki_labels_aliases_3 \
+  compute-tf-idf --similarity-column "LevenshteinSimilarity()" input_file.csv
+```
+
+**File Example:**
+```bash
+# compute the tf-idf score with default similairty column (retrieval_score_normalized)
+$ tl --url http://kg2018a.isi.edu:9200 --index wiki_labels_aliases_3 \
+  compute-tf-idf input_file.csv
+
+$ cat input_file.csv
+column  row  label  ||other_information||  ...  method       retrieval_score  retrieval_score_normalized
+ 0      0  Gambela    ...                       exact-match  8.503553         1.000000
+ 0      0  Gambela    ...                       exact-match  3.996364         0.469964
+ 0      0  Gambela    ...                       phrase-match 30.137339        0.917484
+
+$ cat output_file.csv
+column  row  label  ||other_information||  ...  method       retrieval_score retrieval_score_normalized   tf_idf_score
+ 0      0  Gambela    ...                       exact-match  8.503553         1.000000                    20.141398
+ 0      0  Gambela    ...                       exact-match  3.996364         0.469964                    0.662052
+ 0      0  Gambela    ...                       phrase-match 30.137339        0.917484                    0.323122
+```
+
+#### Implementation
+Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
+Wikipedia part: achieved with the python pacakge `wikipedia-api`
+
 
 <a name="command_string-similarity" />
 
@@ -337,34 +664,63 @@ and output a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7k
 The `string-similarity` command compares the cell values in two input columns and outputs a similarity score for
  each pair of participating strings in the output column. 
  
-The `string-similarity` command supports the following string similarity algorithms,
+The `string-similarity` command supports the following tokenizer, some of the string similarity may require to specify one of them during calculating.
+- `word`: This is a simple tokenizer, it will split the input string by white space `/s`.
+- `ngram`: This is a ngram tokenizer, it will generate ngram candidates of each input string, user can specify the value of n. For example, the jaccard similarity with ngram tokenizer and n=3: `jaccard:tokenizer=ngram:tokenizer_n=3`.
 
-- [Normalized Levenshtein](https://en.wikipedia.org/wiki/Levenshtein_distance): The levenshtein distance between two words in the minimum number single-character edits needed to change one word into the other. Normalized levenshtein is computed as the levenshtein distance divided by the length of the longest string.
+The `string-similarity` command supports the following string similarity algorithms, all of those similarity functions are implemented from [RLTK]([https://github.com/usc-isi-i2/rltk](https://github.com/usc-isi-i2/rltk)). These similarity methods are ordered in alphabet.
+
+- [cosine](https://sites.temple.edu/tudsc/2017/03/30/measuring-similarity-between-texts-in-python/#:~:text=The%20cosine%20similarity%20is%20the,the%20similarity%20between%20two%20documents.
+) (`tokenizer` needed)
+The similarity between the two strings is the cosine of the angle between these two vectors representation.
+- [hybrid_jaccard]()  (`tokenizer` needed)
+The jaccard similarity hybird with `jaro_winkler_similarity`.
+- [jaccard](https://en.wikipedia.org/wiki/Jaccard_index) (`tokenizer` needed)
+The Jaccard Index Similarity is then computed as intersection(set1, set2) / union(set1, set2).
+- [jaro_winkler](https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance#Jaro%E2%80%93Winkler_Similarity) (no parameters needed)
+Jaro Winkler is a string edit distance designed for short strings. In Jaro Winkler, substitution of 2 close characters is considered less important than the substitution of 2 characters that are far from each other. 
+The similarity is computed as `1 - Jaro-Winkler distance`. The value is between `[0.0, 1.0]`.
+- [levenshtein](https://en.wikipedia.org/wiki/Levenshtein_distance) (no parameters needed)
+The levenshtein distance between two words in the minimum number single-character edits needed to change one word into the other. Normalized levenshtein is computed as the levenshtein distance divided by the length of the longest string.
  The similarity is computed as `1 - normalized distance`.  The value is between `[0.0, 1.0]`.
-- [Jaro Winkler](https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance#Jaro%E2%80%93Winkler_Similarity): Jaro Winkler is a string edit distance designed for short strings. In Jaro Winkler, substitution of 2 close characters is considered less important than the substitution of 2 characters that are far from each other. 
-The similarity is computed as `1 - Jaro-Winkler distance`. The value is between `[0.0, 1.0]`
+ - [metaphone](https://en.wikipedia.org/wiki/Metaphone) (no parameters needed)
+Metaphone fundamentally improves on the Soundex algorithm by using information about variations and inconsistencies in English spelling and pronunciation to produce a more accurate encoding, which does a better job of matching words and names which sound similar. As with Soundex, similar-sounding words should share the same keys. Metaphone is available as a built-in operator in a number of systems.
+- [monge_elkan]() (`tokenizer` needed)
+monge elkan score implement similarity.
+- [needleman](https://en.wikipedia.org/wiki/Needleman%E2%80%93Wunsch_algorithm#Similarity_matrix
+) (no parameters needed)
+This Needleman Wunsch Similarity is computed as needlman_wunsch_score over maximum score of s1 and s2.
+- [nysiis](https://en.wikipedia.org/wiki/New_York_State_Identification_and_Intelligence_System) (no parameters needed)
+New York State Immunization Information System (NYSIIS) Phonetic Code is a phonetic algorithm. 1 for same NYSIIS code, 0 for different.
+- [soundex](https://en.wikipedia.org/wiki/Soundex) (no parameters needed)
+soundex score implement similarity.
+- [symmetric_monge_elkan]() (`tokenizer` needed)
+symmetric monge elkan score implement similarity.
+- [tfidf](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) (`tokenizer` needed)
+tf-idf score implement similarity.
+
+
 
 In future, more string similarity algorithms will be supported
  
 **Options:**
-- `-c {a,b}`: input columns containing the cells to be compared. The two columns are represented as a comma separated string.
-- `--lev`: Use Normalized Levenshtein 
-- `--jw`: Use Jaro Winkler
+- `-c {a,b}`: input columns containing the cells to be compared. The two columns are represented as a comma separated string. Default value is set as `a=label_clean` and `b=kg_labels`. Column `b` could have multiple labels splitted by `|` while column `a` could have only 1 label.
+- `--method list{string}`: the string similarity method to use, please refer to the introduction parts above for details. Mutiple method values is accepted here. You can send multiple methods in one time.
 - `-i`: case insensitive comparison. Default is case sensitive
 
-The string similarity scores are added to a output columns, whose name will be in the format <col_1>\_<col_2>\_\<algorithm>.
+The string similarity scores are added to a output columns. 
+If the specific columns (not `["label_clean", "kg_labels"]`)is given, the compared column names will be added to the column name whose name will be in the format `<col_1>\_<col_2>\_\<algorithm>`.
+Otherwise the column name will only be in the format `<algorithm>`.
  
-If none of `--lev` or `--jw` options are specified, `--lev` is used. In case both `--lev` and `--jw` options are specified, 
-two output columns will be added as described above, recording string similarity scores for each algorithm.
 
 **Examples:**
 
 ```bash
 # compute similarity score for the columns 'clean_labels' and 'kg_label', use Normalized Levenshtein, case sensitive comparison
-$ tl string-similarity -c clean_labels,kg_label --lev < countries_candidates.csv
+$ tl string-similarity --method levenshtein < countries_candidates.csv
 
-# compute similarity score for the columns 'doc_labels' and 'doc_aliases', use Jaro Winkler, case insensitive comparison
-$ tl string-similarity -c doc_labels,doc_aliases  --jw -i countries_candidates.csv
+# compute similarity score for the columns 'doc_labels' and 'doc_aliases', use Jaccard similarity based on ngram=3 tokenizer, tf-idf score with word tokenizer and Needleman similarity, case insensitive comparison
+$ tl string-similarity -c doc_labels,doc_aliases  --method jaccard:tokenizer=ngram:tokenizer_n=3 tfidf:tokenizer=word needleman countries_candidates.csv
 ```
 
 **File Example:**
@@ -374,7 +730,7 @@ $ tl string-similarity -c doc_labels,doc_aliases  --jw -i countries_candidates.c
 $ tl string-similarity -c clean_labels,kg_labels --lev < countries_candidates.csv > countries_ss_features.csv \
 && mlr --opprint cut -f label,method,retrieval_score -x countries_ss_features.csv
 
-column row clean_labels kg_id     kg_labels                             clean_labels_kg_labels_lev
+column row clean_labels kg_id     kg_labels                             clean_labels_kg_labels_LevenshteinSimilarity()
 1      0   Budapest     Q1781     Budapest|Buda Pest|Buda-Pest|Buda     1
 1      0   Budapest     Q16467392 Budapest (chanson)                    0.44
 1      0   Budapest     Q55420238 Budapest|Budapest, a song             1
@@ -481,6 +837,8 @@ Then, for all candidates `c`, in the candidates set `C`, generated by retrieval 
 
 Where `weight(m)` is specified by users, defaulting to `1.0`
 
+
+
 ## Ranking Candidate Commands
 Ranking Candidate commands rank the candidate for each input cell. All Ranking Candidate commands takes as input a file in [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt)
 format and output a file in [Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr)
@@ -545,8 +903,122 @@ For each candidate `c` and the set of score-columns `S`,
 
 ## Commands on Ranking Score File
 
-[Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) files have a column which ranks 
-the candidates for each input cell.
+[Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) files have a column which ranks the candidates for each input cell.
+
+This commands in this module takes as input a [Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr)  file and outputs a file in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
+
+
+<a name="command_drop-by-score" />
+
+### [`drop-by-score`](#command_drop-by-score)` [OPTIONS]`
+
+The `drop-by-score` command outputs the top `k` score candidates for each `column, row` pair of the input file. The other candidates whose score is out of those will be removed.
+
+**Options:**
+- `-c a`: column name with ranking scores.
+- `-k {number}`: desired number of output candidates per input cell.Defaut is `k=20`. 
+- 
+
+**Examples:**
+```bash
+# read the ranking score file test_file.csv and keep only the highest score on embed-score column
+$ tl drop-by-score test_file.csv -c embed-score -k 1 > output_file.csv
+
+# same example but with default options 
+$ tl drop-by-score test_file.csv -c embed-score > output_file.csv
+```
+
+**File Example:**
+```bash
+# read the ranking score file countries_features_ranked.csv and ouput top 2 candidates, column 'clean_labels' have the cleaned input labels
+# original file
+      column  row                          label      kg_id  retrieval_score_normalized
+        2    0   Vladimir Vladimirovich PUTIN      Q7747                    0.999676
+        2    0   Vladimir Vladimirovich PUTIN  Q12554172                    0.405809
+        2    0   Vladimir Vladimirovich PUTIN   Q1498647                    0.466929
+        2    0   Vladimir Vladimirovich PUTIN  Q17052997                    0.404006
+        2    0   Vladimir Vladimirovich PUTIN  Q17195494                    0.500758
+      ...  ...                            ...        ...                         ...
+        2   40  Vasiliy Alekseyevich NEBENZYA  Q64456113                    0.287849
+        2   40  Vasiliy Alekseyevich NEBENZYA  Q65043723                    0.319638
+        2   40  Vasiliy Alekseyevich NEBENZYA   Q7916774                    0.316741
+        2   40  Vasiliy Alekseyevich NEBENZYA   Q7916778                    0.316741
+        2   40  Vasiliy Alekseyevich NEBENZYA   Q7972769                    0.262559
+
+$ tl drop-by-score test_file.csv -c embed-score -k 1 > output_file.csv
+# output result, note than only 1 candidates remained for each (column, row) pair
+$ cat output_file.csv
+    column  row                                label      kg_id  retrieval_score_normalized
+        2    0         Vladimir Vladimirovich PUTIN      Q7747                    0.999676
+        2    1        Dmitriy Anatolyevich MEDVEDEV     Q23530                    0.999676
+        2    2           Anton Germanovich SILUANOV    Q589645                    0.999740
+        2    3           Maksim Alekseyevich AKIMOV   Q2587075                    0.619504
+        2    4              Yuriy Ivanovich BORISOV   Q4093892                    0.688664
+        2    5    Konstatin Anatolyevich CHUYCHENKO   Q4517811                    0.455497
+        2    6         Tatyana Alekseyevna GOLIKOVA    Q260432                    0.999676
+        2    7               Olga Yuryevna GOLODETS   Q3350421                    0.999676
+        2    8         Aleksey Vasilyevich GORDEYEV    Q478290                    1.000000
+        2    9           Dmitriy Nikolayevich KOZAK    Q714330                    0.601561
+        2   10           Vitaliy Leyontyevich MUTKO   Q1320362                    0.666055
+```
+
+#### Implementation
+Group by  column and row indices and pick the top `k` candidates for each input cell. Then drop the remained part of the files and output the result.
+
+
+<a name="command_drop-duplicate" />
+
+### [`drop-duplicate`](#command_drop-duplicate)` [OPTIONS]`
+
+The `drop-duplicate` command outputs the duplicate rows based on the given column information and keep the one with a higher score on the specified score column. This comamnd usually will be used when multiple candidates generating methods was called, those different method may generate same candidates multiple times which may influence future processes.
+
+**Options:**
+- `-c a`: column name with duplicate things, usually it should be `kg_id` column.
+- `--score-column {string}`: the reference score column for deciding which row to drop.
+- `--keep-method {string}`: if specified, if meet the same candidates with this specified method, this specified method will be considered first no matter the score is.
+
+**Examples:**
+```bash
+# read the ranking score file test_file.csv and keep the higher score on `retrieval_score_normalized` column if duplicate found on (column, row, kg_id) pairs.
+$ tl drop-duplicate test_file.csv -c kg_id --score-column retrieval_score_normalized
+```
+
+**File Example:**
+```bash
+# read the ranking score file countries_features_ranked.csv and ouput top 2 candidates, column 'clean_labels' have the cleaned input labels
+# original file
+    column  row                                label      kg_id        method  retrieval_score_normalized
+      2    0         Vladimir Vladimirovich PUTIN      Q7747   exact-match                    0.999676
+      2    0         Vladimir Vladimirovich PUTIN      Q7747  phrase-match                    0.456942
+      2    1        Dmitriy Anatolyevich MEDVEDEV     Q23530   exact-match                    0.999676
+      2    2           Anton Germanovich SILUANOV    Q589645   exact-match                    0.999740
+      2    3           Maksim Alekseyevich AKIMOV   Q2587075  phrase-match                    0.619504
+      2    4              Yuriy Ivanovich BORISOV   Q4093892  phrase-match                    0.688664
+
+$ tl drop-duplicate test_file.csv -c kg_id --score-column retrieval_score_normalized > output_file.csv
+# output result, note than the duplicate row for column, row pair (2,0) was removed and the one with higher retrieval_score_normalized was kept.
+$ cat output_file.csv
+    column  row                                label      kg_id        method  retrieval_score_normalized
+      2    0         Vladimir Vladimirovich PUTIN      Q7747   exact-match                    0.999676
+      2    1        Dmitriy Anatolyevich MEDVEDEV     Q23530   exact-match                    0.999676
+      2    2           Anton Germanovich SILUANOV    Q589645   exact-match                    0.999740
+      2    3           Maksim Alekseyevich AKIMOV   Q2587075  phrase-match                    0.619504
+      2    4              Yuriy Ivanovich BORISOV   Q4093892  phrase-match                    0.688664
+
+$ tl drop-duplicate test_file.csv -c kg_id --score-column retrieval_score_normalized --keep-method phrase-match > output_file.csv
+# output result, note than the duplicate row for column, row pair (2,0) was removed, but here we specifiy to keep phrase match, so exact-match's candidate was removed.
+$ cat output_file.csv
+    column  row                                label      kg_id        method  retrieval_score_normalized
+      2    0         Vladimir Vladimirovich PUTIN      Q7747  phrase-match                    0.456942
+      2    1        Dmitriy Anatolyevich MEDVEDEV     Q23530   exact-match                    0.999676
+      2    2           Anton Germanovich SILUANOV    Q589645   exact-match                    0.999740
+      2    3           Maksim Alekseyevich AKIMOV   Q2587075  phrase-match                    0.619504
+      2    4              Yuriy Ivanovich BORISOV   Q4093892  phrase-match                    0.688664
+
+```
+
+#### Implementation
+Group by  column and row and specified column pairs indices and pick the higher score one.
 
 <a name="command_get-kg-links" />
 
@@ -556,14 +1028,10 @@ The `get-kg-links` command outputs the top `k` candidates from a sorted list,
 as linked knowledge graph objects for an input cell.
 The candidate with the highest score is ranked highest, ties are broken alphabetically.
 
-This module takes as input a 
-[Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) 
-file and outputs a file in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
-
 **Options:**
-- `-c a`:	column name with ranking scores.
+- `-c a`: column name with ranking scores.
 - `-l a`: column name with input cell labels. Default is `label`. These values will be stored in the output column `label` in the output file for this command.
-- `-k {number}`: desired number of output candidates per input cell.Defaut is `k=1`. Multiple values are represented by a `|` separated string
+- `-k {number}`: desired number of output candidates per input cell.Default is `k=1`. Multiple values are represented by a `|` separated string
 
 **Examples:**
 ```bash
@@ -606,7 +1074,7 @@ This command takes as input a [Input](https://docs.google.com/document/d/1eYoS47
 
 **Options:**
 - `-f {path}`: the original input file path.
-- `-c a`:	column name with ranking scores.
+- `-c a`: column name with ranking scores.
 - `-k {number}`: desired number of output candidates per input cell.Defaut is `k=1`. Multiple values are represented by `|` separated string
 
 **Examples:**
@@ -695,6 +1163,152 @@ in the Ground Truth File and the candidate is different from the corresponding k
  added by the [get-exact-matches](#command_get-exact-matches) command and are stored in the column `kg_labels`. 
  If the column is not present or in case of missing preferred label, empty string "" is added.
 
+## Utility Commands
+
+<a name="command_add-color" />
+
+### [`add-color`](#command_add-color)` [OPTIONS]`
+
+The `add-color` command is a special command that can only run as the last step of the pipeline / run separately because the generated file is a `xlsx` file but not a `csv` file. This command can be used to marked the `top-k` score of specified score columns for better visualization.
+It also support with a `ground-truth` format which can only run on a file after running with `add-text-embedding-feature` function and `ground-truth` column-vector-strategy. The rows for each candidate will then be ordered descending by gt score,  except that the first row is the ground truth candidate regardless of  whether it didn't get the highest gt cosine score
+
+**Options:**
+
+- `-c`: The score columns need to be colored.
+- `-k`: The amount of highest scores need to be colored.
+- `--output`: The output path to save the output xlsx file.
+- `--sort-by-ground-truth`: A flag option, pass with flag only to set to sort by ground truth score.
+- `--ground-truth-score-column`:  Only valid when pass with `--sort-by-ground-truth`, the column name of the ground truth score.
+**Examples:**
+```bash
+# color the `test.csv` file on column `evaluation_label` and `retrieval_score_normalized` 
+# then save to desktop
+# run with sort by ground turth condition.
+$ tl add-color ~/Desktop/test.csv -k 5 \
+-c retrieval_score_normalized evaluation_label \
+--sort-by-ground-truth \
+--ground-truth-score-column gt_embed_score_normalized \
+--output ~/Desktop/test_colored.xlsx
+
+# run color only
+$ tl add-color ~/Desktop/test.csv -k 5 \
+-c retrieval_score_normalized evaluation_label \
+--output ~/Desktop/test_colored.xlsx
+```
+
+**File Example:**
+```bash
+# the output is same as the input file if not sort
+   column  row  retrieval_score_normalized  evaluation_label  gt_embed_score_normalized
+0       2    0                    0.999676                 1                   0.398855
+1       2    0                    0.405809                -1                   0.403718
+2       2    0                    0.466929                -1                   0.203675
+3       2    0                    0.404006                -1                   0.255186
+4       2    0                    0.500758                -1                   0.243571
+5       2    0                    0.541115                -1                   0.675757
+6       2    0                    0.417415                -1                   0.231361
+7       2    0                    0.752838                -1                   0.540415
+8       2    0                    0.413938                -1                   0.220305
+9       2    0                    0.413938                -1                   0.228466
+```
+
+#### Implementation
+By using pandas's xls writer function, add some special format to some cells.
+
+
+<a name="command_plot-score-figure" />
+
+### [`plot-score-figure`](#command_plot-score-figure)` [OPTIONS]`
+
+The `plot-score-figure` command is a special command that can only run as the last step of the pipeline / run separately because the generated file is a `png` file or a `html` file but not a `csv` file. This command can be used to evaulate the predictions results and generated scores of the table linker.
+It only support the plot on the results after running with `ground-truth-labler` as ground truth information is needed for evaluation. 
+The first plot will be a `png` image, which includes the top `k` scores of the specified score columns in accuracy and corresponding normalized score.
+The second plot will be a `html` page, which includes the scores of specified columns on correct candidates and some high score wrong candidates if required. This page allow users to do interaction operations like remove the view of the score on specific columns, enlarge and many other choices...
+
+**Options:**
+
+- `-c list{string}`: The score columns need to be colored.
+- `-k list{int}`: The amount of highest scores need to be colored.
+- `--output`: The output path to save the output file, please do not add the suffix of the file name.
+- `--add-wrong-candidates`: A flag option, pass with flag only to add the wrong candidates on second plot.
+- `--wrong-candidates-score-column {string}`:  Only valid when pass with `--add-wrong-candidates`, the column name of the wrong candidates column need to display.
+- `--output-score-table`: A flag option, if send with this flag, an extra .csv file which records the scores of the plot will be saved.
+- `--all-columns`: A flag option, if send with this flag, all numeri columns will be treated as target columns need to be colored.
+
+**Examples:**
+```bash
+# plot the figures for `test.csv` file on column `evaluation_label` and `retrieval_score_normalized` 
+# then save to desktop, also add the evaluation wrong candidates on second graph
+$ tl plot-score-figure ~/Desktop/test.csv -k 1 2 5 \
+-c retrieval_score_normalized evaluation_label \
+--add-wrong-candidates retrieval_score_normalized \
+--output ~/Desktop/output_figure
+
+# run default plot
+$ tl plot-score-figure ~/Desktop/test.csv -k 1 2 5 \
+-c retrieval_score_normalized evaluation_label \
+--output ~/Desktop/output_figure
+```
+
+**File Example:**
+The output is not a table, please refer to [here](https://drive.google.com/drive/u/2/folders/14YCA2cWhARr6GMS0KDmCiV-uw7r4AwfE) (access needed).
+
+#### Implementation
+By using python package `seaborn` and `pyecharts`, we plotted the output figures.
+
+<a name="command_run-pipeline" />
+
+### [`run-pipeline`](#command_run-pipeline)` [OPTIONS]`
+
+The `run-pipeline` command is a batch running command that enable users to run same pipelines on a batch of files automatically and then evaluate the pipeline running results if possible.
+
+**Options:**
+
+- `--ground-truth-directory`: The ground truth directory.
+- `--ground-truth-file-pattern`: the pattern used to create the name of the ground truth file from the name of an input file. 
+The pattern is any string where the characters {} are substituted by the name of the input file minus the extension. 
+For example “{}_gt.csv” specifies that the ground truth file for input file abc.csv is abc_gt.csv. The default is “{}_gt.csv”
+- `--pipeline`: the pipeline to run.
+- `--score-column`: The column name with scores for evaluation
+- `--gpu-resources`: Optional, if given, the system will use only the specified GPU ID for running.
+- `--tag`: a tag to use in the output file to identify the results of running the given pipeline
+- `--parallel-count`: Optional, if specified, the system will run `n`processes in parallel. Default is `1`.
+- `--output`: optional, defines a name for the output file for each input file. The pattern is a string where {} gets substituted by the name of the input file, minus the extension.
+Default is `output_{}`
+- `--output-folder`: optional, if given, the system will save the output file of each pipeline to given folder with given file naming pattern from `--output`.
+- `--omit-headers`:  if this option is present, no headers will be output. If the option is omitted, the default, the first line will contain headers.
+- `--debug`: if this flag is present, system will print all the table-linker commands which are running for debugging purpose.
+
+**Examples:**
+```bash
+# run a pipeline on all files starting with `v15_68` and ends with `.csv` on folder `iswc_challenge_data/round4/canonical/`
+# clean -> get exact-matches candidates -> normalize score -> get phase-matches -> normalize score -> add ground truths -> get embedding scores 
+# Set to output with a tag gt-embed and score the output base on column `embed-score`, and run 4 processes parallelly. Also, turn on the debug mode.
+$ tl run-pipeline \
+  --tag gt-embed \
+  --gpu-resources 1 \
+  --parallel-count 4 \
+  --score-column embed-score \
+  --debug \
+  --ground-truth-directory iswc_challenge_data/round4/gt \
+  --ground-truth-file-pattern {}.csv \
+  --pipeline 'clean -c label / get-exact-matches -c label_clean / normalize-scores -c retrieval_score \
+    / get-phrase-matches -c label_clean -n 5 --filter "retrieval_score_normalized > 0.9" / normalize-scores -c retrieval_score \
+    / ground-truth-labeler -f iswc_challenge_data/round4/gt/{}.csv \
+    / add-text-embedding-feature --column-vector-strategy ground-truth -n 0 --run-TSNE True \
+    --distance-function cosine -o embed-score \
+    iswc_challenge_data/round4/canonical/v15_68*.csv
+```
+
+**File Example:**
+The output will be a csv looks like:
+|tag     |        file |precision   |recall    |f1           |
+|--------|-------------|------------|------------|------------|
+|gt-embed|  v15_685.csv| 0.473684211| 0.473684211| 0.473684211|
+|gt-embed|  v15_686.csv| 0.115384615| 0.115384615| 0.115384615|
+
+#### Implementation
+This command used python's subprocess to call shell functions then execute the corresponding shell codes.
 
 <a name="command_tee" />
 
@@ -713,118 +1327,8 @@ $ tl clean /
     / get-exact-matches -c label \
     / ground-truth-labeler -f “./xxx_gt.csv” \
     / add-text-embedding-feature --column-vector-strategy ground-truth -n 3 \
-    	--generate-projector-file xxx-google-projector -o embed 
+      --generate-projector-file xxx-google-projector -o embed 
     / tee --output xxx-features.csv \
     / normalize-scores \
     / metrics
 ```
-
-
-<a name="command_add-text-embedding-feature" />
-
-### [`add-text-embedding-feature`](#command_add-text-embedding-feature)` [OPTIONS]`
-
-The `add-text-embedding-feature` command computes text embedding vectors of the candidates and similarity to rank candidates. 
-The basic idea is to compute a vector for a column in a table and then rank the candidates for each cell by measuring 
-similarity between each candidate vector and the column vector.
-
-**Options:**
-- `-q / --sparql-query-endpoint`: The sparql query endpoint the sysetm should query to. Default is  offical wikidata query endpoint https://query.wikidata.org/sparql. Note: The official wikidata query endpoint has frequency and timeout limit.
-- `-o / --output-column-name`: The output scoring column name. If not provided, the name of the embedding model will be used.
-- `-g / --generate-projector-file`: If given, the function will generate the files needed to run the Google Project visualization.
-###### Following options are wrapped from kgtk, please refer to [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
-- `-c / --column-vector-strategy`: The centroid choosing method.
-- `-m / --embedding-model`: The pre-fitted models used for generating the vectors.
-- `-d / --distance-function`: The distance measurement function to used for scoring.
-- `-n`: The number of cells used to estimate the vector for a column.
-- `--label-properties`: The names of the properties(P nodes) for `label` properties
-- `--description-properties`: The names of the properties(P nodes) for `description` properties.
-- `--isa-properties`: The names of the properties(P nodes) for `isa` properties.
-- `--has-properties`: The names of the properties(P nodes) for `has` properties
-- `--run-TSNE`: whether to run TSNE or not after the embedding vectors is generated.
-
-**Examples:**
-```bash
-# run text embedding command to add an extra column `embed-score` with ground-truth strategy and use all nodes to calculate centroid
-$ tl add-text-embedding-feature input_file.csv \
-  --column-vector-strategy ground-truth \
-  -n 0 \
-  -o embed-score \
-```
-
-**File Example:**
-```
-    column  row                                          label  ...                                    GT_kg_label evaluation_label embed-score
-0        0    2                        Trigeminal nerve nuclei  ...                        Trigeminal nerve nuclei                1    0.925744
-1        0    3                       Trigeminal motor nucleus  ...                       Trigeminal motor nucleus                1    0.099415
-2        0    4                          Substantia innominata  ...                          Substantia innominata                1    0.070117
-3        0    6                                    Rhombic lip  ...                                    Rhombic lip                1    1.456694
-4        0    7                                 Rhinencephalon  ...                                 Rhinencephalon                1    0.471636
-5        0    9  Principal sensory nucleus of trigeminal nerve  ...  Principal sensory nucleus of trigeminal nerve                1    1.936707
-6        0   12                     Nucleus basalis of Meynert  ...                     Nucleus basalis of Meynert                1    0.130171
-7        0   14      Mesencephalic nucleus of trigeminal nerve  ...      Mesencephalic nucleus of trigeminal nerve                1    1.746346
-8        0   17                         Diagonal band of Broca  ...                         Diagonal band of Broca                1    0.520857
-9        0    1                                 Tuber cinereum  ...                                 tuber cinereum                1    0.116646
-10       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.192494
-11       0    1                                 Tuber cinereum  ...                                 tuber cinereum               -1    0.028620
-```
-
-#### Implementation
-This command mainly wrap from kgtk's text-embedding functions.
-please refer to kgtk's readme page [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
-
-
-<a name="command_run-pipeline" />
-
-### [`run-pipeline`](#command_run-pipeline)` [OPTIONS]`
-
-The `run-pipeline` command is a batch running command that enable users to run same pipelines on a batch of files automatically and then evaluate the pipeline running results if possible.
-
-**Options:**
-
-- `--ground-truth-directory`: The ground truth directory.
-- `--ground-truth-file-pattern`: the pattern used to create the name of the ground truth file from the name of an input file. 
-The pattern is any string where the characters {} are substituted by the name of the input file minus the extension. 
-For example “{}_gt.csv” specifies that the ground truth file for input file abc.csv is abc_gt.csv. The default is “{}_gt.csv”
-- `-p / --pipeline`: the pipeline to run.
-- `--score-column`: The column name with scores for evaluation
-- `--gpu-resources`: Optional, if given, the system will use only the specified GPU ID for running.
-- `--tag`: a tag to use in the output file to identify the results of running the given pipeline
-- `-n`: Optional, if specified, the system will run `n`processes parallelly. Default is `1`.
-- `--output`: optional, defines a name for the output file for each input file. The pattern is a string where {} gets substituted by the name of the input file, minus the extension.
-Default is `output_{}`
-- `--output-folder`: optional, if given, the system will save the output file of each pipeline to given folder with given file naming pattern from `--output`.
-- `--omit-headers`:  if this option is present, no headers will be output. If the option is omitted, the default, the first line will contain headers.
-- `--debug`: if this flag is present, system will print all the table-linker commands which are running for debugging purpose.
-
-**Examples:**
-```bash
-# run a pipeline on all files starting with `v15_68` and ends with `.csv` on folder `iswc_challenge_data/round4/canonical/`
-# clean -> get exact-matches candidates -> normalize score -> get phase-matches -> normalize score -> add ground truths -> get embedding scores 
-# Set to output with a tag gt-embed and score the output base on column `embed-score`, and run 4 processes parallelly. Also, turn on the debug mode.
-$ tl run-pipeline \
-  --tag gt-embed \
-  --gpu-resources 1 \
-  -n 4 \
-  --score-column embed-score \
-  --debug \
-  --ground-truth-directory iswc_challenge_data/round4/gt \
-  --ground-truth-file-pattern {}.csv \
-  --pipeline 'clean -c label / get-exact-matches -c label_clean / normalize-scores -c retrieval_score \
-    / get-phrase-matches -c label_clean -n 5 --filter "retrieval_score_normalized > 0.9" / normalize-scores -c retrieval_score \
-    / ground-truth-labeler -f iswc_challenge_data/round4/gt/{}.csv \
-    / add-text-embedding-feature --column-vector-strategy ground-truth -n 0 --run-TSNE True \
-    --distance-function cosine -o embed-score \
-    iswc_challenge_data/round4/canonical/v15_68*.csv
-```
-
-**File Example:**
-```
-tag         file      precision recall      f1
-gt-embed  v15_685.csv 0.473684211 0.473684211 0.473684211
-gt-embed  v15_686.csv 0.115384615 0.115384615 0.115384615
-```
-
-#### Implementation
-This command used python's subprocess to call shell functions then execute the corresponding shell codes.
-
