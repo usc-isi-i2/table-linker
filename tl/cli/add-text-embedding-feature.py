@@ -65,23 +65,23 @@ def add_arguments(parser):
                         help="""Whether to use the setting from default file.""")
     parser.add_argument('--label-properties', action='store', nargs='+',
                         dest='label_properties', default=["label"],
-                        help="""The names of the edges for label properties, Default is ["label"]. \n This argument is only 
+                        help="""The names of the edges for label properties, Default is ["label"]. \n This argument is only
                         valid for input in kgtk format.""")
     parser.add_argument('--description-properties', action='store', nargs='+',
                         dest='description_properties', default=["description"],
-                        help="""The names of the edges for description properties, Default is ["description"].\n This argument 
+                        help="""The names of the edges for description properties, Default is ["description"].\n This argument
                         is only valid for input in kgtk format.""")
     parser.add_argument('--isa-properties', action='store', nargs='+',
                         dest='isa_properties', default=["P31"],
-                        help="""The names of the edges for `isa` properties, Default is ["P31"] (the `instance of` node in 
+                        help="""The names of the edges for `isa` properties, Default is ["P31"] (the `instance of` node in
                         wikidata).\n This argument is only valid for input in kgtk format.""")
     parser.add_argument('--has-properties', action='store', nargs='+',
                         dest='has_properties', default=["all"],
-                        help="""The names of the edges for `has` properties, Default is ["all"] (will automatically append all 
+                        help="""The names of the edges for `has` properties, Default is ["all"] (will automatically append all
                         properties found for each node).\n This argument is only valid for input in kgtk format.""")
     parser.add_argument('--property-value', action='store', nargs='+',
                         dest='property_values', default=[],
-                        help="""For those edges found in `has` properties, the nodes specified here will display with 
+                        help="""For those edges found in `has` properties, the nodes specified here will display with
                             corresponding edge(property) values. instead of edge name. """)
 
     parser.add_argument("--dimensional-reduction", nargs='?', action='store',
