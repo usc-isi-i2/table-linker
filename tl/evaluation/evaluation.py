@@ -5,6 +5,14 @@ from tl.exceptions import RequiredInputParameterMissingException
 from tl.features import normalize_scores
 
 
+def read_csv(file_path, dtype=object):
+    try:
+        df = pd.read_csv(file_path, dtype=dtype)
+    except UnicodeDecodeError:
+        # try latin_1 encode as well
+        df = pd.read_csv(file_path, dtype=dtype, encoding='latin_1')
+    return df
+
 def ground_truth_labeler(gt_file_path, file_path=None, df=None):
     """
     compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label.
@@ -22,11 +30,11 @@ def ground_truth_labeler(gt_file_path, file_path=None, df=None):
         raise RequiredInputParameterMissingException(
             'One of the input parameters is required: {} or {}'.format('file_path', 'df'))
 
-    gt_df = pd.read_csv(gt_file_path, dtype=object)
+    gt_df = read_csv(gt_file_path, dtype=object)
     gt_df.rename(columns={'kg_id': 'GT_kg_id', 'kg_label': 'GT_kg_label'}, inplace=True)
 
     if file_path:
-        df = pd.read_csv(file_path, dtype=object)
+        df = read_csv(file_path, dtype=object)
     df.fillna('', inplace=True)
 
     evaluation_df = pd.merge(df, gt_df, on=['column', 'row'], how='left')
@@ -72,7 +80,7 @@ def metrics(column, file_path=None, df=None, k: typing.Union[int, typing.List[in
             'One of the input parameters is required: {} or {}'.format('file_path', 'df'))
 
     if file_path:
-        df = pd.read_csv(file_path, dtype=object)
+        df = read_csv(file_path, dtype=object)
 
     # remove duplicate candidates if exist
     df = normalize_scores.drop_duplicate("kg_id", [column], df=df)
@@ -96,14 +104,14 @@ def metrics(column, file_path=None, df=None, k: typing.Union[int, typing.List[in
         gdf = gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True]).reset_index()
 
         for i, row in gdf.iterrows():
-            if row['evaluation_label'] == '1' and row[column] == row['max_score']:
+            if (row['evaluation_label'] == '1' or row['evaluation_label'] == 1.0) and row[column] == row['max_score']:
                 tp_ps.append(key)
 
             # this df is sorted by score, so highest ranked candidate is rank 1 and so on...
             rank = i + 1
             for each_k in k:
                 # get multiple k in one time
-                if rank <= each_k and row['evaluation_label'] == '1':
+                if rank <= each_k and (row['evaluation_label'] == '1' or row['evaluation_label'] == 1.0):
                     tp_rs[each_k].append(key)
 
     precision = float(len(tp_ps)) / float(n)
