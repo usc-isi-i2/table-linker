@@ -52,6 +52,43 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
     return pd.DataFrame(out).sort_values(by=['column', 'row'])
 
 
+def extract_ground_truth(target_column, kg_id_column, kg_label_column, file_path=None, df=None, file_type='csv'):
+    """
+    Returns ground truth dataframe by extracting columns from input dataframe
+
+    Args:
+        target_column: the column in the input file to be linked to KG entities
+        kg_id_column: the column in the input file containing the kg identifier
+        kg_label_column: the column in the input file containing the kg label
+        file_path: input file path
+        df: or input dataframe
+        file_type: csv or tsv
+    Returns: ground truth dataframe in canonical format
+    """
+
+    if file_path is None and df is None:
+        raise RequiredInputParameterMissingException(
+            'One of the input parameters is required: {}or {}'.format("file_path", "df"))
+
+    for column in [target_column, kg_id_column, kg_label_column]:
+        if column not in df.columns:
+            raise RequiredColumnMissingException("The input column {} does not exist in given data.".format(column))
+
+    if file_path:
+        df = pd.read_csv(file_path, sep=',' if file_type == 'csv' else '\t', dtype=object)
+
+    target_column_index = df.columns.get_loc(target_column)
+    out = list()
+    for i, v in df.iterrows():
+        out.append({
+            'column': target_column_index,
+            'row': i,
+            'kg_id': v[kg_id_column],
+            'kg_label': v[kg_label_column]
+            })
+    return pd.DataFrame(out).sort_values(by=['column', 'row'])
+
+
 def clean(column, output_column=None, file_path=None, df=None, symbols='!@#$%^&*()+={}[]:;’\”/<>',
           replace_by_space=True, keep_original=False):
     """

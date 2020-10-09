@@ -25,12 +25,12 @@ class TLExceptionHandler(object):
             type, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(e, type, exc_val, exc_tb)
 
-    def handle_exception(self, e, type, exc_val, exc_tb):
+    def handle_exception(self, e, etype, exc_val, exc_tb):
         if isinstance(e, TLException):
             sys.stderr.write(e.message)
             return e.return_code
 
-        warnings.warn('Please raise TLException instead of {}'.format(type))
+        warnings.warn('Please raise TLException instead of {}'.format(etype))
         sys.stderr.write(TLException.message)
         return TLException.return_code
 
