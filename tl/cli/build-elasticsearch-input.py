@@ -6,7 +6,7 @@ import tl.exceptions
 
 def parser():
     return {
-        'help': 'build a json lines file to be loaded into elasticsearch from a kgtk edge file.'
+        'help': 'builds a json lines file to be loaded into elasticsearch from a kgtk edge file.'
     }
 
 
@@ -35,7 +35,7 @@ def add_arguments(parser):
                         help='path where a mapping file for the ES index will be output')
 
     parser.add_argument('--blacklist-file', action='store', dest='blacklist_file_path', default=None,
-                        help='blacklist file path, will be ignored in the output')
+                        help='blacklist file path nodes from which will be ignored in the output')
 
     parser.add_argument('--extra-information', action='store_true', dest='extra_information', default=False,
                         help='store extra information about node1 or not')

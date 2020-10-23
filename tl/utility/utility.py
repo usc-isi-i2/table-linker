@@ -66,10 +66,10 @@ class Utility(object):
         else:
             kgtk_file = open(kgtk_file_path, "r")
 
-        _labels = list()
-        _aliases = list()
+        _labels = set()
+        _aliases = set()
         _pagerank = 0.0
-        _descriptions = list()
+        _descriptions = set()
         current_node_info = defaultdict(set)
         prev_node = None
         i = 0
@@ -96,7 +96,6 @@ class Utility(object):
 
                 if line.startswith('Q'):
                     vals = line.split('\t')
-                    # id = vals[0]
                     node1_id = column_header_dict['node1']
                     label_id = column_header_dict['label']
                     node2_id = column_header_dict['node2']
@@ -116,9 +115,9 @@ class Utility(object):
                                                                      add_all_text=add_text
                                                                      )
                         # initialize for next node
-                        _labels = list()
-                        _aliases = list()
-                        _descriptions = list()
+                        _labels = set()
+                        _aliases = set()
+                        _descriptions = set()
                         _pagerank = 0.0
                         current_node_info = defaultdict(set)
                         prev_node = node1
@@ -128,11 +127,11 @@ class Utility(object):
                     if vals[label_id] in labels:
                         tmp_val = Utility.remove_language_tag(vals[node2_id])
                         if tmp_val.strip() != '':
-                            _labels.append(tmp_val)
+                            _labels.add(tmp_val)
                     elif vals[label_id] in aliases:
                         tmp_val = Utility.remove_language_tag(vals[node2_id])
                         if tmp_val.strip() != '':
-                            _aliases.append(tmp_val)
+                            _aliases.add(tmp_val)
                     elif vals[label_id] in pagerank:
                         tmp_val = Utility.to_float(vals[node2_id])
                         if tmp_val:
@@ -140,7 +139,7 @@ class Utility(object):
                     elif vals[label_id] in descriptions:
                         tmp_val = Utility.remove_language_tag(vals[node2_id])
                         if tmp_val:
-                            _descriptions.append(tmp_val)
+                            _descriptions.add(tmp_val)
 
                     # if it is human
                     if vals[node2_id] in human_nodes_set:
@@ -171,9 +170,9 @@ class Utility(object):
         :param kwargs:
         :return:
         """
-        _labels = kwargs["_labels"]
-        _aliases = kwargs["_aliases"]
-        _descriptions = kwargs["_descriptions"]
+        _labels = list(kwargs["_labels"])
+        _aliases = list(kwargs["_aliases"])
+        _descriptions = list(kwargs["_descriptions"])
         _pagerank = kwargs["_pagerank"]
         black_list_dict = kwargs["black_list_dict"]
         current_node_info = kwargs["current_node_info"]
@@ -194,7 +193,8 @@ class Utility(object):
             _ = {'id': prev_node,
                  'labels': _labels,
                  'aliases': _aliases,
-                 'pagerank': _pagerank
+                 'pagerank': _pagerank,
+                 'descriptions': _descriptions
                  }
             if extra_info:
                 _['edges'] = _edges
