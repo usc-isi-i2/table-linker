@@ -5,7 +5,7 @@
 ### `Usage: tl [OPTIONS] COMMAND`
 
 **Table of Contents:**
-- [`build-elasticsearch-file`](#command_build-elasticseach-file): builds a json lines file and a mapping file to support retrieval of candidates.
+- [`build-elasticsearch-input`](#command_build-elasticseach-input): builds a json lines file and a mapping file to be loaded into elasticsearch from a kgtk edge file.
 - [`load-elasticsearch-index`](#command_load-elasticsearch-index): loads a json lines file to elasticsearch index
 - [`convert-iswc-gt`](#command_convert-iswc-gt): converts the ISWC Ground Truth file to [TL Ground Truth](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.63n3hyogxr1e) file
 - [`metrics`](#command_metrics): computes the `precision`, `recall` and `f1 score` for the `tl` pipeline
@@ -26,19 +26,26 @@
 
 utility commands for `tl`
 
-<a name="command_build-elasticseach-file" />
+<a name="command_build-elasticseach-input" />
 
-### [`build-elasticsearch-file`](#command_build-elasticseach-file)
-builds a json lines file and a mapping file to support retrieval of candidates. 
-This command takes as input an Edges file in KGTK format, which must be sorted by subject and property so that this script can generate the JSON file for the index in a streaming fashion.
+### [`build-elasticsearch-input`](#command_build-elasticseach-input)
+builds a json lines file and a mapping file to be loaded into elasticsearch from a kgtk edge file.
+This command takes as input an Edges file in KGTK format, which must be sorted by `node1` so that this script can generate the JSON file for the index in a streaming fashion.
 
-Note: as described, this tool builds an index of labels and aliases, and does not index any other information about nodes. A future implementation will index additional information about nodes.
+This command builds an index of labels and aliases. Extra information in the form of `key#value` can be stored for retrieval purposes only. This command will also index the pagerank of `node1` if available in the input KGTK edge file.
 
 **Options:**
 
-- `--labels {a,b,...}`: The names of properties in the Edges file that contain the node labels used for building the index.
-- `--aliases {a,b,...}`: The names of properties in the Edges file that contain the node aliases or alternate labels used for building the index.
-- `--mapping {path}`: The output mapping file path for custom mapping for the Elasticsearch index.
+- `--input-file {path}`: input kgtk edge file, sorted by node1.
+- `--output-file {path}`: output json lines file, to be loaded into ES.
+- `--label-properties {a,b,...}`: the name of property which has labels for the node1.
+- `--mapping-file {path}`: path where a mapping file for the ES index will be output.
+- `--alias-properties {a,b,...}`: the name of property which has aliases for the node1. Optional, no default.
+- `--description-properties {a,b,...}`: the name of property which has descriptions for the node1. Optional, no default.
+- `--pagerank-properties {a,b,...}`: the name of property which has descriptions for the node1. Optional, no default.
+- `--blacklist-file {path}`: blacklist file path nodes from which will be ignored in the output. Optional.
+- `--extra-information {True|False}`: store extra information about node1 or not. Default False.
+- `--add-text {True|False}`: add a text field in the json which contains all text in label, alias and description. Default False
 
 **Example:**
 
@@ -62,8 +69,8 @@ The following command will build a json line file and a mapping file using the p
  define the aliases of nodes.
 
 ```
-$ tl  build-elasticsearch-file --labels preflabel,label --aliases alias \ 
- --mapping nodes_mapping.json nodes.tsv
+$ tl  build-elasticsearch-input --label-properties preflabel,label --alias-properties alias \ 
+ --mapping-file nodes_mapping.json --input-file nodes.tsv --output-file nodes.jl
 ```
 This command will map nodes as follows:
 
@@ -75,8 +82,8 @@ The following command will build a json line file and a mapping file using the p
 the aliases of nodes.
 
 ```
-$ tl  build-elasticsearch-file --labels label --aliases alias \
---mapping nodes_mapping.json nodes.json
+$ tl  build-elasticsearch-input --label-properties label --alias-properties alias \
+--mapping-file nodes_mapping.json --input-file nodes.json --output-file nodes.jl
 ```
 This command will map nodes as follows:
 
