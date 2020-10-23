@@ -18,7 +18,10 @@ class Utility(object):
     def build_elasticsearch_file(kgtk_file_path, label_fields,
                                  mapping_file_path, output_path,
                                  alias_fields=None, pagerank_fields=None,
-                                 black_list_file_path=None
+                                 black_list_file_path=None,
+                                 extra_info=False,
+                                 add_text=False,
+                                 description_properties=None
                                  ):
         """
         builds a json lines file and a mapping file to support retrieval of candidates
@@ -50,8 +53,10 @@ class Utility(object):
 
         skipped_node_count = 0
         labels = label_fields.split(',')
-        aliases = alias_fields.split(',')
+        aliases = alias_fields.split(',') if alias_fields else []
         pagerank = pagerank_fields.split(',') if pagerank_fields else []
+        descriptions = description_properties.split(',') if description_properties else []
+
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
         skip_edges = set(labels + aliases)
         output_file = open(output_path, 'w')
@@ -63,12 +68,14 @@ class Utility(object):
 
         _labels = list()
         _aliases = list()
-        _pagerank = list()
+        _pagerank = 0.0
+        _descriptions = list()
         current_node_info = defaultdict(set)
         prev_node = None
         i = 0
         is_human_name = False
 
+        column_header_dict = None
         try:
             for line in kgtk_file:
                 i += 1
@@ -77,42 +84,66 @@ class Utility(object):
                 if isinstance(line, bytes):
                     line = line.decode('utf-8')
                 line = line.replace('\n', '')
+                if column_header_dict is None and 'node1' in line and 'id' in line and 'node2' in line:
+                    # header line
+                    cols = line.replace('\n', '').split('\t')
+                    column_header_dict = {
+                        'id': cols.index('id'),
+                        'node1': cols.index('node1'),
+                        'label': cols.index('label'),
+                        'node2': cols.index('node2')
+                    }
+
                 if line.startswith('Q'):
                     vals = line.split('\t')
-                    id = vals[0]
+                    # id = vals[0]
+                    node1_id = column_header_dict['node1']
+                    label_id = column_header_dict['label']
+                    node2_id = column_header_dict['node2']
+                    node1 = vals[node1_id]
                     if prev_node is None:
-                        prev_node = id
-                    if id != prev_node:
-                        skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases, _pagerank=_pagerank,
+                        prev_node = node1
+                    if node1 != prev_node:
+                        skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases,
+                                                                     _pagerank=_pagerank,
                                                                      black_list_dict=black_list_dict,
                                                                      current_node_info=current_node_info,
                                                                      is_human_name=is_human_name, prev_node=prev_node,
                                                                      skipped_node_count=skipped_node_count,
-                                                                     output_file=output_file, skip_edges=skip_edges)
+                                                                     output_file=output_file, skip_edges=skip_edges,
+                                                                     extra_info=extra_info,
+                                                                     _descriptions=_descriptions,
+                                                                     add_all_text=add_text
+                                                                     )
                         # initialize for next node
                         _labels = list()
                         _aliases = list()
-                        _pagerank = list()
+                        _descriptions = list()
+                        _pagerank = 0.0
                         current_node_info = defaultdict(set)
-                        prev_node = id
+                        prev_node = node1
                         is_human_name = False
 
-                    current_node_info[vals[1]].add(str(vals[2]))
-                    if vals[1] in labels:
-                        tmp_val = Utility.remove_language_tag(vals[2])
+                    current_node_info[vals[label_id]].add(str(vals[node2_id]))
+                    if vals[label_id] in labels:
+                        tmp_val = Utility.remove_language_tag(vals[node2_id])
                         if tmp_val.strip() != '':
                             _labels.append(tmp_val)
-                    elif vals[1] in aliases:
-                        tmp_val = Utility.remove_language_tag(vals[2])
+                    elif vals[label_id] in aliases:
+                        tmp_val = Utility.remove_language_tag(vals[node2_id])
                         if tmp_val.strip() != '':
                             _aliases.append(tmp_val)
-                    elif vals[1] in pagerank:
-                        tmp_val = Utility.to_float(vals[2])
+                    elif vals[label_id] in pagerank:
+                        tmp_val = Utility.to_float(vals[node2_id])
                         if tmp_val:
-                            _pagerank.append(tmp_val)
+                            _pagerank = tmp_val
+                    elif vals[label_id] in descriptions:
+                        tmp_val = Utility.remove_language_tag(vals[node2_id])
+                        if tmp_val:
+                            _descriptions.append(tmp_val)
 
                     # if it is human
-                    if vals[2] in human_nodes_set:
+                    if vals[node2_id] in human_nodes_set:
                         is_human_name = True
 
             # do one more write for last node
@@ -121,7 +152,10 @@ class Utility(object):
                                                          current_node_info=current_node_info,
                                                          is_human_name=is_human_name, prev_node=prev_node,
                                                          skipped_node_count=skipped_node_count,
-                                                         output_file=output_file, skip_edges=skip_edges)
+                                                         output_file=output_file, skip_edges=skip_edges,
+                                                         extra_info=extra_info,
+                                                         _descriptions=_descriptions,
+                                                         add_all_text=add_text)
         except:
             print(traceback.print_exc())
 
@@ -139,6 +173,7 @@ class Utility(object):
         """
         _labels = kwargs["_labels"]
         _aliases = kwargs["_aliases"]
+        _descriptions = kwargs["_descriptions"]
         _pagerank = kwargs["_pagerank"]
         black_list_dict = kwargs["black_list_dict"]
         current_node_info = kwargs["current_node_info"]
@@ -147,6 +182,8 @@ class Utility(object):
         skipped_node_count = kwargs["skipped_node_count"]
         output_file = kwargs["output_file"]
         skip_edges = kwargs["skip_edges"]
+        extra_info = kwargs['extra_info']
+        add_all_text = kwargs['add_all_text']
 
         if not Utility.check_in_black_list(black_list_dict, current_node_info):
             # we need to add acronym for human names
@@ -154,14 +191,17 @@ class Utility(object):
                 _labels = Utility.add_acronym(_labels)
                 _aliases = Utility.add_acronym(_aliases)
             _edges = Utility.generate_edges_information(current_node_info, skip_edges)
-            output_file.write(json.dumps(
-                {'id': prev_node,
+            _ = {'id': prev_node,
                  'labels': _labels,
                  'aliases': _aliases,
-                 'pagerank': _pagerank,
-                 'edges': _edges,
-                 })
-            )
+                 'pagerank': _pagerank
+                 }
+            if extra_info:
+                _['edges'] = _edges
+
+            if add_all_text:
+                _['all_text'] = Utility.create_all_text(_labels, aliases=_aliases, descriptions=_descriptions)
+            output_file.write(json.dumps(_))
         else:
             skipped_node_count += 1
         output_file.write('\n')
@@ -170,6 +210,16 @@ class Utility(object):
     @staticmethod
     def remove_language_tag(label_str):
         return re.sub(r'@.*$', '', label_str).replace("'", "")
+
+    @staticmethod
+    def create_all_text(labels, aliases, descriptions):
+        text = ''
+        text = text + '\n'.join(labels) + '\n'
+        if aliases:
+            text = text + '\n'.join(aliases) + '\n'
+        if descriptions:
+            text = text + '\n'.join(descriptions) + '\n'
+        return text
 
     @staticmethod
     def to_float(input_str):
@@ -515,6 +565,6 @@ class Utility(object):
             if edge not in skip_edges:
                 for each_node in nodes:
                     # if len(edge) >= 6 and edge[:3] == '"""' and edge[-3:] == '"""':
-                        # edge = edge[3:-3]
+                    # edge = edge[3:-3]
                     res.add("{}#{}".format(edge, each_node))
         return list(res)
