@@ -1124,7 +1124,6 @@ adds an evaluation label.
 
 **Options:**
 - `-f {path}`: ground truth file path.
-- `-c a`:  column name with ranking scores
 
 **File Examples:**
 ```bash
@@ -1136,7 +1135,7 @@ column row kg_id
 1      2   Q84
 
 # add evaluation label to the ranking score file countries_features_ranked.csv, having the column 'ranking_score', using the ground truth file countries_gt.csv
-$ tl ground-truth-labeler -f countries_gt.csv -c ranking_score  < countries_features_ranked.csv > countries_evaluation.csv
+$ tl ground-truth-labeler -f countries_gt.csv < countries_features_ranked.csv > countries_evaluation.csv
 $ cat countries_evaluation.csv
 
 column row clean_labels kg_id     ranking_score evaluation_label GT_kg_id GT_kg_label
