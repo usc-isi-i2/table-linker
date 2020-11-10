@@ -245,7 +245,7 @@ class Utility(object):
             return None
 
     @staticmethod
-    def create_mapping_es(es_version, str_fields_need_index: typing.List[str], float_fields: typing.List[str] = None, 
+    def create_mapping_es(es_version: float, str_fields_need_index: typing.List[str], float_fields: typing.List[str] = None, 
                           str_fields_no_index: typing.List[str] = None, copy_to_fields: typing.List[str] = None):
         properties_dict = {}
         # add property part
