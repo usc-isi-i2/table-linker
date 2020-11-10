@@ -21,7 +21,9 @@ class Utility(object):
                                  black_list_file_path=None,
                                  extra_info=False,
                                  add_text=False,
-                                 description_properties=None
+                                 description_properties=None,
+                                 copy_to_properties=None,
+                                 es_version=7
                                  ):
         """
         builds a json lines file and a mapping file to support retrieval of candidates
@@ -40,6 +42,7 @@ class Utility(object):
         """
         file_names = ["KGTK input file", "Black list file"]
         file_paths = [kgtk_file_path, black_list_file_path]
+        mapping_parameter_dict = defaultdict(list)
         for each_file_name, each_file_path in zip(file_names, file_paths):
             if each_file_path and not os.path.exists(each_file_path):
                 raise FileNotExistError("{} {} does not exist!".format(each_file_name, each_file_path))
@@ -56,6 +59,13 @@ class Utility(object):
         aliases = alias_fields.split(',') if alias_fields else []
         pagerank = pagerank_fields.split(',') if pagerank_fields else []
         descriptions = description_properties.split(',') if description_properties else []
+        mapping_parameter_dict['str_fields_need_index'] = ['id','labels']
+        if len(aliases):
+            mapping_parameter_dict['str_fields_need_index'].append('aliases')
+        if len(pagerank):
+            mapping_parameter_dict['float_fields_need_index'].append('pagerank')
+        if len(descriptions):
+            mapping_parameter_dict['str_fields_need_index'].append('descriptions')
 
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
         skip_edges = set(labels + aliases)
@@ -158,7 +168,13 @@ class Utility(object):
         except:
             print(traceback.print_exc())
 
-        mapping_dict = Utility.create_mapping_es(['id', 'labels', 'aliases'], ["pagerank", "edges"])
+        if copy_to_properties is not None:
+            mapping_parameter_dict['copy_to_fields'] = copy_to_properties.split(',')
+        else:
+            mapping_parameter_dict['copy_to_fields'] = None
+        
+        mapping_dict = Utility.create_mapping_es(es_version,mapping_parameter_dict['str_fields_need_index'], mapping_parameter_dict['float_fields_need_index'], 
+                                                ["edges"],mapping_parameter_dict['copy_to_fields'])
         open(mapping_file_path, 'w').write(json.dumps(mapping_dict))
         print("Totally skipped {} nodes in black list".format(skipped_node_count))
         print('Done!')
@@ -229,54 +245,117 @@ class Utility(object):
             return None
 
     @staticmethod
-    def create_mapping_es(str_fields_need_index: typing.List[str], str_fields_no_index: typing.List[str] = None):
+    def create_mapping_es(es_version, str_fields_need_index: typing.List[str], float_fields: typing.List[str] = None, 
+                          str_fields_no_index: typing.List[str] = None, copy_to_fields: typing.List[str] = None):
         properties_dict = {}
         # add property part
         for str_field in str_fields_need_index:
             properties_dict[str_field] = {}
             properties_dict[str_field]['type'] = "text"
-            properties_dict[str_field]['fields'] = {
-                "keyword": {
-                    "type": "keyword",
-                    "ignore_above": 256
-                },
-                "keyword_lower": {
-                    "type": "keyword",
-                    "normalizer": "lowercase_normalizer"
+            if str_field != "descriptions":
+                properties_dict[str_field]['fields'] = {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                        },
+                    "keyword_lower": {
+                        "type": "keyword",
+                        "normalizer": "lowercase_normalizer"
+                        }
+                    }
+            else:
+                properties_dict[str_field]['fields'] = {
+                    "keyword_lower": {
+                        "type": "keyword",
+                        "normalizer": "lowercase_normalizer"
+                        }
                 }
-            }
+
+            if copy_to_fields:
+                if str_field in copy_to_fields:
+                    properties_dict[str_field]["copy_to"] = [
+                                                         "all_labels"
+                                                         ]
+                    properties_dict["all_labels"] = {
+                        "type":"text",
+                        "fields":{
+                            "keyword":{
+                                "type":"keyword",
+                                "ignore_above":256
+                                },
+                            "keyword_lower":{
+                                "type":"keyword",
+                                "normalizer":"lowercase_normalizer"
+                                }
+                            }
+                        }
+
+        if float_fields:
+            for float_field in float_fields:
+                properties_dict[float_field] = {
+                    "type":"float"
+                }
+
         if str_fields_no_index:
             for str_field in str_fields_no_index:
-                properties_dict[str_field] = {
-                    "type": "text",
-                    "index": "no"
-                }
+                if es_version >= 6:
+                    properties_dict[str_field] = {
+                        "type": "text",
+                        "index": "false"
+                        }
+                else:
+                    properties_dict[str_field] = {
+                        "type": "text",
+                        "index": "no"
+                    }
         # finish mapping dict
-        mapping_dict = {
-            "mappings": {
-                "doc": {
+        if es_version >= 6:
+            mapping_dict = {
+                "mappings": {
                     "properties": properties_dict
-                }
-            },
-            "settings": {
-                "index": {
-                    "analysis": {
-                        "normalizer": {
-                            "lowercase_normalizer": {
-                                "filter": [
-                                    "lowercase"
-                                ],
-                                "type": "custom"
+                    },
+                "settings": {
+                    "index": {
+                        "analysis": {
+                            "normalizer": {
+                                "lowercase_normalizer": {
+                                    "filter": [
+                                        "lowercase"
+                                        ],
+                                    "type": "custom"
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            }
-        }
+        
+        else:
+            mapping_dict = {
+                "mappings": {
+                    "doc":{
+                    "properties": properties_dict
+                    }
+                },
+                "settings": {
+                    "index": {
+                        "analysis": {
+                            "normalizer": {
+                                "lowercase_normalizer": {
+                                    "filter": [
+                                        "lowercase"
+                                        ],
+                                    "type": "custom"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
         return mapping_dict
 
     @staticmethod
-    def load_elasticsearch_index(kgtk_jl_path, es_url, es_index, mapping_file_path=None, es_user=None, es_pass=None,
+    def load_elasticsearch_index(kgtk_jl_path, es_url, es_index, es_version, mapping_file_path=None, es_user=None, es_pass=None,
                                  batch_size=10000):
         """
          loads a jsonlines file to Elasticsearch index.
@@ -318,7 +397,7 @@ class Utility(object):
                 print('done {} rows'.format(counter))
                 response = None
                 try:
-                    response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
+                    response = Utility.load_index(es_version, es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
                                                   mapping_file_path,
                                                   es_user=es_user, es_pass=es_pass)
                     if response.status_code >= 400:
@@ -331,16 +410,20 @@ class Utility(object):
 
         if len(load_batch) > 0:
 
-            response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)), mapping_file_path,
+            response = Utility.load_index(es_version, es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)), mapping_file_path,
                                           es_user=es_user, es_pass=es_pass)
             if response.status_code >= 400:
                 print(response.text)
         print('Finished loading the elasticsearch index')
 
     @staticmethod
-    def load_index(es_url, es_index, payload, mapping_file_path, es_user=None, es_pass=None):
+    def load_index(es_version, es_url, es_index, payload, mapping_file_path, es_user=None, es_pass=None):
 
-        es_url_bulk = '{}/{}/doc/_bulk'.format(es_url, es_index)
+        if es_version >= 6:
+            es_url_bulk = '{}/{}/_doc/_bulk'.format(es_url, es_index)
+        else:
+            es_url_bulk = '{}/{}/doc/_bulk'.format(es_url,es_index)
+            
         headers = {
             'Content-Type': 'application/x-ndjson',
         }
