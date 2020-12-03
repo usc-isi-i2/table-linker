@@ -59,7 +59,7 @@ class Utility(object):
         aliases = alias_fields.split(',') if alias_fields else []
         pagerank = pagerank_fields.split(',') if pagerank_fields else []
         descriptions = description_properties.split(',') if description_properties else []
-        mapping_parameter_dict['str_fields_need_index'] = ['id','labels']
+        mapping_parameter_dict['str_fields_need_index'] = ['id', 'labels']
         if len(aliases):
             mapping_parameter_dict['str_fields_need_index'].append('aliases')
         if len(pagerank):
@@ -104,56 +104,59 @@ class Utility(object):
                         'node2': cols.index('node2')
                     }
 
-                if line.startswith('Q'):
+                # if line.startswith('Q'):
+                else:
                     vals = line.split('\t')
                     node1_id = column_header_dict['node1']
                     label_id = column_header_dict['label']
                     node2_id = column_header_dict['node2']
                     node1 = vals[node1_id]
-                    if prev_node is None:
-                        prev_node = node1
-                    if node1 != prev_node:
-                        skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases,
-                                                                     _pagerank=_pagerank,
-                                                                     black_list_dict=black_list_dict,
-                                                                     current_node_info=current_node_info,
-                                                                     is_human_name=is_human_name, prev_node=prev_node,
-                                                                     skipped_node_count=skipped_node_count,
-                                                                     output_file=output_file, skip_edges=skip_edges,
-                                                                     extra_info=extra_info,
-                                                                     _descriptions=_descriptions,
-                                                                     add_all_text=add_text
-                                                                     )
-                        # initialize for next node
-                        _labels = set()
-                        _aliases = set()
-                        _descriptions = set()
-                        _pagerank = 0.0
-                        current_node_info = defaultdict(set)
-                        prev_node = node1
-                        is_human_name = False
+                    if '-' not in node1 and node1.startswith('Q'):  # ignore qualifiers and properties
+                        if prev_node is None:
+                            prev_node = node1
+                        if node1 != prev_node:
+                            skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases,
+                                                                         _pagerank=_pagerank,
+                                                                         black_list_dict=black_list_dict,
+                                                                         current_node_info=current_node_info,
+                                                                         is_human_name=is_human_name,
+                                                                         prev_node=prev_node,
+                                                                         skipped_node_count=skipped_node_count,
+                                                                         output_file=output_file, skip_edges=skip_edges,
+                                                                         extra_info=extra_info,
+                                                                         _descriptions=_descriptions,
+                                                                         add_all_text=add_text
+                                                                         )
+                            # initialize for next node
+                            _labels = set()
+                            _aliases = set()
+                            _descriptions = set()
+                            _pagerank = 0.0
+                            current_node_info = defaultdict(set)
+                            prev_node = node1
+                            is_human_name = False
 
-                    current_node_info[vals[label_id]].add(str(vals[node2_id]))
-                    if vals[label_id] in labels:
-                        tmp_val = Utility.remove_language_tag(vals[node2_id])
-                        if tmp_val.strip() != '':
-                            _labels.add(tmp_val)
-                    elif vals[label_id] in aliases:
-                        tmp_val = Utility.remove_language_tag(vals[node2_id])
-                        if tmp_val.strip() != '':
-                            _aliases.add(tmp_val)
-                    elif vals[label_id] in pagerank:
-                        tmp_val = Utility.to_float(vals[node2_id])
-                        if tmp_val:
-                            _pagerank = tmp_val
-                    elif vals[label_id] in descriptions:
-                        tmp_val = Utility.remove_language_tag(vals[node2_id])
-                        if tmp_val:
-                            _descriptions.add(tmp_val)
+                        current_node_info[vals[label_id]].add(str(vals[node2_id]))
+                        if vals[label_id] in labels:
+                            tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if tmp_val.strip() != '':
+                                _labels.add(tmp_val)
+                        elif vals[label_id] in aliases:
+                            tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if tmp_val.strip() != '':
+                                _aliases.add(tmp_val)
+                        elif vals[label_id] in pagerank:
+                            tmp_val = Utility.to_float(vals[node2_id])
+                            if tmp_val:
+                                _pagerank = tmp_val
+                        elif vals[label_id] in descriptions:
+                            tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if tmp_val:
+                                _descriptions.add(tmp_val)
 
-                    # if it is human
-                    if vals[node2_id] in human_nodes_set:
-                        is_human_name = True
+                        # if it is human
+                        if vals[node2_id] in human_nodes_set:
+                            is_human_name = True
 
             # do one more write for last node
             skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases, _pagerank=_pagerank,
@@ -172,9 +175,10 @@ class Utility(object):
             mapping_parameter_dict['copy_to_fields'] = copy_to_properties.split(',')
         else:
             mapping_parameter_dict['copy_to_fields'] = None
-        
-        mapping_dict = Utility.create_mapping_es(es_version,mapping_parameter_dict['str_fields_need_index'], mapping_parameter_dict['float_fields_need_index'], 
-                                                ["edges"],mapping_parameter_dict['copy_to_fields'])
+
+        mapping_dict = Utility.create_mapping_es(es_version, mapping_parameter_dict['str_fields_need_index'],
+                                                 mapping_parameter_dict['float_fields_need_index'],
+                                                 ["edges"], mapping_parameter_dict['copy_to_fields'])
         open(mapping_file_path, 'w').write(json.dumps(mapping_dict))
         print("Totally skipped {} nodes in black list".format(skipped_node_count))
         print('Done!')
@@ -245,7 +249,8 @@ class Utility(object):
             return None
 
     @staticmethod
-    def create_mapping_es(es_version: float, str_fields_need_index: typing.List[str], float_fields: typing.List[str] = None, 
+    def create_mapping_es(es_version: float, str_fields_need_index: typing.List[str],
+                          float_fields: typing.List[str] = None,
                           str_fields_no_index: typing.List[str] = None, copy_to_fields: typing.List[str] = None):
         properties_dict = {}
         # add property part
@@ -257,43 +262,43 @@ class Utility(object):
                     "keyword": {
                         "type": "keyword",
                         "ignore_above": 256
-                        },
+                    },
                     "keyword_lower": {
                         "type": "keyword",
                         "normalizer": "lowercase_normalizer"
-                        }
                     }
+                }
             else:
                 properties_dict[str_field]['fields'] = {
                     "keyword_lower": {
                         "type": "keyword",
                         "normalizer": "lowercase_normalizer"
-                        }
+                    }
                 }
 
             if copy_to_fields:
                 if str_field in copy_to_fields:
                     properties_dict[str_field]["copy_to"] = [
-                                                         "all_labels"
-                                                         ]
+                        "all_labels"
+                    ]
                     properties_dict["all_labels"] = {
-                        "type":"text",
-                        "fields":{
-                            "keyword":{
-                                "type":"keyword",
-                                "ignore_above":256
-                                },
-                            "keyword_lower":{
-                                "type":"keyword",
-                                "normalizer":"lowercase_normalizer"
-                                }
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            },
+                            "keyword_lower": {
+                                "type": "keyword",
+                                "normalizer": "lowercase_normalizer"
                             }
                         }
+                    }
 
         if float_fields:
             for float_field in float_fields:
                 properties_dict[float_field] = {
-                    "type":"float"
+                    "type": "float"
                 }
 
         if str_fields_no_index:
@@ -302,7 +307,7 @@ class Utility(object):
                     properties_dict[str_field] = {
                         "type": "text",
                         "index": "false"
-                        }
+                    }
                 else:
                     properties_dict[str_field] = {
                         "type": "text",
@@ -313,7 +318,7 @@ class Utility(object):
             mapping_dict = {
                 "mappings": {
                     "properties": properties_dict
-                    },
+                },
                 "settings": {
                     "index": {
                         "analysis": {
@@ -321,20 +326,20 @@ class Utility(object):
                                 "lowercase_normalizer": {
                                     "filter": [
                                         "lowercase"
-                                        ],
+                                    ],
                                     "type": "custom"
-                                    }
                                 }
                             }
                         }
                     }
                 }
-        
+            }
+
         else:
             mapping_dict = {
                 "mappings": {
-                    "doc":{
-                    "properties": properties_dict
+                    "doc": {
+                        "properties": properties_dict
                     }
                 },
                 "settings": {
@@ -344,18 +349,19 @@ class Utility(object):
                                 "lowercase_normalizer": {
                                     "filter": [
                                         "lowercase"
-                                        ],
+                                    ],
                                     "type": "custom"
-                                    }
                                 }
                             }
                         }
                     }
                 }
+            }
         return mapping_dict
 
     @staticmethod
-    def load_elasticsearch_index(kgtk_jl_path, es_url, es_index, es_version, mapping_file_path=None, es_user=None, es_pass=None,
+    def load_elasticsearch_index(kgtk_jl_path, es_url, es_index, es_version, mapping_file_path=None, es_user=None,
+                                 es_pass=None,
                                  batch_size=10000):
         """
          loads a jsonlines file to Elasticsearch index.
@@ -410,7 +416,8 @@ class Utility(object):
 
         if len(load_batch) > 0:
 
-            response = Utility.load_index(es_version, es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)), mapping_file_path,
+            response = Utility.load_index(es_version, es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
+                                          mapping_file_path,
                                           es_user=es_user, es_pass=es_pass)
             if response.status_code >= 400:
                 print(response.text)
@@ -422,8 +429,8 @@ class Utility(object):
         if es_version >= 6:
             es_url_bulk = '{}/{}/_doc/_bulk'.format(es_url, es_index)
         else:
-            es_url_bulk = '{}/{}/doc/_bulk'.format(es_url,es_index)
-            
+            es_url_bulk = '{}/{}/doc/_bulk'.format(es_url, es_index)
+
         headers = {
             'Content-Type': 'application/x-ndjson',
         }
