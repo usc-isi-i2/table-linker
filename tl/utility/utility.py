@@ -204,27 +204,28 @@ class Utility(object):
         extra_info = kwargs['extra_info']
         add_all_text = kwargs['add_all_text']
 
-        if not Utility.check_in_black_list(black_list_dict, current_node_info):
-            # we need to add acronym for human names
-            if is_human_name:
-                _labels = Utility.add_acronym(_labels)
-                _aliases = Utility.add_acronym(_aliases)
-            _edges = Utility.generate_edges_information(current_node_info, skip_edges)
-            _ = {'id': prev_node,
-                 'labels': _labels,
-                 'aliases': _aliases,
-                 'pagerank': _pagerank,
-                 'descriptions': _descriptions
-                 }
-            if extra_info:
-                _['edges'] = _edges
+        if len(_labels) > 0 or len(_aliases) > 0 or len(_descriptions) > 0:
+            if not Utility.check_in_black_list(black_list_dict, current_node_info):
+                # we need to add acronym for human names
+                if is_human_name:
+                    _labels = Utility.add_acronym(_labels)
+                    _aliases = Utility.add_acronym(_aliases)
+                _edges = Utility.generate_edges_information(current_node_info, skip_edges)
+                _ = {'id': prev_node,
+                     'labels': _labels,
+                     'aliases': _aliases,
+                     'pagerank': _pagerank,
+                     'descriptions': _descriptions
+                     }
+                if extra_info:
+                    _['edges'] = _edges
 
-            if add_all_text:
-                _['all_text'] = Utility.create_all_text(_labels, aliases=_aliases, descriptions=_descriptions)
-            output_file.write(json.dumps(_))
-        else:
-            skipped_node_count += 1
-        output_file.write('\n')
+                if add_all_text:
+                    _['all_text'] = Utility.create_all_text(_labels, aliases=_aliases, descriptions=_descriptions)
+                output_file.write(json.dumps(_))
+            else:
+                skipped_node_count += 1
+            output_file.write('\n')
         return skipped_node_count
 
     @staticmethod
