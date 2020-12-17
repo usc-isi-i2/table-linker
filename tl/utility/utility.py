@@ -23,7 +23,8 @@ class Utility(object):
                                  add_text=False,
                                  description_properties=None,
                                  copy_to_properties=None,
-                                 es_version=7
+                                 es_version=7,
+                                 separate_languages=True
                                  ):
         """
         builds a json lines file and a mapping file to support retrieval of candidates
@@ -69,17 +70,25 @@ class Utility(object):
 
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
         skip_edges = set(labels + aliases)
-        output_file = open(output_path, 'w')
 
         if kgtk_file_path.endswith(".gz"):
             kgtk_file = gzip.open(kgtk_file_path)
         else:
             kgtk_file = open(kgtk_file_path, "r")
 
-        _labels = set()
-        _aliases = set()
+        if output_path.endswith(".gz"):
+            output_file = gzip.open(output_path, mode='wt')
+        else:
+            output_file = open(output_path, 'w')
+
+        _labels = dict()
+        _aliases = dict()
+        _descriptions = dict()
+        all_langs = set()
+        lang = 'en'
+
         _pagerank = 0.0
-        _descriptions = set()
+
         current_node_info = defaultdict(set)
         prev_node = None
         i = 0
@@ -128,31 +137,52 @@ class Utility(object):
                                                                          add_all_text=add_text
                                                                          )
                             # initialize for next node
-                            _labels = set()
-                            _aliases = set()
-                            _descriptions = set()
+                            _labels = dict()
+                            _aliases = dict()
+                            _descriptions = dict()
                             _pagerank = 0.0
                             current_node_info = defaultdict(set)
                             prev_node = node1
                             is_human_name = False
+                            lang = 'en'
 
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
                         if vals[label_id] in labels:
-                            tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if separate_languages:
+                                tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            else:
+                                tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if lang not in _labels:
+                                _labels[lang] = set()
+                                all_langs.add(lang)
+
                             if tmp_val.strip() != '':
-                                _labels.add(tmp_val)
+                                _labels[lang].add(tmp_val)
                         elif vals[label_id] in aliases:
-                            tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if separate_languages:
+                                tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            else:
+                                tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if lang not in _aliases:
+                                _aliases[lang] = set()
+                                all_langs.add(lang)
+
                             if tmp_val.strip() != '':
-                                _aliases.add(tmp_val)
+                                _aliases[lang].add(tmp_val)
                         elif vals[label_id] in pagerank:
                             tmp_val = Utility.to_float(vals[node2_id])
                             if tmp_val:
                                 _pagerank = tmp_val
                         elif vals[label_id] in descriptions:
-                            tmp_val = Utility.remove_language_tag(vals[node2_id])
-                            if tmp_val:
-                                _descriptions.add(tmp_val)
+                            if separate_languages:
+                                tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            else:
+                                tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if lang not in _descriptions:
+                                _descriptions[lang] = set()
+                                all_langs.add(lang)
+                            if tmp_val.strip() != '':
+                                _descriptions[lang].add(tmp_val)
 
                         # if it is human
                         if vals[node2_id] in human_nodes_set:
@@ -178,7 +208,8 @@ class Utility(object):
 
         mapping_dict = Utility.create_mapping_es(es_version, mapping_parameter_dict['str_fields_need_index'],
                                                  mapping_parameter_dict['float_fields_need_index'],
-                                                 ["edges"], mapping_parameter_dict['copy_to_fields'])
+                                                 ["edges"], mapping_parameter_dict['copy_to_fields'],
+                                                 all_langs=list(all_langs))
         open(mapping_file_path, 'w').write(json.dumps(mapping_dict))
         print("Totally skipped {} nodes in black list".format(skipped_node_count))
         print('Done!')
@@ -190,13 +221,13 @@ class Utility(object):
         :param kwargs:
         :return:
         """
-        _labels = list(kwargs["_labels"])
-        _aliases = list(kwargs["_aliases"])
-        _descriptions = list(kwargs["_descriptions"])
+        labels = kwargs["_labels"]
+        aliases = kwargs["_aliases"]
+        descriptions = kwargs["_descriptions"]
         _pagerank = kwargs["_pagerank"]
         black_list_dict = kwargs["black_list_dict"]
         current_node_info = kwargs["current_node_info"]
-        is_human_name = kwargs["is_human_name"]
+        # is_human_name = kwargs["is_human_name"]
         prev_node = kwargs["prev_node"]
         skipped_node_count = kwargs["skipped_node_count"]
         output_file = kwargs["output_file"]
@@ -204,12 +235,25 @@ class Utility(object):
         extra_info = kwargs['extra_info']
         add_all_text = kwargs['add_all_text']
 
+        _labels = {}
+        _aliases = {}
+        _descriptions = {}
+
+        for k in labels:
+            _labels[k] = list(labels[k])
+
+        for k in aliases:
+            _aliases[k] = list(aliases[k])
+
+        for k in descriptions:
+            _descriptions[k] = list(descriptions[k])
+
         if len(_labels) > 0 or len(_aliases) > 0 or len(_descriptions) > 0:
             if not Utility.check_in_black_list(black_list_dict, current_node_info):
-                # we need to add acronym for human names
-                if is_human_name:
-                    _labels = Utility.add_acronym(_labels)
-                    _aliases = Utility.add_acronym(_aliases)
+                # # we need to add acronym for human names
+                # if is_human_name:
+                #     _labels = Utility.add_acronym(_labels)
+                #     _aliases = Utility.add_acronym(_aliases)
                 _edges = Utility.generate_edges_information(current_node_info, skip_edges)
                 _ = {'id': prev_node,
                      'labels': _labels,
@@ -233,13 +277,27 @@ class Utility(object):
         return re.sub(r'@.*$', '', label_str).replace("'", "")
 
     @staticmethod
+    def separate_language_text_tag(label_str):
+        if len(label_str) == 0:
+            return "", "en"
+        if "@" in label_str:
+            res = label_str.split("@")
+            text_string = "@".join(res[:-1]).replace('"', "").replace("'", "")
+            lang = res[-1].replace('"', '').replace("'", "")
+        else:
+            text_string = label_str.replace('"', "").replace("'", "")
+            lang = "en"
+        return text_string, lang
+
+    @staticmethod
     def create_all_text(labels, aliases, descriptions):
         text = ''
-        text = text + '\n'.join(labels) + '\n'
-        if aliases:
-            text = text + '\n'.join(aliases) + '\n'
-        if descriptions:
-            text = text + '\n'.join(descriptions) + '\n'
+        if 'en' in labels and labels['en']:
+            text = text + '\n'.join(labels['en']) + '\n'
+        if 'en' in aliases and aliases['en']:
+            text = text + '\n'.join(aliases['en']) + '\n'
+        if 'en' in descriptions and descriptions['en']:
+            text = text + '\n'.join(descriptions['en']) + '\n'
         return text
 
     @staticmethod
@@ -252,13 +310,16 @@ class Utility(object):
     @staticmethod
     def create_mapping_es(es_version: float, str_fields_need_index: typing.List[str],
                           float_fields: typing.List[str] = None,
-                          str_fields_no_index: typing.List[str] = None, copy_to_fields: typing.List[str] = None):
+                          str_fields_no_index: typing.List[str] = None, copy_to_fields: typing.List[str] = None,
+                          all_langs=None):
+        if all_langs is None or len(all_langs) == 0:
+            all_langs = ['en']
         properties_dict = {}
         # add property part
         for str_field in str_fields_need_index:
-            properties_dict[str_field] = {}
-            properties_dict[str_field]['type'] = "text"
-            if str_field != "descriptions":
+            if str_field == 'id':
+                properties_dict[str_field] = {}
+                properties_dict[str_field]["type"] = "text"
                 properties_dict[str_field]['fields'] = {
                     "keyword": {
                         "type": "keyword",
@@ -270,21 +331,16 @@ class Utility(object):
                     }
                 }
             else:
-                properties_dict[str_field]['fields'] = {
-                    "keyword_lower": {
-                        "type": "keyword",
-                        "normalizer": "lowercase_normalizer"
-                    }
-                }
+                properties_dict[str_field] = {"properties": {}}
 
-            if copy_to_fields:
-                if str_field in copy_to_fields:
-                    properties_dict[str_field]["copy_to"] = [
-                        "all_labels"
-                    ]
-                    properties_dict["all_labels"] = {
-                        "type": "text",
-                        "fields": {
+                for lang in all_langs:
+                    if lang not in properties_dict[str_field]["properties"]:
+                        properties_dict[str_field]["properties"][lang] = {}
+
+                    properties_dict[str_field]["properties"][lang]['type'] = "text"
+
+                    if str_field == "aliases" or str_field == 'labels':
+                        properties_dict[str_field]["properties"][lang]['fields'] = {
                             "keyword": {
                                 "type": "keyword",
                                 "ignore_above": 256
@@ -294,7 +350,52 @@ class Utility(object):
                                 "normalizer": "lowercase_normalizer"
                             }
                         }
+                    else:
+                        properties_dict[str_field]["properties"][lang]['fields'] = {
+                            "keyword_lower": {
+                                "type": "keyword",
+                                "normalizer": "lowercase_normalizer"
+                            }
+                        }
+
+                    if copy_to_fields:
+                        # one copy to field for different languages
+                        # one  copy to field for all languages
+
+                        if str_field in copy_to_fields:
+                            properties_dict[str_field]["properties"][lang]["copy_to"] = [
+                                f"all_labels.{lang}",
+                                "all_labels_aliases"
+                            ]
+                            if "all_labels" not in properties_dict:
+                                properties_dict["all_labels"] = {"properties": {}}
+                            properties_dict["all_labels"]["properties"][lang] = {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    },
+                                    "keyword_lower": {
+                                        "type": "keyword",
+                                        "normalizer": "lowercase_normalizer"
+                                    }
+                                }
+                            }
+        if "all_labels_aliases" not in properties_dict:
+            properties_dict["all_labels_aliases"] = {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    },
+                    "keyword_lower": {
+                        "type": "keyword",
+                        "normalizer": "lowercase_normalizer"
                     }
+                }
+            }
 
         if float_fields:
             for float_field in float_fields:
