@@ -84,6 +84,8 @@ class Utility(object):
         _labels = dict()
         _aliases = dict()
         _descriptions = dict()
+        _instance_ofs = set()
+        data_type = None
         all_langs = set()
         lang = 'en'
 
@@ -120,7 +122,7 @@ class Utility(object):
                     label_id = column_header_dict['label']
                     node2_id = column_header_dict['node2']
                     node1 = vals[node1_id]
-                    if '-' not in node1 and node1.startswith('Q'):  # ignore qualifiers and properties
+                    if '-' not in node1:  # ignore qualifiers
                         if prev_node is None:
                             prev_node = node1
                         if node1 != prev_node:
@@ -134,12 +136,16 @@ class Utility(object):
                                                                          output_file=output_file, skip_edges=skip_edges,
                                                                          extra_info=extra_info,
                                                                          _descriptions=_descriptions,
-                                                                         add_all_text=add_text
+                                                                         add_all_text=add_text,
+                                                                         data_type=data_type,
+                                                                         instance_ofs=_instance_ofs
                                                                          )
                             # initialize for next node
                             _labels = dict()
                             _aliases = dict()
                             _descriptions = dict()
+                            _instance_ofs = set()
+                            data_type = None
                             _pagerank = 0.0
                             current_node_info = defaultdict(set)
                             prev_node = node1
@@ -183,6 +189,10 @@ class Utility(object):
                                 all_langs.add(lang)
                             if tmp_val.strip() != '':
                                 _descriptions[lang].add(tmp_val)
+                        elif vals[label_id].strip() == 'P279star':
+                            _instance_ofs.add(vals[node2_id])
+                        elif vals[label_id].strip() == 'datatype':
+                            data_type = vals[node2_id]
 
                         # if it is human
                         if vals[node2_id] in human_nodes_set:
@@ -197,7 +207,10 @@ class Utility(object):
                                                          output_file=output_file, skip_edges=skip_edges,
                                                          extra_info=extra_info,
                                                          _descriptions=_descriptions,
-                                                         add_all_text=add_text)
+                                                         add_all_text=add_text,
+                                                         data_type=data_type,
+                                                         instance_ofs=_instance_ofs
+                                                         )
         except:
             print(traceback.print_exc())
 
@@ -234,6 +247,8 @@ class Utility(object):
         skip_edges = kwargs["skip_edges"]
         extra_info = kwargs['extra_info']
         add_all_text = kwargs['add_all_text']
+        instance_ofs = kwargs['instance_ofs']
+        data_type = kwargs['data_type']
 
         _labels = {}
         _aliases = {}
@@ -266,6 +281,11 @@ class Utility(object):
 
                 if add_all_text:
                     _['all_text'] = Utility.create_all_text(_labels, aliases=_aliases, descriptions=_descriptions)
+
+                if len(instance_ofs) > 0:
+                    _['instance_ofs'] = list(instance_ofs)
+                if data_type is not None:
+                    _['data_type'] = data_type
                 output_file.write(json.dumps(_))
             else:
                 skipped_node_count += 1
