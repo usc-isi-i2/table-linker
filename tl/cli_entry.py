@@ -5,6 +5,7 @@ import itertools
 from io import StringIO
 import signal
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from pathlib import Path
 
 from tl import cli
 from tl.exceptions import tl_exception_handler, TLArgumentParseException
@@ -27,8 +28,12 @@ class TLArgumentParser(ArgumentParser):
         super(TLArgumentParser, self).__init__(*args, **kwargs)
 
 
+error_message = ""
 def cmd_done(cmd, success, exit_code):
     # cmd.cmd -> complete command line
+    if not success:
+        global error_message
+        error_message = cmd.process.stderr.decode('utf-8')
     global ret_code
     ret_code = exit_code
 
@@ -79,6 +84,14 @@ def cli_entry(*args):
         required=False,
         help='the password for authenticating to the ElasticSearch index')
 
+    parser.add_argument(
+        '--tee',
+        action='store',
+        type=str,
+        dest='tee',
+        required=False,
+        help='directory path for saving outputs of all pipeline stages')
+
     sub_parsers = parser.add_subparsers(
         metavar='command',
         dest='cmd'
@@ -100,6 +113,18 @@ def cli_entry(*args):
 
     # parse internal pipe
     pipe = [tuple(y) for x, y in itertools.groupby(args, lambda a: a == pipe_delimiter) if not x]
+    if '--tee' in args:
+        i = args.index('--tee')
+        tee_dir = Path(args[i + 1])
+        pipe_with_tee = []
+        last_stage = len(pipe) -1
+        for idx, stage in enumerate(pipe):
+            pipe_with_tee.append(stage)
+            if idx < last_stage:
+                tee_file = tee_dir / f'{idx:02}.csv'
+                pipe_with_tee.append(('tee', '--output', str(tee_file)))
+        pipe = pipe_with_tee
+
     if len(pipe) == 1:
         cmd_args = pipe[0]
         args = parser.parse_args(cmd_args)
@@ -148,11 +173,11 @@ def cli_entry(*args):
             cmd_str += ', _bg_exc=False, _done=cmd_done'  # , _err=sys.stdout
             # add specific arguments
             if idx == 0:  # first command
-                concat_cmd_str = 'sh.tl({}, _in=sys.stdin, _piped=True)'.format(cmd_str)
+                concat_cmd_str = 'sh.tl({}, _err=sys.stderr, _in=sys.stdin, _piped=True)'.format(cmd_str)
             elif idx + 1 == len(pipe):  # last command
-                concat_cmd_str = 'sh.tl({}, {}, _out=sys.stdout)'.format(concat_cmd_str, cmd_str)
+                concat_cmd_str = 'sh.tl({}, {}, _err=sys.stderr, _out=sys.stdout)'.format(concat_cmd_str, cmd_str)
             else:
-                concat_cmd_str = 'sh.tl({}, {}, _piped=True)'.format(concat_cmd_str, cmd_str)
+                concat_cmd_str = 'sh.tl({}, {}, _err=sys.stderr, _piped=True)'.format(concat_cmd_str, cmd_str)
         try:
             # print(concat_cmd_str)
             process = eval(concat_cmd_str)
@@ -162,4 +187,6 @@ def cli_entry(*args):
         except sh.ErrorReturnCode as e:
             # mimic parser exit
             parser.exit(TLArgumentParseException.return_code, e.stderr.decode('utf-8'))
+    if error_message:
+        print(error_message, file=sys.stderr)
     return ret_code
