@@ -2,6 +2,7 @@ import sys
 import math
 
 import numpy as np
+import requests
 import pandas as pd
 
 from collections import defaultdict
@@ -22,6 +23,7 @@ class EmbeddingVector:
         self.vectors_map = {}
         self.centroid = None
         self.groups = defaultdict(set)
+        self.input_column_name = kwargs['input_column_name']
         pass
 
     def load_input_file(self, input_file):
@@ -34,12 +36,30 @@ class EmbeddingVector:
         self.loaded_file.drop_duplicates(inplace=True, ignore_index=True)
 
     def get_vectors(self):
+        qnodes = set(self.loaded_file.loc[:, self.input_column_name])
         embedding_file = self.kwargs['embedding_file']
-        with open(embedding_file, 'rt') as fd:
-            for line in fd:
-                fields = line.strip().split('\t')
-                qnode = fields[0]
-                self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
+        url = self.kwargs['embedding_url']
+        if embedding_file:
+            with open(embedding_file, 'rt') as fd:
+                for line in fd:
+                    fields = line.strip().split('\t')
+                    qnode = fields[0]
+                    if qnode in qnodes:
+                        self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
+        elif url:
+            found_one = False
+            for i, qnode in enumerate(qnodes):
+                # Use str, becauses of missing values (nan)
+                response = requests.get(url + str(qnode))
+                if response.status_code == 200:
+                    result = response.json()
+                    if result['found']:
+                        found_one = True
+                        self.vectors_map[qnode] = np.asarray(list(map(float, result['_source']['embedding'].split())))
+                if i > 100 and not found_one:
+                    raise TLException('Failing to find vectors: ' + url + qnode)
+            if not found_one:
+                raise TLException('Failed to find any vectors: ' + url + qnode)
 
     def process_vectors(self):
         """
@@ -65,13 +85,13 @@ class EmbeddingVector:
         scores = []
         for i, each_row in self.loaded_file.iterrows():
             # the nan value can also be float
-            if ((isinstance(each_row["kg_id"], float) and math.isnan(each_row["kg_id"]))
-                or each_row["kg_id"] is np.nan
-                or each_row["kg_id"] not in self.vectors_map):
+            if ((isinstance(each_row[self.input_column_name], float) and math.isnan(each_row[self.input_column_name]))
+                or each_row[self.input_column_name] is np.nan
+                or each_row[self.input_column_name] not in self.vectors_map):
                 each_score = ""
             else:
                 each_score = self.compute_distance(self.centroid,
-                                                   self.vectors_map[each_row["kg_id"]])
+                                                   self.vectors_map[each_row[self.input_column_name]])
 
             scores.append(each_score)
         self.loaded_file[score_column_name] = scores
@@ -84,7 +104,7 @@ class EmbeddingVector:
         # Find singleton ids, i.e. ids from candidation generation sets of size one
         singleton_ids = []
         for ((col, row), group) in self.loaded_file.groupby(['column', 'row']):
-            ids = group['kg_id'].unique().tolist()
+            ids = group[self.input_column_name].unique().tolist()
             if np.nan in ids:
                 ids.remove(np.nan)
             if len(ids) == 1:
