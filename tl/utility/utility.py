@@ -189,7 +189,7 @@ class Utility(object):
                                 all_langs.add(lang)
                             if tmp_val.strip() != '':
                                 _descriptions[lang].add(tmp_val)
-                        elif vals[label_id].strip() == 'P279star':
+                        elif vals[label_id].strip() == 'isa_star':
                             _instance_ofs.add(vals[node2_id])
                         elif vals[label_id].strip() == 'datatype':
                             data_type = vals[node2_id]
