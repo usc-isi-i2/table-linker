@@ -88,6 +88,7 @@ class Utility(object):
         data_type = None
         all_langs = set()
         lang = 'en'
+        qnode_statement_count = 0
 
         _pagerank = 0.0
 
@@ -138,7 +139,8 @@ class Utility(object):
                                                                          _descriptions=_descriptions,
                                                                          add_all_text=add_text,
                                                                          data_type=data_type,
-                                                                         instance_ofs=_instance_ofs
+                                                                         instance_ofs=_instance_ofs,
+                                                                         qnode_statement_count=qnode_statement_count
                                                                          )
                             # initialize for next node
                             _labels = dict()
@@ -151,7 +153,9 @@ class Utility(object):
                             prev_node = node1
                             is_human_name = False
                             lang = 'en'
+                            qnode_statement_count = 0
 
+                        qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
                         if vals[label_id] in labels:
                             if separate_languages:
@@ -209,7 +213,8 @@ class Utility(object):
                                                          _descriptions=_descriptions,
                                                          add_all_text=add_text,
                                                          data_type=data_type,
-                                                         instance_ofs=_instance_ofs
+                                                         instance_ofs=_instance_ofs,
+                                                         qnode_statement_count=qnode_statement_count
                                                          )
         except:
             print(traceback.print_exc())
@@ -222,7 +227,7 @@ class Utility(object):
         mapping_dict = Utility.create_mapping_es(es_version, mapping_parameter_dict['str_fields_need_index'],
                                                  mapping_parameter_dict['float_fields_need_index'],
                                                  ["edges"], mapping_parameter_dict['copy_to_fields'],
-                                                 all_langs=list(all_langs))
+                                                 all_langs=list(all_langs), int_fields=["statements"])
         open(mapping_file_path, 'w').write(json.dumps(mapping_dict))
         print("Totally skipped {} nodes in black list".format(skipped_node_count))
         print('Done!')
@@ -249,6 +254,7 @@ class Utility(object):
         add_all_text = kwargs['add_all_text']
         instance_ofs = kwargs['instance_ofs']
         data_type = kwargs['data_type']
+        qnode_statement_count = kwargs['qnode_statement_count']
 
         _labels = {}
         _aliases = {}
@@ -274,7 +280,8 @@ class Utility(object):
                      'labels': _labels,
                      'aliases': _aliases,
                      'pagerank': _pagerank,
-                     'descriptions': _descriptions
+                     'descriptions': _descriptions,
+                     'statements': qnode_statement_count
                      }
                 if extra_info:
                     _['edges'] = _edges
@@ -331,7 +338,7 @@ class Utility(object):
     def create_mapping_es(es_version: float, str_fields_need_index: typing.List[str],
                           float_fields: typing.List[str] = None,
                           str_fields_no_index: typing.List[str] = None, copy_to_fields: typing.List[str] = None,
-                          all_langs=None):
+                          all_langs=None, int_fields: typing.List[str] = None):
         if all_langs is None or len(all_langs) == 0:
             all_langs = ['en']
         properties_dict = {}
@@ -399,6 +406,11 @@ class Utility(object):
                                     "keyword_lower": {
                                         "type": "keyword",
                                         "normalizer": "lowercase_normalizer"
+                                    },
+                                    "ngram": {
+                                        "type": "text",
+                                        "analyzer": "edge_ngram_analyzer",
+                                        "search_analyzer": "edge_ngram_search_analyzer"
                                     }
                                 }
                             }
@@ -422,6 +434,11 @@ class Utility(object):
                 properties_dict[float_field] = {
                     "type": "float"
                 }
+        if int_fields:
+            for int_field in int_fields:
+                properties_dict[int_field] = {
+                    "type": "integer"
+                }
 
         if str_fields_no_index:
             for str_field in str_fields_no_index:
@@ -435,26 +452,49 @@ class Utility(object):
                         "type": "text",
                         "index": "no"
                     }
+        settings = {
+            "index": {
+                "analysis": {
+                    "normalizer": {
+                        "lowercase_normalizer": {
+                            "filter": [
+                                "lowercase"
+                            ],
+                            "type": "custom"
+                        }
+                    },
+                    "analyzer": {
+                        "edge_ngram_analyzer": {
+                            "filter": [
+                                "lowercase"
+                            ],
+                            "tokenizer": "edge_ngram_tokenizer"
+                        },
+                        "edge_ngram_search_analyzer": {
+                            "tokenizer": "lowercase"
+                        }
+                    },
+                    "tokenizer": {
+                        "edge_ngram_tokenizer": {
+                            "token_chars": [
+                                "letter"
+                            ],
+                            "min_gram": "2",
+                            "type": "edge_ngram",
+                            "max_gram": "20"
+                        }
+                    }
+                }
+            }
+        }
+
         # finish mapping dict
         if es_version >= 6:
             mapping_dict = {
                 "mappings": {
                     "properties": properties_dict
                 },
-                "settings": {
-                    "index": {
-                        "analysis": {
-                            "normalizer": {
-                                "lowercase_normalizer": {
-                                    "filter": [
-                                        "lowercase"
-                                    ],
-                                    "type": "custom"
-                                }
-                            }
-                        }
-                    }
-                }
+                "settings": settings
             }
 
         else:
@@ -464,20 +504,7 @@ class Utility(object):
                         "properties": properties_dict
                     }
                 },
-                "settings": {
-                    "index": {
-                        "analysis": {
-                            "normalizer": {
-                                "lowercase_normalizer": {
-                                    "filter": [
-                                        "lowercase"
-                                    ],
-                                    "type": "custom"
-                                }
-                            }
-                        }
-                    }
-                }
+                "settings": settings
             }
         return mapping_dict
 
