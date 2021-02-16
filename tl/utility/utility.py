@@ -60,7 +60,7 @@ class Utility(object):
         aliases = alias_fields.split(',') if alias_fields else []
         pagerank = pagerank_fields.split(',') if pagerank_fields else []
         descriptions = description_properties.split(',') if description_properties else []
-        mapping_parameter_dict['str_fields_need_index'] = ['id', 'labels']
+        mapping_parameter_dict['str_fields_need_index'] = ['id', 'labels', 'is_class']
         if len(aliases):
             mapping_parameter_dict['str_fields_need_index'].append('aliases')
         if len(pagerank):
@@ -89,6 +89,7 @@ class Utility(object):
         all_langs = set()
         lang = 'en'
         qnode_statement_count = 0
+        is_class = False
 
         _pagerank = 0.0
 
@@ -140,7 +141,8 @@ class Utility(object):
                                                                          add_all_text=add_text,
                                                                          data_type=data_type,
                                                                          instance_ofs=_instance_ofs,
-                                                                         qnode_statement_count=qnode_statement_count
+                                                                         qnode_statement_count=qnode_statement_count,
+                                                                         is_class=is_class
                                                                          )
                             # initialize for next node
                             _labels = dict()
@@ -154,6 +156,7 @@ class Utility(object):
                             is_human_name = False
                             lang = 'en'
                             qnode_statement_count = 0
+                            is_class = False
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
@@ -197,6 +200,8 @@ class Utility(object):
                             _instance_ofs.add(vals[node2_id])
                         elif vals[label_id].strip() == 'datatype':
                             data_type = vals[node2_id]
+                        elif vals[label_id] == 'P279' and vals[node2_id].startswith('Q'):
+                            is_class = True
 
                         # if it is human
                         if vals[node2_id] in human_nodes_set:
@@ -214,7 +219,8 @@ class Utility(object):
                                                          add_all_text=add_text,
                                                          data_type=data_type,
                                                          instance_ofs=_instance_ofs,
-                                                         qnode_statement_count=qnode_statement_count
+                                                         qnode_statement_count=qnode_statement_count,
+                                                         is_class=is_class
                                                          )
         except:
             print(traceback.print_exc())
@@ -255,6 +261,7 @@ class Utility(object):
         instance_ofs = kwargs['instance_ofs']
         data_type = kwargs['data_type']
         qnode_statement_count = kwargs['qnode_statement_count']
+        is_class = kwargs['is_class']
 
         _labels = {}
         _aliases = {}
@@ -293,6 +300,8 @@ class Utility(object):
                     _['instance_ofs'] = list(instance_ofs)
                 if data_type is not None:
                     _['data_type'] = data_type
+                if is_class:
+                    _['is_class'] = 'true'
                 output_file.write(json.dumps(_))
             else:
                 skipped_node_count += 1
