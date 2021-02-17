@@ -57,9 +57,9 @@ class EmbeddingVector:
                         found_one = True
                         self.vectors_map[qnode] = np.asarray(list(map(float, result['_source']['embedding'].split())))
                 if i > 100 and not found_one:
-                    raise TLException('Failing to find vectors: ' + url + qnode)
+                    raise TLException(f'Failing to find vectors: {url} {qnode}')
             if not found_one:
-                raise TLException('Failed to find any vectors: ' + url + qnode)
+                raise TLException(f'Failed to find any vectors: {url} {qnode}')
 
     def process_vectors(self):
         """
@@ -101,9 +101,12 @@ class EmbeddingVector:
 
     def _centroid_of_singletons(self) -> bool:
 
+        # Use only results from exact-match
+        data = self.loaded_file[self.loaded_file['method']=='exact-match']
+
         # Find singleton ids, i.e. ids from candidation generation sets of size one
         singleton_ids = []
-        for ((col, row), group) in self.loaded_file.groupby(['column', 'row']):
+        for ((col, row), group) in data.groupby(['column', 'row']):
             ids = group[self.input_column_name].unique().tolist()
             if np.nan in ids:
                 ids.remove(np.nan)
