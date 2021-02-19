@@ -42,35 +42,38 @@ class KGTKSearchMatches(object):
             results_dict[uniq_label] = requests.get(api_search_url, verify=False).json()
 
         new_df_list = list()
+        seen_dict = {}
         for i, row in df.iterrows():
+            row_key = f"{row['column']}_{row['row']}_{row[column]}"
+            if row_key not in seen_dict:
+                search_results = results_dict.get(row[column], [])
+                if len(search_results) > 0:
+                    for sr in search_results:
+                        _ = {}
+                        for c in columns:
+                            _[c] = row[c]
 
-            search_results = results_dict.get(row[column], [])
-            if len(search_results) > 0:
-                for sr in search_results:
+                        _['kg_id'] = sr['qnode']
+                        _['pagerank'] = sr['pagerank']
+                        kg_label = ''
+                        if 'label' in sr and len(sr['label']) > 0:
+                            kg_label = sr['label'][0]
+                        _['kg_labels'] = kg_label
+                        _['method'] = 'kgtk-search'
+                        _[output_column_name] = sr['score']
+                        new_df_list.append(_)
+                else:
                     _ = {}
                     for c in columns:
                         _[c] = row[c]
 
-                    _['kg_id'] = sr['qnode']
-                    _['pagerank'] = sr['pagerank']
-                    kg_label = ''
-                    if 'label' in sr and len(sr['label']) > 0:
-                        kg_label = sr['label'][0]
-                    _['kg_labels'] = kg_label
-                    _['method'] = 'kgtk-search'
-                    _[output_column_name] = sr['score']
+                    _['kg_id'] = ''
+                    _['pagerank'] = ''
+                    _['kg_labels'] = ''
+                    _['method'] = ''
+                    _[output_column_name] = ''
                     new_df_list.append(_)
-            else:
-                _ = {}
-                for c in columns:
-                    _[c] = row[c]
-
-                _['kg_id'] = ''
-                _['pagerank'] = ''
-                _['kg_labels'] = ''
-                _['method'] = ''
-                _[output_column_name] = ''
-                new_df_list.append(_)
+                seen_dict[row_key] = 1
 
         if self.ffv.is_canonical_file(df):
             return pd.DataFrame(new_df_list)
