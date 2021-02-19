@@ -374,50 +374,49 @@ uses KGTK search API to retrieve identifiers of KG entities matching the input s
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
 labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
-The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as 
-defined above.
+The values to be added in the  column `kg_labels` are retrieved from the KGTK search API.
 
-The string `phrase-match` is recorded in the column `method` to indicate the source of the candidates.
+The string `kgtk-search` is recorded in the column `method` to indicate the source of the candidates.
 
-The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in 
-the field `_score` in the retrieved Elasticsearch objects.
+The KGTK API returns a score which is recorded in the column `kgtk_retrieval_score`, by default. The scores are stored in 
+the field `score` in the retrieved KGTK Search objects.
 
-The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
- are stored in the field `_id` in the retrieved Elasticsearch objects.
+The identifiers for the candidate knowledge graph objects returned by the KGTK Search API are recorded in the column `kg_id`. The identifiers
+ are stored in the field `qnode` in the retrieved objects.
  
-The `filter` arg is optional, if given, it will execute the operation specified in the string and remove the rows which not fit the requirement. If after removing, no candidates for this `(column, row)` pair left, it will append the phrase match results generated, otherwise nothing will be appended.
  **Examples:**
 
 ```bash
    # generate candidates for the cells in the column 'label_clean'
-   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-phrase-matches -c label_clean  < canonical-input.csv
+   $ tl get-kgtk-search-matches -c clean_label  < canonical-input.csv
 
-   # generate candidates for the resulting column 'label_clean' with property alias boosted to 1.5 and fetch 20 candidates per query
-   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd get-phrase-matches -c label_clean -p "alias^1.5"  -n 20 < canonical-input.csv
-
-   # generate candidates for the cells in the column 'label_clean' with exact-match method and normalized the score
-   # then filter the results of exact-match with score less than 0.9 and add candaites found from phrase-match
-   $ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd clean -c label \
-     / get-exact-matches -c label_clean / normalize-scores -c retrieval_score \
-     / get-phrase-matches -c label_clean -n 5 --filter "retrieval_score_normalized > 0.9"
+   # generate candidates for the resulting column 'label_clean', record score in a column named `kgtk_score` and fetch 100 candidates per query
+   $ tl get-kgtk-search-matches -c clean_label -o kgtk_score -n 100 < canonical-input.csv
 ```
 
 **File Example:**
 
 ```
 # generate candidates for the canonical file, countries_canonical.csv
-$ tl --url http://blah.com --index kg_labels_1 -Ujohn -Ppwd  get-phrase-matches -c clean_labels  < countries_canonical.csv > countries_candidates.csv
+$ tl get-kgtk-search-matches -c clean_label -n 5 < countries_canonical.csv > countries_candidates.csv
 $ cat countries_candidates.csv
 
-column  row  label      clean_labels  kg_id      kg_labels                                        method        retrieval_score
-1       0    Buda’pest  Budapest      Q603551    Budapest|Budapest Georgia                        phrase-match  42.405098
-1       0    Buda’pest  Budapest      Q20571386  .budapest|dot budapest                           phrase-match  42.375305
-1       1    Prague     Prague        Q2084234   Prague|Prague  Nebraska                          phrase-match  37.18586
-1       1    Prague     Prague        Q1953283   Prague|Prague Oklahoma                           phrase-match  36.9689
-1       2    London!    London        Q261303    London|London                                    phrase-match  33.492584
-1       2    London!    London        Q23939248  London|Greater London|London region              phrase-match  33.094616
-0       0    Hungary    Hungary       Q5943060   Hungary|European Parliament election in Hungary  phrase-match  33.324196
-0       0    Hungary    Hungary       Q40662208  CCC Hungary|Cru Hungary                          phrase-match  30.940805
+column  row  label      clean_label  kg_id      pagerank                kg_labels                 method             kgtk_retrieval_score
+1       0    Buda’pest  Buda'pest    Q1781      3.024635812034009e-05   Budapest                  kgtk-search        6.0555077
+1       0    Buda’pest  Buda'pest    Q390287    1.6043048855756725e-06  Eötvös Loránd University  kgtk-search        0.113464035
+1       0    Buda’pest  Buda'pest    Q330195    1.8786205914524693e-07  Budapest District IV      kgtk-search        0.032946322
+1       0    Buda’pest  Buda'pest    Q11384977  1.9704309143294065e-07  Budapest District XVIII   kgtk-search        0.028489502
+1       0    Buda’pest  Buda'pest    Q851057    6.023225393167536e-08   Budapest District XX      kgtk-search        0.009545079
+1       1    Prague     Prague       Q1085      0.00018344224711178576  Prague                    kgtk-search        2775.5046
+1       1    Prague     Prague       Q1953283   3.114336919518117e-07   Prague                    kgtk-search        4.712032
+1       1    Prague     Prague       Q3563550   1.795483402201142e-05   "University in Prague"    kgtk-search        0.92587674
+1       1    Prague     Prague       Q2444636   7.4743621100407685e-06  Prague 2                  kgtk-search        0.8236602
+1       1    Prague     Prague       Q31519     2.1206315414017163e-05  Charles University        kgtk-search        0.55166924
+1       2    London!    London       Q84        0.0001293721468732613   London                    kgtk-search        1720.4109
+1       2    London!    London       Q23939248  2.376990720977285e-06   London                    kgtk-search        31.609592
+1       2    London!    London       Q92561     2.016176229692049e-06   London                    kgtk-search        26.811426
+1       2    London!    London       Q935090    6.648478700956284e-07   London Recordings         kgtk-search        8.84125
+1       2    London!    London       Q1281978   6.987015900462481e-08   London                    kgtk-search        0.92914426
 ```
 
 ### [`get-fuzzy-matches`](#command_get-fuzzy-matches)` [OPTIONS]`
