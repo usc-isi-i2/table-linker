@@ -25,8 +25,8 @@ def add_arguments(parser):
                         help='maximum number of candidates to retrieve')
 
     parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column_name',
-                        default="kgtk_retrieval_score",
-                        help='the output column name where the normalized scores will be stored.Default is kgtk_retrieval_score')
+                        default="retrieval_score",
+                        help='the output column name where the normalized scores will be stored.Default is retrieval_score')
 
     parser.add_argument('--kgtk-api-url', action='store', type=str, dest='kgtk_api_url',
                         default="https://kgtk.isi.edu/api",

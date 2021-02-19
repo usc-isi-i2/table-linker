@@ -10,7 +10,7 @@ class KGTKSearchMatches(object):
         self.api_url = api_url
         self.ffv = FFV()
 
-    def get_matches(self, column, size=50, file_path=None, df=None, output_column_name: str = "kgtk_retrieval_score"):
+    def get_matches(self, column, size=50, file_path=None, df=None, output_column_name: str = "retrieval_score"):
         """
         uses KGTK search API to retrieve identifiers of KG entities matching the input search term.
 
@@ -39,7 +39,6 @@ class KGTKSearchMatches(object):
         for uniq_label in uniq_labels:
             api_search_url = f"{self.api_url}/" \
                              f"{uniq_label}?extra_info=true&language=en&type=ngram&size={size}&lowercase=true"
-            print(api_search_url)
             results_dict[uniq_label] = requests.get(api_search_url, verify=False).json()
 
         new_df_list = list()

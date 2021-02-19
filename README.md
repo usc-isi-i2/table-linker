@@ -378,7 +378,7 @@ The values to be added in the  column `kg_labels` are retrieved from the KGTK se
 
 The string `kgtk-search` is recorded in the column `method` to indicate the source of the candidates.
 
-The KGTK API returns a score which is recorded in the column `kgtk_retrieval_score`, by default. The scores are stored in 
+The KGTK API returns a score which is recorded in the column `retrieval_score`, by default. The scores are stored in 
 the field `score` in the retrieved KGTK Search objects.
 
 The identifiers for the candidate knowledge graph objects returned by the KGTK Search API are recorded in the column `kg_id`. The identifiers
@@ -401,7 +401,7 @@ The identifiers for the candidate knowledge graph objects returned by the KGTK S
 $ tl get-kgtk-search-matches -c clean_label -n 5 < countries_canonical.csv > countries_candidates.csv
 $ cat countries_candidates.csv
 
-column  row  label      clean_label  kg_id      pagerank                kg_labels                 method             kgtk_retrieval_score
+column  row  label      clean_label  kg_id      pagerank                kg_labels                 method             retrieval_score
 1       0    Buda’pest  Buda'pest    Q1781      3.024635812034009e-05   Budapest                  kgtk-search        6.0555077
 1       0    Buda’pest  Buda'pest    Q390287    1.6043048855756725e-06  Eötvös Loránd University  kgtk-search        0.113464035
 1       0    Buda’pest  Buda'pest    Q330195    1.8786205914524693e-07  Budapest District IV      kgtk-search        0.032946322
