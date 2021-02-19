@@ -81,4 +81,4 @@ class KGTKSearchMatches(object):
         if self.ffv.is_candidates_file(df):
             return pd.concat([df, pd.DataFrame(new_df_list)]).sort_values(by=['column', 'row', column])
 
-        raise UnsupportTypeError("The input df is neither a canonical format or a candidate format!")
+        raise UnsupportTypeError("The input file is neither a canonical file or a candidate file!")
