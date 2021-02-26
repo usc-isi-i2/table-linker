@@ -1,7 +1,7 @@
 
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Command Line Interface
 
-Table-Linker: this is an entity linkage tool which links the given string to wikidata Q nodes. 
+Table-Linker: this is an entity linkage tool which links the given string to wikidata Q nodes.
 This document describes the command-line interface for the <code>Table Linker (tl)</code> system.
 
 
@@ -46,8 +46,9 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`metrics`](#command_metrics)<sup>*</sup>: Calculate the F1-score on the candidates tables. Only works on the dataset after ran with  `ground-truth-labeler`.
 - [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
 - [`plot-score-figure`](#command_plot-score-figure)<sup>*</sup>: visulize the score of the input data with 2 different kind of bar charts.
+- [`score-using-embedding`](#command_score-using-embedding)<sup>*</sup>: Score candidates using pre-computed embedding vectors
 - [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
-- [`string-similarity`](#command_string-similarity)<sup>*</sup>: compares the cell values in two input columns and outputs a similarity score for each pair of participating strings 
+- [`string-similarity`](#command_string-similarity)<sup>*</sup>: compares the cell values in two input columns and outputs a similarity score for each pair of participating strings
 - [`tee`](#command_tee)<sup>*</sup>: saves the input to disk and echoes the input to the standard output without modification.
 
 
@@ -58,9 +59,10 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - `-h, --help` -- Print this help message and exit
 - `-v, --version` -- Print the version info and exit
 - `--url {url}`:  URL of the Elasticsearch server containing the items in the KG
-- `--index {index}`: name of the Elasticsearch index 
+- `--index {index}`: name of the Elasticsearch index
 - `-U {user id}`: the user id for authenticating to the ElasticSearch index
 - `-P {password}`: the password for authenticating to the ElasticSearch index
+- `--tee {directory}`: directory path for saving outputs of all pipeline stages
 
 ## Common Options
 These are options that can appear in different commands. We list them here so that options with the same meaning use the same character.
@@ -76,7 +78,7 @@ These are options that can appear in different commands. We list them here so th
 - `-f {path}`: specifies auxiliary file path as input to commands
 
 ## Error handling
-In case of an error in any of the commands in the `tl` pipeline, the responsible command will print out 
+In case of an error in any of the commands in the `tl` pipeline, the responsible command will print out
 the error details, an error code and, the pipeline will halt.
 
 **Error details**
@@ -105,7 +107,7 @@ Error Code: 403
 translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
 
 **Options:**
-- `-c {a,b,...}`: the columns in the input file to be linked to KG entities. Multiple columns are specified as a comma separated string. 
+- `-c {a,b,...}`: the columns in the input file to be linked to KG entities. Multiple columns are specified as a comma separated string.
 - `-o a`: specifies the name of a new column to be added. Default output column name is `label`
 - `--tsv`:  the delimiter of the input file is TAB.
 - `--csv`: the delimiter of the input file is comma.
@@ -123,7 +125,7 @@ translate an input CSV or TSV file to [canonical form](https://docs.google.com/d
 
 **File Example:**
 ```bash
-# Consider the following input file, 
+# Consider the following input file,
 $ cat countries.csv
 
 country        capital_city phone_code
@@ -168,12 +170,12 @@ column,row,label,||other_information||
 ```
 
 ### Implementation
-Assign zero based indices to the input columns and corresponding rows. 
+Assign zero based indices to the input columns and corresponding rows.
 The columns are indexed from left to right and rows from top to bottom. The first row is column header, the first data row is
 assigned index 0.
 
 ## Commands On Canonical Files
-[Canonical Cell files](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z) contain one row per cell to be linked. 
+[Canonical Cell files](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z) contain one row per cell to be linked.
 
 <a name="command_clean" />
 
@@ -192,16 +194,16 @@ The `clean` command produces a file in the [Canonical Cells](https://docs.google
 - `--symbols {string}`: a string containing the set of characters to be removed: default is “!@#$%^&*()+={}[]:;’\”/<>”
 - `--replace-by-space {yes/no}`: when `yes` (default) all instances of the symbols are replaced by a space. In case of removal of multiple consecutive characters, they’ll be replaced by a single space. The value `no` causes the symbols to be deleted.
 - `--keep-original {yes/no}` : when `yes`, the output column will contain the original value and the clean value will be appended, separated by `|`. Default is `no`
- 
+
 **Examples:**
 ```bash
-   # Clean the values in column 'label' using the default settings, 
+   # Clean the values in column 'label' using the default settings,
    # creating a column 'label_clean' with the clean values.
    $ tl clean -c label < canonical-input.csv
 
    # Remove all types of parenthesis from the label.
    $ tl clean -c label -o clean --symbols "(){}[]" --replace-by-space no < canonical-input.csv
-    
+
     # Clean the values in column 'label', output column 'clean_labels', keeping the original values
     $ tl clean -c label -o clean_labels --keep-original yes canonical_input.csv
 ```
@@ -210,7 +212,7 @@ The `clean` command produces a file in the [Canonical Cells](https://docs.google
 ```bash
 # Consider the canonical file, countries_canonical.csv
 $ cat countries_canonical.csv
-    
+
 column row label
 1      0   Buda’pest
 1      1   Prague
@@ -227,7 +229,7 @@ column row label          clean_labels
 
 
 ## Candidate Generation Commands
-Candidate Generation commands use external indices or APIs to retrieve candidate links for cells in a column. `tl` supports several strategies for generating candidates.  
+Candidate Generation commands use external indices or APIs to retrieve candidate links for cells in a column. `tl` supports several strategies for generating candidates.
 
 All candidate generation commands take a column in a [Canonical Cells](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z) file as input and
  produce a set of KG identifiers for each row in a canonical file and candidates are stored one per row. A `method` column records the name of the strategy that produced a candidate.
@@ -244,19 +246,19 @@ This command retrieves the identifiers of KG entities whose label or aliases mat
 
 **Options:**
 - `-c a`: the column used for retrieving candidates.
-- `-p {a,b,c}`:  a comma separated names of properties in the KG to search for exact match query: default is `labels,aliases`. 
+- `-p {a,b,c}`:  a comma separated names of properties in the KG to search for exact match query: default is `labels,aliases`.
 - `-i`: case insensitive retrieval, default is case sensitive.
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
 - `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
-labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
-The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as 
+labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases.
+The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as
 defined above.
 
 The string `exact-match` is recorded in the column `method` to indicate the source of the candidates.
 
-The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in 
+The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in
 the field `_score` in the retrieved Elasticsearch objects.
 
 The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
@@ -308,24 +310,24 @@ retrieves the identifiers of KG entities base on phrase match queries.
 **Options:**
 - `-c a`: the column used for retrieving candidates.
 - `-p {a,b,c}`:  a comma separated names of properties in the KG to search for phrase match query with boost for each property.
- Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
+ Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`.
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
 - `--filter {str}`: a string indicate the filtering requirement.
 - `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
-labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
-The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as 
+labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases.
+The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as
 defined above.
 
 The string `phrase-match` is recorded in the column `method` to indicate the source of the candidates.
 
-The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in 
+The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in
 the field `_score` in the retrieved Elasticsearch objects.
 
 The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
  are stored in the field `_id` in the retrieved Elasticsearch objects.
- 
+
 The `filter` arg is optional, if given, it will execute the operation specified in the string and remove the rows which not fit the requirement. If after removing, no candidates for this `(column, row)` pair left, it will append the phrase match results generated, otherwise nothing will be appended.
  **Examples:**
 
@@ -425,18 +427,18 @@ retrieves the identifiers of KG entities base on fuzzy match queries.
 **Options:**
 - `-c a`: the column used for retrieving candidates.
 - `-p {a,b,c}`:  a comma separated names of properties in the KG to search for phrase match query with boost for each property.
- Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`. 
+ Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`.
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
 - `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
-labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases. 
-The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as 
+labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases.
+The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as
 defined above.
 
 The string `fuzzy-match` is recorded in the column `method` to indicate the source of the candidates.
 
-The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in 
+The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in
 the field `_score` in the retrieved Elasticsearch objects.
 
 The identifiers for the candidate knowledge graph objects returned by Elasticsearch are recorded in the column `kg_id`. The identifiers
@@ -483,16 +485,16 @@ Using fuzzy match base on the edit distance, for example, if a input query strin
 ## Adding Features Commands
 
 Add-Feature commands add one or more features for the candidate knowledge graph objects for the input cells.
-All Add-Feature commands take a column in a [Candidate](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.j9cdkygbzzq7) 
-or a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file 
-and output a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file. 
+All Add-Feature commands take a column in a [Candidate](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.j9cdkygbzzq7)
+or a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file
+and output a [Feature](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.meysv8c8z2mt) file.
 
 <a name="command_add-text-embedding-feature" />
 
 ### [`add-text-embedding-feature`](#command_add-text-embedding-feature)` [OPTIONS]`
 
-The `add-text-embedding-feature` command computes text embedding vectors of the candidates and similarity to rank candidates. 
-The basic idea is to compute a vector for a column in a table and then rank the candidates for each cell by measuring 
+The `add-text-embedding-feature` command computes text embedding vectors of the candidates and similarity to rank candidates.
+The basic idea is to compute a vector for a column in a table and then rank the candidates for each cell by measuring
 similarity between each candidate vector and the column vector.
 
 **Options:**
@@ -568,7 +570,7 @@ please refer to kgtk's readme page [here](https://github.com/usc-isi-i2/kgtk/blo
 
 ### [`check-extra-information`](#command_check-extra-information)` [OPTIONS]`
 
-The `check-extra-information` add a feature column by checking if any extra information from the original file get hitted and return a score base on the hitted information amount. 
+The `check-extra-information` add a feature column by checking if any extra information from the original file get hitted and return a score base on the hitted information amount.
 
 The program will check each node's property values and corresponding wikipedia page if exists. If any labels found there are same as the provieded extra information treat as hitted, otherwise not hitted. Usually there would be multiple columns for each input original file, we treat each coulmn as one part, the score is `count(hitted_part)/ count(all_parts)`. Maximum score is 1 for hit all extra information provided.
 
@@ -653,8 +655,8 @@ P2006190003: Q4837972,
 ```
 We can then represent each nodes with a vector like:
 ```
-'Gambela': {'Q207638': [1, 1, 0, 0, 1, 1, 0], 
-'Q3094932': [1, 0, 1, 1, 1, 1, 1], 
+'Gambela': {'Q207638': [1, 1, 0, 0, 1, 1, 0],
+'Q3094932': [1, 0, 1, 1, 1, 1, 1],
 'Q4837972': [1, 0, 1, 1, 1, 1, 1]}
 ```
 with the property map
@@ -671,12 +673,12 @@ For all edges with name `P31`, we will also consider the node2 for this edge, ot
 {'tf': 3, 'df': 3, 'idf': 0.0}                   # edge 6, P2006190002
 ```
 Then, we will compute the score for those 3 nodes as:
- score = sum(for each node in properties: `tf_score` * `idf_score` * `1 if this node exist in target` * `similarity score`) 
+ score = sum(for each node in properties: `tf_score` * `idf_score` * `1 if this node exist in target` * `similarity score`)
  Here similarity score is optional, in default it will use `retrieval_score_normalized`, If no similarity score is provided similairy score will be set as 1.
  Finally we can get the tf-idf score as:
 ```
-Q207638: 0.9542425094393249, 
-Q3094932: 1.0565475543340874, 
+Q207638: 0.9542425094393249,
+Q3094932: 1.0565475543340874,
 Q4837972: 1.0565475543340874
  ```
 If further support with `high-preceision candidates` and string similarity score mentioned, we can get a more precious score.
@@ -721,8 +723,8 @@ Wikipedia part: achieved with the python pacakge `wikipedia-api`
 
 ### [`string-similarity`](#command_string-similarity)` [OPTIONS]`
 The `string-similarity` command compares the cell values in two input columns and outputs a similarity score for
- each pair of participating strings in the output column. 
- 
+ each pair of participating strings in the output column.
+
 The `string-similarity` command supports the following tokenizer, some of the string similarity may require to specify one of them during calculating.
 - `word`: This is a simple tokenizer, it will split the input string by white space `/s`.
 - `ngram`: This is a ngram tokenizer, it will generate ngram candidates of each input string, user can specify the value of n. For example, the jaccard similarity with ngram tokenizer and n=3: `jaccard:tokenizer=ngram:tokenizer_n=3`.
@@ -737,7 +739,7 @@ The jaccard similarity hybird with `jaro_winkler_similarity`.
 - [jaccard](https://en.wikipedia.org/wiki/Jaccard_index) (`tokenizer` needed)
 The Jaccard Index Similarity is then computed as intersection(set1, set2) / union(set1, set2).
 - [jaro_winkler](https://en.wikipedia.org/wiki/Jaro%E2%80%93Winkler_distance#Jaro%E2%80%93Winkler_Similarity) (no parameters needed)
-Jaro Winkler is a string edit distance designed for short strings. In Jaro Winkler, substitution of 2 close characters is considered less important than the substitution of 2 characters that are far from each other. 
+Jaro Winkler is a string edit distance designed for short strings. In Jaro Winkler, substitution of 2 close characters is considered less important than the substitution of 2 characters that are far from each other.
 The similarity is computed as `1 - Jaro-Winkler distance`. The value is between `[0.0, 1.0]`.
 - [levenshtein](https://en.wikipedia.org/wiki/Levenshtein_distance) (no parameters needed)
 The levenshtein distance between two words in the minimum number single-character edits needed to change one word into the other. Normalized levenshtein is computed as the levenshtein distance divided by the length of the longest string.
@@ -761,16 +763,16 @@ tf-idf score implement similarity.
 
 
 In future, more string similarity algorithms will be supported
- 
+
 **Options:**
 - `-c {a,b}`: input columns containing the cells to be compared. The two columns are represented as a comma separated string. Default value is set as `a=label_clean` and `b=kg_labels`. Column `b` could have multiple labels splitted by `|` while column `a` could have only 1 label.
 - `--method list{string}`: the string similarity method to use, please refer to the introduction parts above for details. Mutiple method values is accepted here. You can send multiple methods in one time.
 - `-i`: case insensitive comparison. Default is case sensitive
 
-The string similarity scores are added to a output columns. 
+The string similarity scores are added to a output columns.
 If the specific columns (not `["label_clean", "kg_labels"]`)is given, the compared column names will be added to the column name whose name will be in the format `<col_1>\_<col_2>\_\<algorithm>`.
 Otherwise the column name will only be in the format `<algorithm>`.
- 
+
 
 **Examples:**
 
@@ -784,7 +786,7 @@ $ tl string-similarity -c doc_labels,doc_aliases  --method jaccard:tokenizer=ngr
 
 **File Example:**
 ```
-# compute string similarity between the columns 'clean_labels' and 'kg_labels', using case sensitive Normalized Levenshtein 
+# compute string similarity between the columns 'clean_labels' and 'kg_labels', using case sensitive Normalized Levenshtein
 # for the file countries_candidates.csv, exclude columns 'label','method' and 'retrieval_score' while printing
 $ tl string-similarity -c clean_labels,kg_labels --lev < countries_candidates.csv > countries_ss_features.csv \
 && mlr --opprint cut -f label,method,retrieval_score -x countries_ss_features.csv
@@ -804,20 +806,20 @@ column row clean_labels kg_id     kg_labels                             clean_la
 #### Implementation
 For any input cell value, s and  a candidate c, String similarity outputs a score computed as follows,
 
-<code> stringSimilarity(s, c) := max(similarityFunction(s, l)) ∀ l ∈ { labels(c) } </code> 
+<code> stringSimilarity(s, c) := max(similarityFunction(s, l)) ∀ l ∈ { labels(c) } </code>
 
 
 <a name="command_merge-columns" />
 
 ### [`merge-columns`](#command_merge-columns)` [OPTIONS]`
-The `merge-columns` command merges values from two or more columns and outputs the concatenated value in the output column. 
- 
+The `merge-columns` command merges values from two or more columns and outputs the concatenated value in the output column.
+
  **Options:**
 - `-c {a,b,...}`: a comma separated string with columns names, values of which are to be concatenated together.
-- `-o a`: the output column name where the concatenated values will be stored. Multiple values are represented by a `|` separated string. 
-- `--remove-duplicates {yes/no}`: remove duplicates or not. Default is `yes` 
- 
- 
+- `-o a`: the output column name where the concatenated values will be stored. Multiple values are represented by a `|` separated string.
+- `--remove-duplicates {yes/no}`: remove duplicates or not. Default is `yes`
+
+
  **Examples:**
 ```
 # merge the columns 'doc_label' and 'doc_aliases' in the doc_details.csv and store the output in the column 'doc_label_aliases' and keep duplicates
@@ -825,7 +827,7 @@ $ tl merge-columns -c doc_label,doc_aliases -o doc_label_aliases --remove-duplic
 
 # same as above but remove duplicates
 $ tl merge-columns -c doc_label,doc_aliases -o doc_label_aliases --remove-duplicates yes < doc_details.csv
-``` 
+```
 
 **File Example:**
 ```
@@ -848,7 +850,7 @@ column row label     clean_labels kg_id     kg_label           kg_aliases       
 
 ### [`normalize-scores`](#command_normalize-scores)` [OPTIONS]`
 The `normalize-score` command normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells in a column.
-This command will find the maximum retrieval score for candidates generated by a retrieval method, 
+This command will find the maximum retrieval score for candidates generated by a retrieval method,
 and then divide the individual candidate retrieval scores by the maximum retrieval score for that method for each input column.
 
 Note that the column containing the retrieval method names is `method`, added by the [get-exact-matches](#command_get-exact-matches) command.
@@ -882,7 +884,7 @@ column row label     clean_labels kg_id     method       retrieval_score normali
 1      1   Prague    Prague       Q2084234  phrase-match 13.99           0.216496441
 1      1   Prague    Prague       Q5969542  phrase-match 9.8             0.151655834
 1      2   London!   London       Q84       phrase-match 32.31           0.5
-1      2   London!   London       Q92561    phrase-match 25.625          0.396549056             
+1      2   London!   London       Q92561    phrase-match 25.625          0.396549056
 ```
 
 #### Implementation
@@ -896,6 +898,23 @@ Then, for all candidates `c`, in the candidates set `C`, generated by retrieval 
 
 Where `weight(m)` is specified by users, defaulting to `1.0`
 
+<a name="command_score-using-embedding" />
+
+### [`score-using-embedding`](#command_score-using-embedding)` [OPTIONS]`
+
+The `score-using-embedding` use pre-computed embedding vectors to score (rank) candidates. The source pre-computed embeddings can be a tsv file, or an elasticsearch server.
+
+Currently, thre is only one strategy for ranking:
+
+- `--column-vector-strategy centroid-of-singletons`: Compute the centroid of all singleton candidate vectors, then use the distance of this centroid to rank each candidate. If an entity that only has one candidate, then that candidate is a singleton candidate.
+
+**Options:**
+- `--embedding-file EMBEDDING_FILE`: Vector embedding in TSV format. Column one contains qnodes, and the other columns are vectors.
+- `--embedding-url EMBEDDING_URL`: URL to elasticsearch embedding service. For text embedding use: "http://kg2018a.isi.edu:9200/wikidataos-text-embedding-01/doc/". For graph embedding use: "http://kg2018a.isi.edu:9200/wikidataos-graph-embedding-01/doc/".
+- `--column-vector-strategy {centroid-of-singletons}`: The name of the strategy to use to create the vector for the column.
+- `--distance-function {cosine,euclidean}`: The function to compute similarity between column vectors and candidate vectors, default is cosine.
+- `-c INPUT_COLUMN_NAME`, `--input-column-name INPUT_COLUMN_NAME`: The name of the column containing the Qnodes.
+- `-o OUTPUT_COLUMN_NAME`, `--output-column-name OUTPUT_COLUMN_NAME`: The output scoring column name. If not provided, the name of the embedding model will be used.
 
 
 ## Ranking Candidate Commands
@@ -908,10 +927,10 @@ format.
 ### [`combine-linearly`](#command_combine-linearly)` [OPTIONS]`
 
 Linearly combines two or more score-columns for candidate knowledge graph objects
-for each input cell value. Takes as input `weights` for columns being combined to adjust influence. 
+for each input cell value. Takes as input `weights` for columns being combined to adjust influence.
 
 **Options:**
-- `-w | --weights`: a comma separated string, in the format `<score-column-1>:<weight-1>,<score-column-2>:<weight-2>,...` representing weights for each score-column. Default weight for each score-column is `1.0`. 
+- `-w | --weights`: a comma separated string, in the format `<score-column-1>:<weight-1>,<score-column-2>:<weight-2>,...` representing weights for each score-column. Default weight for each score-column is `1.0`.
 - `-o a`: the output column name where the linearly combined scores will be stored. Default is `ranking_score`
 
 **Examples:**
@@ -925,16 +944,16 @@ $ tl combine_linearly -w normalized_score:1.5,clean_labels_kg_labels_lev:2.0 -o 
 # consider the features file, countries_features.csv (some columns might be missing for simplicity)
 $ cat countries_features.csv
 
-column row clean_labels kg_id     kg_labels                             clean_labels_kg_labels_lev normalized_score 
-1      0   Budapest     Q1781     Budapest|Buda Pest|Buda-Pest|Buda     1                          0.316155989      
-1      0   Budapest     Q16467392 Budapest (chanson)                    0.44                       0.190807799      
-1      0   Budapest     Q55420238 Budapest|Budapest, a song             1                          0.281646549      
-1      1   Prague       Q1085     Prague|Praha|Praha|Hlavní město Praha 1                          0.23816156       
-1      1   Prague       Q1953283  Prague, Oklahoma                      0.375                      0.223460229      
-1      1   Prague       Q2084234  Prague, Nebraska                      0.375                      0.216496441      
-1      1   Prague       Q5969542  Prague                                1                          0.151655834      
-1      2   London       Q84       London|London, UK|London, England     1                          0.5              
-1      2   London       Q92561    London ON                             0.66                       0.396549056      
+column row clean_labels kg_id     kg_labels                             clean_labels_kg_labels_lev normalized_score
+1      0   Budapest     Q1781     Budapest|Buda Pest|Buda-Pest|Buda     1                          0.316155989
+1      0   Budapest     Q16467392 Budapest (chanson)                    0.44                       0.190807799
+1      0   Budapest     Q55420238 Budapest|Budapest, a song             1                          0.281646549
+1      1   Prague       Q1085     Prague|Praha|Praha|Hlavní město Praha 1                          0.23816156
+1      1   Prague       Q1953283  Prague, Oklahoma                      0.375                      0.223460229
+1      1   Prague       Q2084234  Prague, Nebraska                      0.375                      0.216496441
+1      1   Prague       Q5969542  Prague                                1                          0.151655834
+1      2   London       Q84       London|London, UK|London, England     1                          0.5
+1      2   London       Q92561    London ON                             0.66                       0.396549056
 
 # linearly combine the columns 'normalized_score' and 'clean_labels_kg_labels_lev' with respective weights as '1.5' and '2.0'
 $ tl combine_linearly -w normalized_score:1.5,clean_labels_kg_labels_lev:2.0 -o ranking_score < countries_features.csv > countries_features_ranked.csv
@@ -953,7 +972,7 @@ column row clean_labels kg_id     kg_labels                             clean_la
 ```
 
 #### Implementation
-Multiply the values in the input score-columns with their corresponding weights and add them up to get a ranking score for each candidate. 
+Multiply the values in the input score-columns with their corresponding weights and add them up to get a ranking score for each candidate.
 
 For each candidate `c` and the set of score-columns `S`,
 
@@ -975,15 +994,15 @@ The `drop-by-score` command outputs the top `k` score candidates for each `colum
 
 **Options:**
 - `-c a`: column name with ranking scores.
-- `-k {number}`: desired number of output candidates per input cell.Defaut is `k=20`. 
-- 
+- `-k {number}`: desired number of output candidates per input cell.Defaut is `k=20`.
+-
 
 **Examples:**
 ```bash
 # read the ranking score file test_file.csv and keep only the highest score on embed-score column
 $ tl drop-by-score test_file.csv -c embed-score -k 1 > output_file.csv
 
-# same example but with default options 
+# same example but with default options
 $ tl drop-by-score test_file.csv -c embed-score > output_file.csv
 ```
 
@@ -1083,7 +1102,7 @@ Group by  column and row and specified column pairs indices and pick the higher 
 
 ### [`get-kg-links`](#command_get-kg-links)` [OPTIONS]`
 
-The `get-kg-links` command outputs the top `k` candidates from a sorted list, 
+The `get-kg-links` command outputs the top `k` candidates from a sorted list,
 as linked knowledge graph objects for an input cell.
 The candidate with the highest score is ranked highest, ties are broken alphabetically.
 
@@ -1097,7 +1116,7 @@ The candidate with the highest score is ranked highest, ties are broken alphabet
 # read the ranking score file countries_features_ranked.csv and output top 2 candidates, use the column clean_labels for cleaned input cell labels
 $ tl get-kg-links -c ranking_score -l clean_labels -k 2 countries_features_ranked.csv > countries_kg_links.csv
 
-# same example but with default options 
+# same example but with default options
 $ tl get-kg-links -c ranking_score < countries_features_ranked.csv > countries_output.csv
 ```
 
@@ -1114,7 +1133,7 @@ column row label        kg_id           kg_labels         ranking_score
 ```
 
 #### Implementation
-Group by  column and row indices and pick the top `k` candidates for each input cell to produce an output file in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format. 
+Group by  column and row indices and pick the top `k` candidates for each input cell to produce an output file in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
 
 Pick the preferred labels for candidate KG objects from the column `kg_labels`, which is added by the [`get-exact-matches`](#command_get-exact-matches) command.
 In case of more than one  preferred label for a candidate, the first label is picked.
@@ -1125,10 +1144,10 @@ In case of more than one  preferred label for a candidate, the first label is pi
 
 ### [`join`](#command_join)` [OPTIONS]`
 
-The `join` command outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell. 
+The `join` command outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell.
 This command takes as input a [Input](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.7pj9afmz3h1t)
  file and a file in [Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) format and outputs a file in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format.
- 
+
  The candidate with the highest score is ranked highest, ties are broken alphabetically.
 
 **Options:**
@@ -1141,7 +1160,7 @@ This command takes as input a [Input](https://docs.google.com/document/d/1eYoS47
 # read the input file countries.csv and the ranking score file countries_features_ranked.csv and output top 2 candidates
 $ tl join -f countries.csv -c ranking_score -k 2 countries_features_ranked.csv > countries_output.csv
 
-# same example but with default options 
+# same example but with default options
 $ tl join -f countries.csv -c ranking_score < countries_features_ranked.csv > countries_output.csv
 ```
 
@@ -1163,14 +1182,14 @@ for a candidate, the first label is picked. The corresponding values in each out
 
 This command will add the following three columns to the input file to produce the output file.
 - `<input_column_name>_kg_id`: stores the KG object identifiers. Multiple values represented as a `|` separated string.
-- `<input_column_name>_kg_label`: if the column `kg_labels` is available(added by the [`get-exact-matches`](#command_get-exact-matches) command), stores the KG object preferred labels. Each KG object will contribute one preferred label. In case of multiple preferred labels per KG object, pick the first one. 
+- `<input_column_name>_kg_label`: if the column `kg_labels` is available(added by the [`get-exact-matches`](#command_get-exact-matches) command), stores the KG object preferred labels. Each KG object will contribute one preferred label. In case of multiple preferred labels per KG object, pick the first one.
 Multiple values are represented as `|` separated string. If the column `kg_labels` is not available, empty string "" is added
 - `<input_column_name>_score`: stores the ranking score for KG objects. Multiple values are represented by a `|` separated string.
 
 
 ## Evaluation Commands
 Evaluation commands take as input a [Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) file
-and a [Ground Truth](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.63n3hyogxr1e) file and output a file in the 
+and a [Ground Truth](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.63n3hyogxr1e) file and output a file in the
 [Evaluation File](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.vurz5diqkuf7) format.
 These commands help in calculating `precision` and `recall` of the table linker `(tl)` pipeline.
 
@@ -1183,7 +1202,6 @@ adds an evaluation label.
 
 **Options:**
 - `-f {path}`: ground truth file path.
-- `-c a`:  column name with ranking scores
 
 **File Examples:**
 ```bash
@@ -1195,17 +1213,17 @@ column row kg_id
 1      2   Q84
 
 # add evaluation label to the ranking score file countries_features_ranked.csv, having the column 'ranking_score', using the ground truth file countries_gt.csv
-$ tl ground-truth-labeler -f countries_gt.csv -c ranking_score  < countries_features_ranked.csv > countries_evaluation.csv
+$ tl ground-truth-labeler -f countries_gt.csv < countries_features_ranked.csv > countries_evaluation.csv
 $ cat countries_evaluation.csv
 
 column row clean_labels kg_id     ranking_score evaluation_label GT_kg_id GT_kg_label
 1      0   Budapest     Q1781     8.01848598     1               Q1781    Budapest
 1      0   Budapest     Q16467392 4.152548805   -1               Q1781    Budapest
 1      0   Budapest     Q55420238 7.65849315    -1               Q1781    Budapest
-1      1   Prague       Q1085     7.00211745     0                        
-1      1   Prague       Q1953283  4.19621823     0                        
-1      1   Prague       Q2084234  4.029960225    0                        
-1      1   Prague       Q5969542  5.81884368     0                        
+1      1   Prague       Q1085     7.00211745     0
+1      1   Prague       Q1953283  4.19621823     0
+1      1   Prague       Q2084234  4.029960225    0
+1      1   Prague       Q5969542  5.81884368     0
 1      2   London       Q84       9.02968554     1               Q84      London
 1      2   London       Q92561    5.757565725   -1               Q84      London
 ```
@@ -1213,13 +1231,13 @@ column row clean_labels kg_id     ranking_score evaluation_label GT_kg_id GT_kg_
 #### Implementation
 
 Join the ranking score file and the ground truth file based on column and row indices and add the following columns,
-- `evaluation_label`: The permissible values for the evaluation label are in range `{-1, 0, 1}`. The value `1` means the cell is present in the Ground Truth file and the candidate is same as  knowledge graph object in the Ground Truth File.  
+- `evaluation_label`: The permissible values for the evaluation label are in range `{-1, 0, 1}`. The value `1` means the cell is present in the Ground Truth file and the candidate is same as  knowledge graph object in the Ground Truth File.
 
-The value `0` means the cell is not present in the Ground Truth File. The value `-1` means the cell is present 
+The value `0` means the cell is not present in the Ground Truth File. The value `-1` means the cell is present
 in the Ground Truth File and the candidate is different from the corresponding knowledge graph object in the Ground Truth File.
 - `GT_kg_id`: identifier of the knowledge graph object in the ground truth
 - `GT_kg_label`: preferred label of the knowledge graph object in the ground truth. The labels for the candidates are
- added by the [get-exact-matches](#command_get-exact-matches) command and are stored in the column `kg_labels`. 
+ added by the [get-exact-matches](#command_get-exact-matches) command and are stored in the column `kg_labels`.
  If the column is not present or in case of missing preferred label, empty string "" is added.
 
 ## Utility Commands
@@ -1240,7 +1258,7 @@ It also support with a `ground-truth` format which can only run on a file after 
 - `--ground-truth-score-column`:  Only valid when pass with `--sort-by-ground-truth`, the column name of the ground truth score.
 **Examples:**
 ```bash
-# color the `test.csv` file on column `evaluation_label` and `retrieval_score_normalized` 
+# color the `test.csv` file on column `evaluation_label` and `retrieval_score_normalized`
 # then save to desktop
 # run with sort by ground turth condition.
 $ tl add-color ~/Desktop/test.csv -k 5 \
@@ -1280,7 +1298,7 @@ By using pandas's xls writer function, add some special format to some cells.
 ### [`plot-score-figure`](#command_plot-score-figure)` [OPTIONS]`
 
 The `plot-score-figure` command is a special command that can only run as the last step of the pipeline / run separately because the generated file is a `png` file or a `html` file but not a `csv` file. This command can be used to evaulate the predictions results and generated scores of the table linker.
-It only support the plot on the results after running with `ground-truth-labler` as ground truth information is needed for evaluation. 
+It only support the plot on the results after running with `ground-truth-labler` as ground truth information is needed for evaluation.
 The first plot will be a `png` image, which includes the top `k` scores of the specified score columns in accuracy and corresponding normalized score.
 The second plot will be a `html` page, which includes the scores of specified columns on correct candidates and some high score wrong candidates if required. This page allow users to do interaction operations like remove the view of the score on specific columns, enlarge and many other choices...
 
@@ -1296,7 +1314,7 @@ The second plot will be a `html` page, which includes the scores of specified co
 
 **Examples:**
 ```bash
-# plot the figures for `test.csv` file on column `evaluation_label` and `retrieval_score_normalized` 
+# plot the figures for `test.csv` file on column `evaluation_label` and `retrieval_score_normalized`
 # then save to desktop, also add the evaluation wrong candidates on second graph
 $ tl plot-score-figure ~/Desktop/test.csv -k 1 2 5 \
 -c retrieval_score_normalized evaluation_label \
@@ -1324,8 +1342,8 @@ The `run-pipeline` command is a batch running command that enable users to run s
 **Options:**
 
 - `--ground-truth-directory`: The ground truth directory.
-- `--ground-truth-file-pattern`: the pattern used to create the name of the ground truth file from the name of an input file. 
-The pattern is any string where the characters {} are substituted by the name of the input file minus the extension. 
+- `--ground-truth-file-pattern`: the pattern used to create the name of the ground truth file from the name of an input file.
+The pattern is any string where the characters {} are substituted by the name of the input file minus the extension.
 For example “{}_gt.csv” specifies that the ground truth file for input file abc.csv is abc_gt.csv. The default is “{}_gt.csv”
 - `--pipeline`: the pipeline to run.
 - `--score-column`: The column name with scores for evaluation
@@ -1341,7 +1359,7 @@ Default is `output_{}`
 **Examples:**
 ```bash
 # run a pipeline on all files starting with `v15_68` and ends with `.csv` on folder `iswc_challenge_data/round4/canonical/`
-# clean -> get exact-matches candidates -> normalize score -> get phase-matches -> normalize score -> add ground truths -> get embedding scores 
+# clean -> get exact-matches candidates -> normalize score -> get phase-matches -> normalize score -> add ground truths -> get embedding scores
 # Set to output with a tag gt-embed and score the output base on column `embed-score`, and run 4 processes parallelly. Also, turn on the debug mode.
 $ tl run-pipeline \
   --tag gt-embed \
@@ -1382,11 +1400,11 @@ This command is a wrap of the linux command `tee`
 **Examples:**
 ```bash
 # After performing the expensive operations to get candidates and compute embeddings, save the file to disk and continue the pipeline.
-$ tl clean / 
+$ tl clean /
     / get-exact-matches -c label \
     / ground-truth-labeler -f “./xxx_gt.csv” \
     / add-text-embedding-feature --column-vector-strategy ground-truth -n 3 \
-      --generate-projector-file xxx-google-projector -o embed 
+      --generate-projector-file xxx-google-projector -o embed
     / tee --output xxx-features.csv \
     / normalize-scores \
     / metrics
