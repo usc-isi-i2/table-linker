@@ -116,7 +116,11 @@ class EmbeddingVector:
             for ft in feature_col_name
         }
         for ft in feature_col_name:
-            tmp_df[f'vote_{ft}'] = (tmp_df[ft] == feature_votes[ft]).astype(int)
+            # NaN (astype(float) gives 0.0) is handled by casting no votes
+            if feature_votes[ft] == 0:
+                tmp_df[f'vote_{ft}'] = 0
+            else:
+                tmp_df[f'vote_{ft}'] = (tmp_df[ft] == feature_votes[ft]).astype(int)
         tmp_df['votes'] = tmp_df.loc[:, [f'vote_{ft}' for ft in feature_col_name]].sum(axis=1)
 
         if tmp_df['votes'].max() == len(feature_col_name):
@@ -133,7 +137,7 @@ class EmbeddingVector:
         # TODO: compute features and add to df for all candidates
         data = smallest_qnode_number(df=data)
 
-        # Find singleton ids, i.e. ids from candidation generation sets of size one
+        # Find high confidence candidate ids by feature voting
         singleton_ids = []
         updated_data = pd.DataFrame()
         for ((col, row), group) in data.groupby(['column', 'row']):
