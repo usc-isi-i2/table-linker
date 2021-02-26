@@ -135,6 +135,9 @@ class EmbeddingVector:
         if vector_strategy == "centroid-of-singletons":
             if not self._centroid_of_singletons():
                 raise TLException(f'Column_vector_stragtegy {vector_strategy} failed')
+        elif vector_strategy == "centroid-of-voting":
+            if not self._centroid_of_voting():
+                raise TLException(f'Column_vector_stragtegy {vector_strategy} failed')
         else:
             raise TLException(f'Unknown column_vector_stragtegy')
 
@@ -197,6 +200,43 @@ class EmbeddingVector:
         self.centroid = np.mean(np.array(vectors), axis=0)
         return True
 
+    def _centroid_of_voting(self) -> bool:
+        # Use only results from exact-match
+        data = self.loaded_file[self.loaded_file['method'] == 'exact-match']
+
+        if 'votes' not in data:
+            return False
+
+        # Find high confidence candidate ids by feature voting
+        # Note that 'votes' column is by default str
+        singleton_ids = []
+        for ((col, row), group) in data.groupby(['column', 'row']):
+            # employ voting on cheap features for non-singleton candidate set
+            max_vote = group['votes'].astype(int).max()
+            if max_vote > 0:
+                voted_candidate = group[group['votes'].astype(int) == max_vote].iloc[0]['kg_id']
+                singleton_ids.append(voted_candidate)
+                # print(col, row, max_vote, voted_candidate, file=sys.stderr)
+
+        if not singleton_ids:
+            return False
+
+        missing_embedding_ids = []
+        vectors = []
+        for kg_id in singleton_ids:
+            if kg_id not in self.vectors_map:
+                missing_embedding_ids.append(kg_id)
+            else:
+                vectors.append(self.vectors_map[kg_id])
+
+        # print(*missing_embedding_ids, file=sys.stderr)
+        if len(missing_embedding_ids):
+            print(f'_centroid_of_voting: Missing {len(missing_embedding_ids)} of {len(singleton_ids)}',
+                  file=sys.stderr)
+
+        # centroid of singletons
+        self.centroid = np.mean(np.array(vectors), axis=0)
+        return True
 
     def compute_distance(self, v1: np.array, v2: np.array):
         if self.kwargs["distance_function"] == "cosine":
