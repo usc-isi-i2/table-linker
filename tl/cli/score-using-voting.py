@@ -35,7 +35,7 @@ def add_arguments(parser):
         For graph embedding use: "http://kg2018a.isi.edu:9200/wikidataos-graph-embedding-01/doc/".''')
 
     parser.add_argument('--column-vector-strategy', action='store', dest='column_vector_strategy',
-                        default="centroid-of-singletons", choices=["centroid-of-singletons"],
+                        default="centroid-of-voting", choices=["centroid-of-voting"],
                         help="the name of the strategy to use to create the vector for the column.")
 
     # distance function
@@ -60,7 +60,7 @@ def add_arguments(parser):
 
 def run(**kwargs):
     try:
-        from tl.features.external_embedding import EmbeddingVector
+        from tl.features.vote_embedding import EmbeddingVector
         input_file_path = kwargs.pop("input_file")
         vector_transformer = EmbeddingVector(kwargs)
         vector_transformer.load_input_file(input_file_path)
