@@ -75,6 +75,7 @@ class FuzzyAugmented(object):
         fuzzy_matches = []
         label = []
         retrieval_score = []
+        pagerank = []
         search_term = search_term.replace('/',' ')
         search_term = re.sub(' +',' ',search_term)
         query1 = self.create_query1(search_term=search_term.strip(), size=size)
@@ -89,7 +90,8 @@ class FuzzyAugmented(object):
                 else:
                     label.append('')
                 retrieval_score.append(item['_score'])
-                zipped_items = list(zip(fuzzy_matches, label, retrieval_score))
+                pagerank.append(item['_source']['pagerank'])
+                zipped_items = list(zip(fuzzy_matches, label, retrieval_score, pagerank))
                 query1_dict[key] = zipped_items
 
         else:
@@ -102,6 +104,7 @@ class FuzzyAugmented(object):
         fuzzy_matches = []
         label = []
         retrieval_score = []
+        pagerank = []
         search_term = search_term.replace('/', ' ')
         search_term = re.sub(' +', ' ', search_term)
         query2 = self.create_query2(search_term=search_term.strip(), size=size)
@@ -116,7 +119,8 @@ class FuzzyAugmented(object):
                 else:
                     label.append('')
                 retrieval_score.append(item['_score'])
-                zipped_items = list(zip(fuzzy_matches, label, retrieval_score))
+                pagerank.append(item['_source']['pagerank'])
+                zipped_items = list(zip(fuzzy_matches, label, retrieval_score,pagerank))
                 query2_dict[key] = zipped_items
 
         else:
@@ -132,7 +136,7 @@ class FuzzyAugmented(object):
         cand_dict = {}
         for item in query1_res:
             if item not in cand_dict:
-                cand_dict[item[0]] = [item[1], item[2]]
+                cand_dict[item[0]] = [item[1], item[2],item[3]]
             else:
                 if cand_dict[item[0]][1] < item[2]:
                     cand_dict[item[0]][1] = item[2]
@@ -140,7 +144,7 @@ class FuzzyAugmented(object):
                     continue
         for item in query2_res:
             if item not in cand_dict:
-                cand_dict[item[0]] = [item[1], item[2]]
+                cand_dict[item[0]] = [item[1], item[2],item[3]]
             else:
                 if cand_dict[item[0]][1] < item[2]:
                     cand_dict[item[0]][1] = item[2]
@@ -193,6 +197,7 @@ class FuzzyAugmented(object):
                         _['kg_labels'] = sr[1][0]
                         _['method'] = 'fuzzy-augmented'
                         _[output_column_name] = sr[1][1]
+                        _['pagerank'] = sr[1][2]
                         new_df_list.append(_)
                 else:
                     _ = {}
@@ -203,6 +208,7 @@ class FuzzyAugmented(object):
                     _['kg_labels'] = ''
                     _['method'] = 'fuzzy-augmented'
                     _[output_column_name] = ''
+                    _['pagerank'] = sr[1][2]
                     new_df_list.append(_)
                 seen_dict[row_key] = 1
 
