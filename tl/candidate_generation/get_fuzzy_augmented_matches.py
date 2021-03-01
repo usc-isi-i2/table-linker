@@ -81,7 +81,7 @@ class FuzzyAugmented(object):
         query1_matches = self.query_es(query1)
         query1_dict = {}
 
-        if len(query1_matches) != 0:
+        if query1_matches is not None and len(query1_matches) != 0:
             for item in query1_matches:
                 fuzzy_matches.append(item['_id'])
                 if 'en' in item['_source']['labels']:
@@ -108,7 +108,7 @@ class FuzzyAugmented(object):
         query2_matches = self.query_es(query=query2)
         query2_dict = {}
 
-        if len(query2_matches) != 0:
+        if query2_matches is not None and len(query2_matches) != 0:
             for item in query2_matches:
                 fuzzy_matches.append(item['_id'])
                 if 'en' in item['_source']['labels']:
