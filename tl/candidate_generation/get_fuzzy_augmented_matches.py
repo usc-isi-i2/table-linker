@@ -76,6 +76,7 @@ class FuzzyAugmented(object):
         label = []
         retrieval_score = []
         pagerank = []
+        description = []
         search_term = search_term.replace('/',' ')
         search_term = re.sub(' +',' ',search_term)
         query1 = self.create_query1(search_term=search_term.strip(), size=size)
@@ -89,9 +90,13 @@ class FuzzyAugmented(object):
                     label.append(item['_source']['labels']['en'][0])
                 else:
                     label.append('')
+                if 'en' in item['_source']['descriptions']:
+                    description.append(item['_source']['descriptions']['en'][0])
+                else:
+                    description.append('')
                 retrieval_score.append(item['_score'])
                 pagerank.append(item['_source']['pagerank'])
-                zipped_items = list(zip(fuzzy_matches, label, retrieval_score, pagerank))
+                zipped_items = list(zip(fuzzy_matches, label, retrieval_score, pagerank, description))
                 query1_dict[key] = zipped_items
 
         else:
@@ -105,6 +110,7 @@ class FuzzyAugmented(object):
         label = []
         retrieval_score = []
         pagerank = []
+        description = []
         search_term = search_term.replace('/', ' ')
         search_term = re.sub(' +', ' ', search_term)
         query2 = self.create_query2(search_term=search_term.strip(), size=size)
@@ -118,9 +124,13 @@ class FuzzyAugmented(object):
                     label.append(item['_source']['labels']['en'][0])
                 else:
                     label.append('')
+                if 'en' in item['_source']['descriptions']:
+                    description.append(item['_source']['descriptions']['en'][0])
+                else:
+                    description.append('')
                 retrieval_score.append(item['_score'])
                 pagerank.append(item['_source']['pagerank'])
-                zipped_items = list(zip(fuzzy_matches, label, retrieval_score,pagerank))
+                zipped_items = list(zip(fuzzy_matches, label, retrieval_score,pagerank,description))
                 query2_dict[key] = zipped_items
 
         else:
@@ -136,7 +146,7 @@ class FuzzyAugmented(object):
         cand_dict = {}
         for item in query1_res:
             if item not in cand_dict:
-                cand_dict[item[0]] = [item[1], item[2],item[3]]
+                cand_dict[item[0]] = [item[1], item[2],item[3],item[4]]
             else:
                 if cand_dict[item[0]][1] < item[2]:
                     cand_dict[item[0]][1] = item[2]
@@ -144,7 +154,7 @@ class FuzzyAugmented(object):
                     continue
         for item in query2_res:
             if item not in cand_dict:
-                cand_dict[item[0]] = [item[1], item[2],item[3]]
+                cand_dict[item[0]] = [item[1], item[2],item[3],item[4]]
             else:
                 if cand_dict[item[0]][1] < item[2]:
                     cand_dict[item[0]][1] = item[2]
@@ -198,6 +208,7 @@ class FuzzyAugmented(object):
                         _['method'] = 'fuzzy-augmented'
                         _[output_column_name] = sr[1][1]
                         _['pagerank'] = sr[1][2]
+                        _['description'] = sr[1][3]
                         new_df_list.append(_)
                 else:
                     _ = {}
@@ -209,6 +220,7 @@ class FuzzyAugmented(object):
                     _['method'] = 'fuzzy-augmented'
                     _[output_column_name] = ''
                     _['pagerank'] = sr[1][2]
+                    _['description'] = ''
                     new_df_list.append(_)
                 seen_dict[row_key] = 1
 
