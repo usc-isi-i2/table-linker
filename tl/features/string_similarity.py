@@ -76,7 +76,6 @@ class StringSimilarity:
         for _, each_row in self.df.iterrows():
             for each_similarity_unit in self.similarity_units:
                 # the output column name, should be the type + config for this similarity calculation unit
-                # TODO: naming is weird
                 similarity_unit_name = each_similarity_unit.get_name()
                 # get max score amount all labels of candidate node and use the highest one
                 max_score = 0

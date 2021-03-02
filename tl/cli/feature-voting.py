@@ -8,13 +8,11 @@ from tl.exceptions import TLException
 def parser():
     return {
         'help': """
-        Score candidates using feature voting. List of features may be used: 
-        1. exact match top 1: using pre-computed embedding vectors, either from a file or from elasticsearch.
-        2. page rank 
-        3. qnode with smallest number
-        4. Weiss Waterman distance
-        5. Jaccard between description and row
-        6. column query (SemTab 2020 paper)
+        Tabulates votes for candidates using features specified. Example features include: 
+        1. page rank top 1
+        2. qnode with smallest number
+        3. Monge Elkan distance
+        4. Jaccard between description and row cell content
         """
     }
 

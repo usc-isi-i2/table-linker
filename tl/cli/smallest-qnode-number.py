@@ -6,7 +6,7 @@ import tl.exceptions
 
 def parser():
     return {
-        'help': 'computes feature qnode-score'
+        'help': 'computes feature smallest-qnode-number'
     }
 
 
@@ -21,13 +21,13 @@ def add_arguments(parser):
 
 
 def run(**kwargs):
-    from tl.features.qnode_score import qnode_score
+    from tl.features.smallest_qnode_number import smallest_qnode_number
     import pandas as pd
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-        odf = qnode_score(df)
+        odf = smallest_qnode_number(df)
         odf.to_csv(sys.stdout, index=False)
     except:
-        message = 'Command: qnode-score\n'
+        message = 'Command: smallest-qnode-number\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)
