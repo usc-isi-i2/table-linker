@@ -202,7 +202,7 @@ class EmbeddingVector:
 
     def _centroid_of_voting(self) -> bool:
         # Use only results from exact-match
-        data = self.loaded_file[self.loaded_file['method'] == 'exact-match']
+        data = self.loaded_file
 
         if 'votes' not in data:
             return False
@@ -216,7 +216,6 @@ class EmbeddingVector:
             if max_vote > 0:
                 voted_candidate = group[group['votes'].astype(int) == max_vote].iloc[0]['kg_id']
                 singleton_ids.append(voted_candidate)
-                # print(col, row, max_vote, voted_candidate, file=sys.stderr)
 
         if not singleton_ids:
             return False
