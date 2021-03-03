@@ -843,7 +843,9 @@ Where `weight(m)` is specified by users, defaulting to `1.0`
 
 ### [`score-using-embedding`](#command_score-using-embedding)` [OPTIONS]`
 
-The `score-using-embedding` use pre-computed embedding vectors to score (rank) candidates. The source pre-computed embeddings can be a tsv file, or an elasticsearch server.
+The `score-using-embedding` command uses pre-computed embedding vectors to score (rank) candidates. The source of the pre-computed embeddings can be a tsv file, or an Elasticsearch server.
+
+If both tsv file and elasticsearch server are provided, the tsv is tried first then the Elasticsearch server. Embedding vectors hits from the Elasticsearch server are append to the tsv file.
 
 Currently, thre is only one strategy for ranking:
 
@@ -851,7 +853,7 @@ Currently, thre is only one strategy for ranking:
 
 **Options:**
 - `--embedding-file EMBEDDING_FILE`: Vector embedding in TSV format. Column one contains qnodes, and the other columns are vectors.
-- `--embedding-url EMBEDDING_URL`: URL to elasticsearch embedding service. For text embedding use: "http://kg2018a.isi.edu:9200/wikidataos-text-embedding-01/doc/". For graph embedding use: "http://kg2018a.isi.edu:9200/wikidataos-graph-embedding-01/doc/".
+- `--embedding-url EMBEDDING_URL`: URL to elasticsearch embedding service. For text embedding use: "http://kg2018a.isi.edu:9200/wikidataos-text-embedding-01/". For graph embedding use: "http://kg2018a.isi.edu:9200/wikidataos-graph-embedding-01/".
 - `--column-vector-strategy {centroid-of-singletons}`: The name of the strategy to use to create the vector for the column.
 - `--distance-function {cosine,euclidean}`: The function to compute similarity between column vectors and candidate vectors, default is cosine.
 - `-c INPUT_COLUMN_NAME`, `--input-column-name INPUT_COLUMN_NAME`: The name of the column containing the Qnodes.

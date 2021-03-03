@@ -1,11 +1,14 @@
-import sys
+import json
 import math
+import sys
+import typing
 
 import numpy as np
 import requests
 import pandas as pd
 
 from collections import defaultdict
+from pathlib import Path
 
 from scipy.spatial.distance import cosine, euclidean
 
@@ -24,7 +27,7 @@ class EmbeddingVector:
         self.centroid = None
         self.groups = defaultdict(set)
         self.input_column_name = kwargs['input_column_name']
-        pass
+        self.debug = True
 
     def load_input_file(self, input_file):
         """
@@ -35,31 +38,93 @@ class EmbeddingVector:
         # Drop duplicate rows for uniqueness
         self.loaded_file.drop_duplicates(inplace=True, ignore_index=True)
 
+    def _load_vectors_from_file(self, embedding_file, qnodes):
+        with open(embedding_file, 'rt') as fd:
+            for line in fd:
+                fields = line.strip().split('\t')
+                qnode = fields[0]
+                if qnode in qnodes:
+                    self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
+
+    def _save_new_to_file(self, embedding_file, new_qnodes):
+        with open(embedding_file, 'at') as fd:
+            for qnode in new_qnodes:
+                vector = self.vectors_map[qnode]
+                line = f'{qnode}\t'
+                line += '\t'.join([str(x) for x in vector])
+                line += '\n'
+                fd.write(line)
+
+
+
+    # def _load_vectors_server(self, url, qnodes):
+    #     found_one = False
+    #     for i, qnode in enumerate(qnodes):
+    #         # Use str, becauses of missing values (nan)
+    #         response = requests.get(url + 'doc/' + str(qnode))
+    #         if response.status_code == 200:
+    #             result = response.json()
+    #             if result['found']:
+    #                 found_one = True
+    #                 self.vectors_map[qnode] = np.asarray(list(map(float, result['_source']['embedding'].split())))
+    #         if i > 100 and not found_one:
+    #             raise TLException(f'Failing to find vectors: {url} {qnode}')
+    #     if not found_one:
+    #         raise TLException(f'Failed to find any vectors: {url} {qnode}')
+
+
+    def _load_vectors_from_server(self, url, qnodes) -> typing.List[str]:
+        search_url = url + '_search'
+        batch_size = 1000
+        found = []
+        missing = []
+        for i in range(0, len(qnodes), batch_size):
+            part = qnodes[i:i+batch_size]
+            query = {
+                "_source": ["id", "embedding"],
+                "size": batch_size,
+                "query": {
+                    "ids" : {
+                        "values" : part
+                    }
+                }
+            }
+            response = requests.get(search_url, data = json.dumps(query))
+            result = response.json()
+            if result['hits']['total'] == 0:
+                missing += part
+            else:
+                hit_qnodes = []
+                for hit in result['hits']['hits']:
+                    qnode = hit['_source']['id']
+                    vector = np.asarray(list(map(float, hit['_source']['embedding'].split())))
+                    hit_qnodes.append(qnode)
+                    self.vectors_map[qnode] = vector
+                found += hit_qnodes
+                missing += [q for q in part if q not in hit_qnodes]
+                # print(f'found:{len(found)} missing:{len(missing)}', file=sys.stderr)
+        return found
+
+
     def get_vectors(self):
-        qnodes = set(self.loaded_file.loc[:, self.input_column_name])
+        '''Get embedding vectors.'''
+        wanted_nodes = set(self.loaded_file.loc[:, self.input_column_name].fillna('')) - {''}
+        if self.debug:
+            print(f'Qnodes to lookup: {len(wanted_nodes)}', file=sys.stderr)
         embedding_file = self.kwargs['embedding_file']
         url = self.kwargs['embedding_url']
-        if embedding_file:
-            with open(embedding_file, 'rt') as fd:
-                for line in fd:
-                    fields = line.strip().split('\t')
-                    qnode = fields[0]
-                    if qnode in qnodes:
-                        self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
-        elif url:
-            found_one = False
-            for i, qnode in enumerate(qnodes):
-                # Use str, becauses of missing values (nan)
-                response = requests.get(url + str(qnode))
-                if response.status_code == 200:
-                    result = response.json()
-                    if result['found']:
-                        found_one = True
-                        self.vectors_map[qnode] = np.asarray(list(map(float, result['_source']['embedding'].split())))
-                if i > 100 and not found_one:
-                    raise TLException(f'Failing to find vectors: {url} {qnode}')
-            if not found_one:
-                raise TLException(f'Failed to find any vectors: {url} {qnode}')
+        if embedding_file and Path(embedding_file).exists():
+            self._load_vectors_from_file(embedding_file, wanted_nodes)
+            wanted_nodes = wanted_nodes - set(self.vectors_map.keys())
+            if self.debug:
+                print(f'Qnodes from file: {len(self.vectors_map)}', file=sys.stderr)
+
+        if url and len(wanted_nodes)>0:
+            newly_found = self._load_vectors_from_server(url, list(wanted_nodes))
+            if self.debug:
+                print(f'Qnodes from server: {len(newly_found)}', file=sys.stderr)
+            if embedding_file:
+                self._save_new_to_file(embedding_file, newly_found)
 
     def process_vectors(self):
         """

@@ -23,8 +23,8 @@ def add_arguments(parser):
     parser.add_argument(
         '--embedding-url', action='store',
         help='''URL to elasticsearch embedding service.
-        For text embedding use: "http://kg2018a.isi.edu:9200/wikidataos-text-embedding-01/doc/".
-        For graph embedding use: "http://kg2018a.isi.edu:9200/wikidataos-graph-embedding-01/doc/".''')
+        For text embedding use: "http://kg2018a.isi.edu:9200/wikidataos-text-embedding-01/".
+        For graph embedding use: "http://kg2018a.isi.edu:9200/wikidataos-graph-embedding-01/".''')
 
     parser.add_argument('--column-vector-strategy', action='store', dest='column_vector_strategy',
                         default="centroid-of-singletons", choices=["centroid-of-singletons"],
