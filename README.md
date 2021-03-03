@@ -111,7 +111,8 @@ translate an input CSV or TSV file to [canonical form](https://docs.google.com/d
 - `-o a`: specifies the name of a new column to be added. Default output column name is `label`
 - `--tsv`:  the delimiter of the input file is TAB.
 - `--csv`: the delimiter of the input file is comma.
-- `--add-other-information`: append information from other columns as an extra column of output canonical file.
+- `--add-context`: if provided, the information from other columns will be combined together and saved
+                             to the column: `context`, separated by `|`
 
 **Examples:**
    ```bash
@@ -154,7 +155,7 @@ Russia  Dep. Premier  Konstatin Anatolyevich CHUYCHENKO
 Russia  Dep. Premier  Tatyana Alekseyevna GOLIKOVA
 
 # canonicalize the input file and process col2 with adding extra information
-$ tl canonicalize -c col2  --add-other-information chief_subset.tsv > organizations_subset_col0_canonicalized.csv
+$ tl canonicalize -c col2  --add-context chief_subset.tsv > organizations_subset_col0_canonicalized.csv
 
 # note that we get an extra column here, which is the information from the input file, combined by `|`
 $ cat organizations_subset_col0_canonicalized.csv
