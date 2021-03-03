@@ -504,7 +504,7 @@ Uses the ElasticSearch Index which has labels and aliases present in different l
 
 ```bash
  # generate candidates for the cells in the column 'label_clean'
-$ tl --url http://blah.com --index augmented_index -Ujohn -Ppwd  get-fuzzy-augmented-matches -c label_clean canonical-input.csv > ccandidates_output.csv
+$ tl --es-url http://blah.com --es-index augmented_index -Ujohn -Ppwd  get-fuzzy-augmented-matches -c label_clean canonical-input.csv > ccandidates_output.csv
 ```
 
 **File Example:**
