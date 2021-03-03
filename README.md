@@ -160,7 +160,7 @@ $ tl canonicalize -c col2  --add-context chief_subset.tsv > organizations_subset
 # note that we get an extra column here, which is the information from the input file, combined by `|`
 $ cat organizations_subset_col0_canonicalized.csv
 
-column,row,label,||other_information||
+column,row,label,context
 2,0,Vladimir Vladimirovich PUTIN,Russia|Pres.
 2,1,Dmitriy Anatolyevich MEDVEDEV,Russia|Premier
 2,2,Anton Germanovich SILUANOV,Russia|First Dep. Premier
