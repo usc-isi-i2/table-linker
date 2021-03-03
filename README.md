@@ -37,6 +37,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
 - [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
 - [`get-fuzzy-matches`](#command_get-fuzzy-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search fuzzy match.
+- [`get-fuzzy-augmented-matches`](#command_get-fuzzy-augmented-matches)<sup>*</sup>: retrieves the identifiers of KG entities from an elasticsearch index. It does fuzzy search over multilingual labels, aliases, wikipedia and wikitable anchor text and wikipedia redirects.
 - [`get-phrase-matches`](#command_get-phrase-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search phrase match.
 - [`get-kgtk-search-matches`](#command_get-kgtk-search-matches)<sup>*</sup>: uses KGTK search API to retrieve identifiers of KG entities matching the input search term.
 - [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
@@ -370,6 +371,7 @@ column  row  label      clean_labels  kg_id      kg_labels                      
 uses KGTK search API to retrieve identifiers of KG entities matching the input search term.
 
 **Options:**
+
 - `-c a`: the column used for retrieving candidates.
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
 - `--kgtk-api-url {str}`: KGTK search API url, default: https://kgtk.isi.edu/api
@@ -386,7 +388,7 @@ the field `score` in the retrieved KGTK Search objects.
 
 The identifiers for the candidate knowledge graph objects returned by the KGTK Search API are recorded in the column `kg_id`. The identifiers
  are stored in the field `qnode` in the retrieved objects.
- 
+
  **Examples:**
 
 ```bash
@@ -426,6 +428,7 @@ column  row  label      clean_label  kg_id      pagerank                kg_label
 retrieves the identifiers of KG entities base on fuzzy match queries.
 
 **Options:**
+
 - `-c a`: the column used for retrieving candidates.
 - `-p {a,b,c}`:  a comma separated names of properties in the KG to search for phrase match query with boost for each property.
  Boost is specified as a number appended to the property name with a caret(^). default is `labels^2,aliases`.
@@ -482,6 +485,49 @@ column  row  label      clean_labels  kg_id      kg_labels                      
 
 ### Implementation
 Using fuzzy match base on the edit distance, for example, if a input query string is `Gura`, possible candidate could be: `Guma`, `Guna` and `Guba`... Those string has edit distance value `1` to the original input. The smaller edit distance value is, the higher `retrieval_score` will return.
+
+<a name="command_get-fuzzy-augmented-matches" />
+
+### [`get-fuzzy-augmented-matches`](#command_get-fuzzy-augmented-matches)` [OPTIONS]`
+
+Uses the ElasticSearch Index which has labels and aliases present in different languages. The index also has wikipedia and wikitable anchor text. The index also has a field named redirect_text which has all the wikipedia redirects that would be mapped to the corresponding Q-Node in wikidata.
+
+**Options:**
+
+- `-c a`: The column used for retrieving candidates.
+- `-n {number}`: maximum number of candidates to retrieve, default is 100.
+- `-p/--properties`: Comma separated names of properties in the index over which we need to do fuzzy searches
+- `--es-url`: ElasticSearch url
+- `--es-index`: ElasticSearch Index name which has the all the data mentioned above
+- `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
+
+ **Examples:**
+
+```bash
+ # generate candidates for the cells in the column 'label_clean'
+$ tl --es-url http://blah.com --es-index augmented_index -Ujohn -Ppwd  get-fuzzy-augmented-matches -c label_clean canonical-input.csv > ccandidates_output.csv
+```
+
+**File Example:**
+
+```bash
+$ tl clean -c label -o label_clean canonical-input.csv / get-fuzzy-augmented-matches --es-url http://blah.com --es-index augmented_index -c label_clean > candidates_output.csv
+
+column,row,label,label_clean,kg_id,kg_labels,method,retrieval_score
+1,0,Hank Aaron,Hank Aaron,Q215777,Hank Aaron,fuzzy-augmented,37.63053
+1,0,Hank Aaron,Hank Aaron,Q47513596,Hank Aaron,fuzzy-augmented,16.903837
+1,0,Hank Aaron,Hank Aaron,Q1518478,Hank Aaron Award,fuzzy-augmented,19.805542
+1,0,Hank Aaron,Hank Aaron,Q14679126,Hank Aaron Stadium,fuzzy-augmented,28.061468
+1,0,Hank Aaron,Hank Aaron,Q28453830,Hank Aaron State Trail,fuzzy-augmented,26.173532
+1,0,Hank Aaron,Hank Aaron,Q92433937,Reflections on Hank Aaron,fuzzy-augmented,26.173532
+1,0,Hank Aaron,Hank Aaron,Q6665277,Template:AL Hank Aaron Award Winners,fuzzy-augmented,24.523617
+1,0,Hank Aaron,Hank Aaron,Q5648263,Hank Aaron: Chasing the Dream,fuzzy-augmented,24.523617
+1,0,Hank Aaron,Hank Aaron,Q8853836,Template:NL Hank Aaron Award Winners,fuzzy-augmented,24.523617
+1,0,Hank Aaron,Hank Aaron,Q66847614,President Carter with Hank Aaron (NAID 180805),fuzzy-augmented,21.777962
+1,0,Hank Aaron,Hank Aaron,Q16983107,Oak Leaf Trail,fuzzy-augmented,19.035532
+```
+
+
 
 ## Adding Features Commands
 
@@ -681,7 +727,7 @@ Then, we will compute the score for those 3 nodes as:
 Q207638: 0.9542425094393249,
 Q3094932: 1.0565475543340874,
 Q4837972: 1.0565475543340874
- ```
+```
 If further support with `high-preceision candidates` and string similarity score mentioned, we can get a more precious score.
 
 
