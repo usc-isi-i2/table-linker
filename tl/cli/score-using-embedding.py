@@ -5,6 +5,7 @@ import argparse
 
 from tl.exceptions import TLException
 
+
 def parser():
     return {
         'help': 'Score candidates using pre-computed embedding vectors, either from a file or from elasticsearch.'
@@ -35,8 +36,7 @@ def add_arguments(parser):
         '--distance-function', action='store', dest='distance_function',
         default="cosine", choices=("cosine", "euclidean"),
         help="the function to compute similarity between column vectors and candidate vectors, "
-        "default is cosine.")
-
+             "default is cosine.")
 
     parser.add_argument(
         '-c', '--input-column-name', action='store', dest='input_column_name',
@@ -53,6 +53,7 @@ def add_arguments(parser):
         '-o', '--output-column-name', action='store', dest='output_column_name',
         default=None,
         help="the name of the column where the value of the distance function will be stored.")
+
 
 def run(**kwargs):
     try:

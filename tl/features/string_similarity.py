@@ -6,6 +6,7 @@ import tl.features.similarity_units
 
 from collections import defaultdict
 from tl.exceptions import UnsupportTypeError, RequiredColumnMissingException
+
 DEFAULT_COLUMN_COMB_NAME = ("label_clean", "kg_labels")
 
 

@@ -15,6 +15,7 @@ from scipy.spatial.distance import cosine, euclidean
 from tl.utility.utility import Utility
 from tl.exceptions import TLException
 
+
 # column,row,label,||other_information||,label_clean,kg_id,kg_labels,method,retrieval_score,retrieval_score_normalized,GT_kg_id,GT_kg_label,evaluation_label,gt_embed_score,sentence,vector,gt_embed_score_normalized,pagerank-precomputed,pagerank-precomputed_normalized,pagerank,pagerank_normalized,extra_information_score
 
 # /lfs1/ktyao/Shared/table-linker-datasets/2019-iswc_challenge_data/t2dv2/evaluation_files/28086084_0_3127660530989916727.csv
@@ -56,8 +57,6 @@ class EmbeddingVector:
                 line += '\n'
                 fd.write(line)
 
-
-
     # def _load_vectors_server(self, url, qnodes):
     #     found_one = False
     #     for i, qnode in enumerate(qnodes):
@@ -73,24 +72,23 @@ class EmbeddingVector:
     #     if not found_one:
     #         raise TLException(f'Failed to find any vectors: {url} {qnode}')
 
-
     def _load_vectors_from_server(self, url, qnodes) -> typing.List[str]:
         search_url = url + '_search'
         batch_size = 1000
         found = []
         missing = []
         for i in range(0, len(qnodes), batch_size):
-            part = qnodes[i:i+batch_size]
+            part = qnodes[i:i + batch_size]
             query = {
                 "_source": ["id", "embedding"],
                 "size": batch_size,
                 "query": {
-                    "ids" : {
-                        "values" : part
+                    "ids": {
+                        "values": part
                     }
                 }
             }
-            response = requests.get(search_url, data = json.dumps(query))
+            response = requests.get(search_url, data=json.dumps(query))
             result = response.json()
             if result['hits']['total'] == 0:
                 missing += part
@@ -119,7 +117,7 @@ class EmbeddingVector:
             if self.debug:
                 print(f'Qnodes from file: {len(self.vectors_map)}', file=sys.stderr)
 
-        if url and len(wanted_nodes)>0:
+        if url and len(wanted_nodes) > 0:
             newly_found = self._load_vectors_from_server(url, list(wanted_nodes))
             if self.debug:
                 print(f'Qnodes from server: {len(newly_found)}', file=sys.stderr)
@@ -154,8 +152,8 @@ class EmbeddingVector:
         for i, each_row in self.loaded_file.iterrows():
             # the nan value can also be float
             if ((isinstance(each_row[self.input_column_name], float) and math.isnan(each_row[self.input_column_name]))
-                or each_row[self.input_column_name] is np.nan
-                or each_row[self.input_column_name] not in self.vectors_map):
+                    or each_row[self.input_column_name] is np.nan
+                    or each_row[self.input_column_name] not in self.vectors_map):
                 each_score = ""
             else:
                 each_score = self.compute_distance(self.centroid,
@@ -170,7 +168,7 @@ class EmbeddingVector:
     def _centroid_of_singletons(self) -> bool:
 
         # Use only results from exact-match
-        data = self.loaded_file[self.loaded_file['method']=='exact-match']
+        data = self.loaded_file[self.loaded_file['method'] == 'exact-match']
 
         # Find singleton ids, i.e. ids from candidation generation sets of size one
         singleton_ids = []
