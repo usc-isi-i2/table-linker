@@ -32,6 +32,9 @@ def add_arguments(parser):
                         default=[],
                         help="The string similarity methods to use, can have multiple methods.")
 
+    parser.add_argument('-o', '--output-column-name', action='store', dest='output_column',
+                        help='The output column is the named column of string similarity computed')
+
 
 def run(**kwargs):
     from tl.features.string_similarity import StringSimilarity

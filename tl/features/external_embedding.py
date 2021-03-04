@@ -28,6 +28,7 @@ class EmbeddingVector:
         self.groups = defaultdict(set)
         self.input_column_name = kwargs['input_column_name']
         self.debug = True
+        self.min_vote = int(kwargs.get('min_vote', 0))
 
     def load_input_file(self, input_file):
         """
@@ -104,7 +105,6 @@ class EmbeddingVector:
                 missing += [q for q in part if q not in hit_qnodes]
                 # print(f'found:{len(found)} missing:{len(missing)}', file=sys.stderr)
         return found
-
 
     def get_vectors(self):
         '''Get embedding vectors.'''
@@ -213,6 +213,8 @@ class EmbeddingVector:
         for ((col, row), group) in data.groupby(['column', 'row']):
             # employ voting on cheap features for non-singleton candidate set
             max_vote = group['votes'].astype(int).max()
+            if self.min_vote > max_vote:
+                continue
             if max_vote > 0:
                 voted_candidate = group[group['votes'].astype(int) == max_vote].iloc[0]['kg_id']
                 singleton_ids.append(voted_candidate)

@@ -43,6 +43,11 @@ def add_arguments(parser):
         default='kg_id',
         help="the name of the column containing the Qnodes.")
 
+    parser.add_argument(
+        '--min-vote', action='store', dest='min_vote',
+        default=0,
+        help="When using centroid-of-voting, the minimum vote count a candidate need to receive to be count as high confidence candidate.")
+
     # output
     parser.add_argument(
         '-o', '--output-column-name', action='store', dest='output_column_name',

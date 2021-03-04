@@ -44,7 +44,7 @@ def run(**kwargs):
         odf = pd.DataFrame()
         for ((col, row), group) in data.groupby(['column', 'row']):
             tmp_df = group.copy()
-            # employ voting on 6 cheap features for non-singleton candidate set
+            # employ voting on cheap features for non-singleton candidate set
             feature_votes = {
                 ft: tmp_df[ft].max()
                 for ft in feature_col_name
@@ -55,8 +55,8 @@ def run(**kwargs):
                     tmp_df[f'vote_{ft}'] = 0
                 else:
                     tmp_df[f'vote_{ft}'] = (tmp_df[ft] == feature_votes[ft]).astype(int)
-            tmp_df['votes'] = tmp_df.loc[:, [f'vote_{ft}' for ft in feature_col_name]].sum(axis=1)
-            odf = odf.append(tmp_df)
+            group['votes'] = tmp_df.loc[:, [f'vote_{ft}' for ft in feature_col_name]].sum(axis=1)
+            odf = odf.append(group)
 
         odf.to_csv(sys.stdout, index=False)
 
