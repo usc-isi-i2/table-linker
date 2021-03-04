@@ -6,6 +6,7 @@ import tl.features.similarity_units
 
 from collections import defaultdict
 from tl.exceptions import UnsupportTypeError, RequiredColumnMissingException
+
 DEFAULT_COLUMN_COMB_NAME = ("label_clean", "kg_labels")
 
 
@@ -41,7 +42,12 @@ class StringSimilarity:
         else:
             kwargs["target_label_column_name"] = self.target_label_column_name
 
-        if (self.target_label_column_name, self.candidate_label_column_name) != DEFAULT_COLUMN_COMB_NAME:
+        output_column_name = kwargs.get("output_column", None)
+        if output_column_name is not None:
+            self.has_output_column_name = True
+            self.compared_column_names = output_column_name
+        elif (self.target_label_column_name, self.candidate_label_column_name) != DEFAULT_COLUMN_COMB_NAME:
+            self.has_output_column_name = False
             self.compared_column_names = self.target_label_column_name + "_" + self.candidate_label_column_name
         else:
             self.compared_column_names = None
@@ -83,10 +89,12 @@ class StringSimilarity:
                 target_label = each_row[self.target_label_column_name]
                 if isinstance(all_labels, list):
                     for each_label in all_labels:
-                        each_similarity_score = each_similarity_unit.similarity(target_label, each_label)
+                        each_similarity_score = each_similarity_unit.similarity(str(target_label), str(each_label))
                         if each_similarity_score > max_score:
                             max_score = each_similarity_score
-                if self.compared_column_names:
+                if self.has_output_column_name:
+                    similarity_unit_name = self.compared_column_names
+                elif self.compared_column_names:
                     similarity_unit_name = self.compared_column_names + "_" + similarity_unit_name
                 scores[similarity_unit_name].append(max_score)
 

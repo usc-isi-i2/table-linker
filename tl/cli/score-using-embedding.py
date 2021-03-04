@@ -5,6 +5,7 @@ import argparse
 
 from tl.exceptions import TLException
 
+
 def parser():
     return {
         'help': 'Score candidates using pre-computed embedding vectors, either from a file or from elasticsearch.'
@@ -27,7 +28,7 @@ def add_arguments(parser):
         For graph embedding use: "http://kg2018a.isi.edu:9200/wikidataos-graph-embedding-01/".''')
 
     parser.add_argument('--column-vector-strategy', action='store', dest='column_vector_strategy',
-                        default="centroid-of-singletons", choices=["centroid-of-singletons"],
+                        default="centroid-of-singletons", choices=["centroid-of-singletons", 'centroid-of-voting'],
                         help="the name of the strategy to use to create the vector for the column.")
 
     # distance function
@@ -35,19 +36,24 @@ def add_arguments(parser):
         '--distance-function', action='store', dest='distance_function',
         default="cosine", choices=("cosine", "euclidean"),
         help="the function to compute similarity between column vectors and candidate vectors, "
-        "default is cosine.")
-
+             "default is cosine.")
 
     parser.add_argument(
         '-c', '--input-column-name', action='store', dest='input_column_name',
         default='kg_id',
         help="the name of the column containing the Qnodes.")
 
+    parser.add_argument(
+        '--min-vote', action='store', dest='min_vote',
+        default=0,
+        help="When using centroid-of-voting, the minimum vote count a candidate need to receive to be count as high confidence candidate.")
+
     # output
     parser.add_argument(
         '-o', '--output-column-name', action='store', dest='output_column_name',
         default=None,
         help="the name of the column where the value of the distance function will be stored.")
+
 
 def run(**kwargs):
     try:
