@@ -35,6 +35,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`compute-tf-idf`](#command_compute-tf-idf)<sup>*</sup>: compute the "tf-idf" like score base on the candidates. It is not the real tf-idf score algorithm but using a algorithm similar to tf-idf score.
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
+- [`feature-voting`](#command_feature-voting)<sup>*</sup>: Perform voting on user specified feature column, for instance smallest_qnode_score, pagerank etc.
 - [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
 - [`get-fuzzy-matches`](#command_get-fuzzy-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search fuzzy match.
 - [`get-fuzzy-augmented-matches`](#command_get-fuzzy-augmented-matches)<sup>*</sup>: retrieves the identifiers of KG entities from an elasticsearch index. It does fuzzy search over multilingual labels, aliases, wikipedia and wikitable anchor text and wikipedia redirects.
@@ -48,6 +49,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
 - [`plot-score-figure`](#command_plot-score-figure)<sup>*</sup>: visulize the score of the input data with 2 different kind of bar charts.
 - [`score-using-embedding`](#command_score-using-embedding)<sup>*</sup>: Score candidates using pre-computed embedding vectors
+- [`smallest-qnode-number`](#command_smallest-qnode-number)<sup>*</sup>: Add a feature column called smallest_qnode_number where candidates with smallest qnode number receives 1 for this feature while others receive 0.
 - [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
 - [`string-similarity`](#command_string-similarity)<sup>*</sup>: compares the cell values in two input columns and outputs a similarity score for each pair of participating strings
 - [`tee`](#command_tee)<sup>*</sup>: saves the input to disk and echoes the input to the standard output without modification.
@@ -815,6 +817,7 @@ In future, more string similarity algorithms will be supported
 - `-c {a,b}`: input columns containing the cells to be compared. The two columns are represented as a comma separated string. Default value is set as `a=label_clean` and `b=kg_labels`. Column `b` could have multiple labels splitted by `|` while column `a` could have only 1 label.
 - `--method list{string}`: the string similarity method to use, please refer to the introduction parts above for details. Mutiple method values is accepted here. You can send multiple methods in one time.
 - `-i`: case insensitive comparison. Default is case sensitive
+- `-o OUTPUT_COLUMN`, `--output-column-name OUTPUT_COLUMN`: specifies which named column the string similarity score is stored in. If not specified, the output column will be named in the format: `target_label_candidate_label_method`
 
 The string similarity scores are added to a output columns.
 If the specific columns (not `["label_clean", "kg_labels"]`)is given, the compared column names will be added to the column name whose name will be in the format `<col_1>\_<col_2>\_\<algorithm>`.
@@ -854,6 +857,30 @@ column row clean_labels kg_id     kg_labels                             clean_la
 For any input cell value, s and  a candidate c, String similarity outputs a score computed as follows,
 
 <code> stringSimilarity(s, c) := max(similarityFunction(s, l)) ∀ l ∈ { labels(c) } </code>
+
+<a name="command_smallest-qnode-number" />
+
+### [`smallest-qnode-number`](#command_smallest-qnode-number)` [OPTIONS]`
+The `smallest-qnode-number` command adds a new feature column named `smallest_qnode_number` where for each candidate set, the candidate with the smallest qnode number (numeric) receives 1 for this feature while other candidates receive 0.
+
+**Examples:**
+```
+tl smallest-qnode-number input_file.csv > output_file.csv
+```
+
+**File Example:**
+```
+column row clean_labels kg_id     kg_labels                             smallest_qnode_number
+1      0   Budapest     Q1781     Budapest|Buda Pest|Buda-Pest|Buda     1
+1      0   Budapest     Q16467392 Budapest (chanson)                    0
+1      0   Budapest     Q55420238 Budapest|Budapest, a song             0
+1      1   Prague       Q1085     Prague|Praha|Praha|Hlavní město Praha 1
+1      1   Prague       Q1953283  Prague, Oklahoma                      0
+1      1   Prague       Q2084234  Prague, Nebraska                      0
+1      1   Prague       Q5969542  Prague                                0
+1      2   London       Q84       London|London, UK|London, England     1
+1      2   London       Q92561    London ON                             0
+```
 
 
 <a name="command_merge-columns" />
@@ -953,9 +980,11 @@ The `score-using-embedding` command uses pre-computed embedding vectors to score
 
 If both tsv file and elasticsearch server are provided, the tsv is tried first then the Elasticsearch server. Embedding vectors hits from the Elasticsearch server are append to the tsv file.
 
-Currently, thre is only one strategy for ranking:
+Currently, there are two strategies for ranking:
 
 - `--column-vector-strategy centroid-of-singletons`: Compute the centroid of all singleton candidate vectors, then use the distance of this centroid to rank each candidate. If an entity that only has one candidate, then that candidate is a singleton candidate.
+
+- `--column-vector-strategy centroid-of-voting`: Tabulates votes for each candidate based on feature columns specified by user using `feature-voting` and generate high-confidence candidates. Compute the centroid of all high-confidence candidate vectors, then use the distance of this centroid to rank each candidate. 
 
 **Options:**
 - `--embedding-file EMBEDDING_FILE`: Vector embedding in TSV format. Column one contains qnodes, and the other columns are vectors.
@@ -964,6 +993,20 @@ Currently, thre is only one strategy for ranking:
 - `--distance-function {cosine,euclidean}`: The function to compute similarity between column vectors and candidate vectors, default is cosine.
 - `-c INPUT_COLUMN_NAME`, `--input-column-name INPUT_COLUMN_NAME`: The name of the column containing the Qnodes.
 - `-o OUTPUT_COLUMN_NAME`, `--output-column-name OUTPUT_COLUMN_NAME`: The output scoring column name. If not provided, the name of the embedding model will be used.
+- `--min-vote`: The minimum number of votes a candidate should get in order to be considered as high-confidence candidate. Default value is 0.
+
+<a name="#command_feature-voting" />
+
+### [`feature-voting`](#command_feature-voting)` [OPTIONS]`
+The `feature-voting` command takes user specified feature column names, tabulate the votes in each feature column, and add `votes` column to output dataframe.
+
+**Example:**
+```
+tl smallest-qnode-number input_file.csv / string-similarity -i --method monge_elkan:tokenizer=word -o monge_elkan / string-similarity -i --method jaccard:tokenizer=word -c description context -o des_cont_jaccard / feature-voting -c "pagerank,smallest_qnode_number,monge_elkan,des_cont_jaccard" > output_file.csv
+```
+
+**Options:**
+- `-c INPUT_COLUMN_NAMES`, `--input-column-names INPUT_COLUMN_NAMES`: The user specified feature column names, separated by `,`. If provided feature column does not exist in input_file.csv, the command will error out. 
 
 
 ## Ranking Candidate Commands
