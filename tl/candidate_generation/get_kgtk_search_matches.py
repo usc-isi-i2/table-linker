@@ -55,11 +55,21 @@ class KGTKSearchMatches(object):
 
                         _['kg_id'] = sr['qnode']
                         _['pagerank'] = sr['pagerank']
-                        kg_label = ''
+                        kg_label = []
+                        kg_description = ''
+
                         if 'label' in sr and len(sr['label']) > 0:
-                            kg_label = sr['label'][0]
-                        _['kg_labels'] = kg_label
+                            kg_label.extend(sr['label'])
+                        if 'alias' in sr and len(sr['alias']) > 0:
+                            kg_label.extend(sr['alias'])
+                        _['kg_labels'] = "|".join(kg_label)
+
                         _['method'] = 'kgtk-search'
+
+                        if 'description' in sr and len(sr['description']) > 0:
+                            kg_description = "|".join(sr['description'])
+                        _['kg_descriptions'] = kg_description
+
                         _[output_column_name] = sr['score']
                         new_df_list.append(_)
                 else:
@@ -71,6 +81,7 @@ class KGTKSearchMatches(object):
                     _['pagerank'] = ''
                     _['kg_labels'] = ''
                     _['method'] = ''
+                    _['kg_descriptions'] = ''
                     _[output_column_name] = ''
                     new_df_list.append(_)
                 seen_dict[row_key] = 1
