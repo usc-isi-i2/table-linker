@@ -250,7 +250,6 @@ This command retrieves the identifiers of KG entities whose label or aliases mat
 
 **Options:**
 - `-c a`: the column used for retrieving candidates.
-- `-p {a,b,c}`:  a comma separated names of properties in the KG to search for exact match query: default is `labels,aliases`.
 - `-i`: case insensitive retrieval, default is case sensitive.
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
 - `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
