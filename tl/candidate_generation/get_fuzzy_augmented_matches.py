@@ -208,7 +208,7 @@ class FuzzyAugmented(object):
                         _['method'] = 'fuzzy-augmented'
                         _[output_column_name] = sr[1][1]
                         _['pagerank'] = sr[1][2]
-                        _['description'] = sr[1][3]
+                        _['kg_descriptions'] = sr[1][3]
                         new_df_list.append(_)
                 else:
                     _ = {}
@@ -220,7 +220,7 @@ class FuzzyAugmented(object):
                     _['method'] = 'fuzzy-augmented'
                     _[output_column_name] = ''
                     _['pagerank'] = sr[1][2]
-                    _['description'] = ''
+                    _['kg_descriptions'] = ''
                     new_df_list.append(_)
                 seen_dict[row_key] = 1
 
