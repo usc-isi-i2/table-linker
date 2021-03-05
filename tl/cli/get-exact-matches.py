@@ -21,17 +21,16 @@ def add_arguments(parser):
     parser.add_argument('-c', '--column', action='store', type=str, dest='column', required=True,
                         help='the column used for retrieving candidates.')
 
-    parser.add_argument('-p', '--properties', action='store', type=str, dest='properties', default='labels,aliases',
-                        help='a comma separated names of properties in the KG to search for exact match query')
-
     parser.add_argument('-i', action='store_true', dest='case_sensitive',
                         help='case insensitive retrieval, default is case sensitive')
 
     parser.add_argument('-n', action='store', type=int, dest='size', default=50,
                         help='maximum number of candidates to retrieve')
 
-    parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column_name', default="retrieval_score",
-                        help='the output column name where the normalized scores will be stored.Default is retrieval_score')
+    parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column_name',
+                        default="retrieval_score",
+                        help='the output column name where the normalized scores will be stored.'
+                             'Default is retrieval_score')
 
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
@@ -43,7 +42,7 @@ def run(**kwargs):
         df = pd.read_csv(kwargs['input_file'], dtype=object)
         em = get_exact_matches.ExactMatches(es_url=kwargs['url'], es_index=kwargs['index'], es_user=kwargs['user'],
                                             es_pass=kwargs['password'], output_column_name=kwargs['output_column_name'])
-        odf = em.get_exact_matches(kwargs['column'], properties=kwargs['properties'],
+        odf = em.get_exact_matches(kwargs['column'],
                                    lower_case=kwargs['case_sensitive'],
                                    size=kwargs['size'], df=df)
         odf.to_csv(sys.stdout, index=False)
