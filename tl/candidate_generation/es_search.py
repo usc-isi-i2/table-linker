@@ -148,11 +148,16 @@ class Search(object):
                     for hit in hits_copy:
                         _source = hit['_source']
                         all_labels = []
+                        description = ""
                         if 'en' in _source['labels']:
                             all_labels.extend(_source['labels']['en'])
                         if 'en' in _source['aliases']:
                             all_labels.extend(_source['aliases']['en'])
-                        candidate_dict[hit['_id']] = {'score': hit['_score'], 'label_str': '|'.join(all_labels)}
+                        if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
+                            description = "|".join(_source['descriptions']['en'])
+                        candidate_dict[hit['_id']] = {'score': hit['_score'],
+                                                      'label_str': '|'.join(all_labels),
+                                                      'description_str': description}
             self.query_cache[parameter] = candidate_dict
 
         return self.query_cache[parameter]
