@@ -42,7 +42,7 @@ class Search(object):
         return self.query_cache[cache_key]
 
     def create_exact_match_query(self, search_term, lower_case, size, properties):
-        should = list()
+        must = list()
         for property in properties:
             query_part = {
                 "term": {
@@ -58,12 +58,12 @@ class Search(object):
                         }
                     }
                 }
-            should.append(query_part)
+            must.append(query_part)
 
         return {
             "query": {
                 "bool": {
-                    "should": should
+                    "must": must
                 }
             },
             "size": size
@@ -146,8 +146,12 @@ class Search(object):
                 if hits is not None:
                     hits_copy = hits.copy()  # prevent change on query cache
                     for hit in hits_copy:
-                        all_labels = hit['_source'].get('labels', [])
-                        all_labels.extend(hit['_source'].get('aliases', []))
+                        _source = hit['_source']
+                        all_labels = []
+                        if 'en' in _source['labels']:
+                            all_labels.extend(_source['labels']['en'])
+                        if 'en' in _source['aliases']:
+                            all_labels.extend(_source['aliases']['en'])
                         candidate_dict[hit['_id']] = {'score': hit['_score'], 'label_str': '|'.join(all_labels)}
             self.query_cache[parameter] = candidate_dict
 
