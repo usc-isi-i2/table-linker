@@ -259,6 +259,9 @@ labels or aliases, an empty string "" is recorded. A `|` separated string repres
 The values to be added in the  column `kg_labels` are retrieved from the Elasticsearch index based on the `-p` option as
 defined above.
 
+This command will also add the column `kg_descriptions` to record english descriptions of the candidate knowledge graph object. In case of missing 
+description, an empty string "" is recorded. A '|' separated string represents multiple english descriptions.
+
 The string `exact-match` is recorded in the column `method` to indicate the source of the candidates.
 
 The Elasticsearch queries return a score which is recorded in the column `retrieval_score`. The scores are stored in
