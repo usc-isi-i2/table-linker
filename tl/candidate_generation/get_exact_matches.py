@@ -9,7 +9,7 @@ class ExactMatches(object):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
         self.utility = Utility(self.es, output_column_name)
 
-    def get_exact_matches(self, column, properties="labels,aliases", lower_case=False, size=50, file_path=None,
+    def get_exact_matches(self, column, lower_case=False, size=50, file_path=None,
                           df=None):
         """
         retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
@@ -32,5 +32,7 @@ class ExactMatches(object):
             df = pd.read_csv(file_path, dtype=object)
 
         df.fillna(value="", inplace=True)
+
+        properties = "all_labels.en"
 
         return self.utility.create_candidates_df(df, column, size, properties, 'exact-match', lower_case=lower_case)
