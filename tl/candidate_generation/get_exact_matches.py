@@ -1,4 +1,5 @@
 import pandas as pd
+from typing import List
 from tl.candidate_generation.es_search import Search
 from tl.candidate_generation.utility import Utility
 from tl.exceptions import RequiredInputParameterMissingException
@@ -10,7 +11,7 @@ class ExactMatches(object):
         self.utility = Utility(self.es, output_column_name)
 
     def get_exact_matches(self, column, lower_case=False, size=50, file_path=None,
-                          df=None):
+                          df=None, auxiliary_fields: List[str] = None, auxiliary_folder: str = None):
         """
         retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
 
@@ -35,4 +36,11 @@ class ExactMatches(object):
 
         properties = "all_labels.en"
 
-        return self.utility.create_candidates_df(df, column, size, properties, 'exact-match', lower_case=lower_case)
+        return self.utility.create_candidates_df(df,
+                                                 column,
+                                                 size,
+                                                 properties,
+                                                 'exact-match',
+                                                 lower_case=lower_case,
+                                                 auxiliary_fields=auxiliary_fields,
+                                                 auxiliary_folder=auxiliary_folder)
