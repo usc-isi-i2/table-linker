@@ -150,9 +150,10 @@ class Search(object):
                         if _id not in candidate_aux_dict:
                             candidate_aux_dict[_id] = {}
 
-                        for auxiliary_field in auxiliary_fields:
-                            if auxiliary_field in _source:
-                                candidate_aux_dict[_id][auxiliary_field] = _source[auxiliary_field]
+                        if auxiliary_fields is not None:
+                            for auxiliary_field in auxiliary_fields:
+                                if auxiliary_field in _source:
+                                    candidate_aux_dict[_id][auxiliary_field] = _source[auxiliary_field]
 
             self.query_cache[parameter] = candidate_dict
 

@@ -87,7 +87,7 @@ class Utility(object):
                     cf_dict['kg_descriptions'] = candidate_dict[kg_id]['description_str']
                     cf_dict[self.score_column_name] = candidate_dict[kg_id]['score']
                     candidates_format.append(cf_dict)
-        return candidates_format
+        return candidates_format, all_candidates_aux_dict
 
     def create_cfd_candidates(self, key_tuple, column, size, properties, method, lower_case, auxiliary_fields=None):
         candidates_format = list()
@@ -131,18 +131,19 @@ class Utility(object):
 
     def write_auxiliary_files(self, auxiliary_folder, all_candidates_aux_dict, auxiliary_fields):
         _ = {}
-        for aux_field in auxiliary_fields:
-            _[aux_field] = list()
-
-        for qnode in all_candidates_aux_dict:
-            qnode_dict = all_candidates_aux_dict[qnode]
+        if auxiliary_fields is not None:
             for aux_field in auxiliary_fields:
-                if aux_field in qnode_dict:
-                    _[aux_field].append({
-                        'qnode': qnode,
-                        aux_field: qnode_dict[aux_field]
-                    })
+                _[aux_field] = list()
 
-        for key in _:
-            df = pd.DataFrame(_[key])
-            df.to_csv(f"{auxiliary_folder}/{key}.tsv", sep='\t', index=False)
+            for qnode in all_candidates_aux_dict:
+                qnode_dict = all_candidates_aux_dict[qnode]
+                for aux_field in auxiliary_fields:
+                    if aux_field in qnode_dict:
+                        _[aux_field].append({
+                            'qnode': qnode,
+                            aux_field: qnode_dict[aux_field]
+                        })
+
+            for key in _:
+                df = pd.DataFrame(_[key])
+                df.to_csv(f"{auxiliary_folder}/{key}.tsv", sep='\t', index=False)
