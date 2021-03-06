@@ -51,16 +51,23 @@ def run(**kwargs):
     try:
         auxiliary_fields = kwargs.get('auxiliary_fields', None)
         auxiliary_folder = kwargs.get('auxiliary_folder', None)
+
         if (auxiliary_folder is not None and auxiliary_fields is None) or (
                 auxiliary_folder is None and auxiliary_fields is not None):
             raise Exception("Both the options `--auxiliary-fields` and `--auxiliary-folder` have to be specified "
                             "if either one is specified")
+
+        if auxiliary_fields is not None:
+            auxiliary_fields = auxiliary_fields.split(",")
+
         df = pd.read_csv(kwargs['input_file'], dtype=object)
         em = get_exact_matches.ExactMatches(es_url=kwargs['url'], es_index=kwargs['index'], es_user=kwargs['user'],
                                             es_pass=kwargs['password'], output_column_name=kwargs['output_column_name'])
         odf = em.get_exact_matches(kwargs['column'],
                                    lower_case=kwargs['case_sensitive'],
-                                   size=kwargs['size'], df=df)
+                                   size=kwargs['size'], df=df,
+                                   auxiliary_fields=auxiliary_fields,
+                                   auxiliary_folder=auxiliary_folder)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-exact-matches\n'
