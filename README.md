@@ -253,6 +253,8 @@ This command retrieves the identifiers of KG entities whose label or aliases mat
 - `-i`: case insensitive retrieval, default is case sensitive.
 - `-n {number}`: maximum number of candidates to retrieve, default is 50.
 - `-o /--output-column {string}`:  Set a speicifc output column name can help to make split scoring columns for different match methods. If not given, in default all matching methods' scores will in one column.
+- `--auxiliary-fields`: A comma separated string of auxiliary field names in the elasticsearch. A file will be created for each of the specified field at the location specified by the `--auxiliary-folder` option. If this option is specified then, `--auxiliary-folder` must also be specified.
+- `--auxiliary-folder`: location where the auxiliary files for auxiliary fields will be stored. If this option is specified then `--auxiliary-fields` must also be specified.
 
 This command will add the column `kg_labels` to record the labels and aliases of the candidate knowledge graph object. In case of missing
 labels or aliases, an empty string "" is recorded. A `|` separated string represents multiple labels and aliases.
