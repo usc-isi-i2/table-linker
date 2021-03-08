@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 from tl.file_formats_validator import FFV
 from tl.exceptions import UnsupportTypeError
 

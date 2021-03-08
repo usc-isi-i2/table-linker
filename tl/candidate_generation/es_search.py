@@ -113,6 +113,65 @@ class Search(object):
 
         return query
 
+    def create_fuzzy_augmented_query(self,search_term: str, size: int, properties: List[str]):
+        query = {
+            "query": {
+                "bool": {
+                    "should": [
+                        {
+                            "multi_match": {
+                                "query": search_term,
+                                "fields": properties,
+                                "fuzziness": "AUTO",
+                                "prefix_length": 1,
+                                "max_expansions": 3
+                            }
+                        }
+                    ]
+                }
+            },
+            "size": size
+        }
+        return query
+
+    def create_fuzzy_augmented_keyword_lower_query(self,search_term: str, size: int, properties: List[str]):
+        keyword_lower_prop = [prop + '.keyword_lower' for prop in properties]
+        query = {
+            "query": {
+                "bool": {
+                    "should": [
+                        {
+                            "multi_match": {
+                                "query": search_term,
+                                "fields": keyword_lower_prop,
+                                "fuzziness": "AUTO",
+                                "prefix_length": 1,
+                                "max_expansions": 3
+                            }
+                        }
+                    ]
+                }
+            },
+            "size": size
+        }
+        return query
+
+    def create_fuzzy_augmented_union(self,fuzzy_augmented_hits,fuzzy_augmented_keyword_lower_hits):
+        seen_ids = set()
+        hits = []
+        for item in fuzzy_augmented_hits:
+            if item['_id'] not in seen_ids:
+                hits.append(item)
+                seen_ids.add(item['_id'])
+        
+        for item in fuzzy_augmented_keyword_lower_hits:
+            if item['_id'] not in seen_ids:
+                hits.append(item)
+                seen_ids.add(item['_id'])
+        
+        return hits
+
+
     def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
                                lower_case: bool = False, auxiliary_fields: List[str] = None):
         candidate_dict = {}
@@ -130,6 +189,10 @@ class Search(object):
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
                 elif query_type == 'fuzzy-match':
                     hits = self.search_es(self.create_fuzzy_query(search_term, size, properties))
+                elif query_type == 'fuzzy-augmented':
+                    fuzzy_augmented_hits = self.search_es(self.create_fuzzy_augmented_query(search_term,size,properties))
+                    fuzzy_augmented_keyword_lower_hits = self.search_es(self.create_fuzzy_augmented_keyword_lower_query(search_term,size,properties))
+                    hits = self.create_fuzzy_augmented_union(fuzzy_augmented_hits,fuzzy_augmented_keyword_lower_hits)
                 if hits is not None:
                     hits_copy = hits.copy()  # prevent change on query cache
                     for hit in hits_copy:
