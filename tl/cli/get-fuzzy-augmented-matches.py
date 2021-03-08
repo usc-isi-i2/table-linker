@@ -41,10 +41,6 @@ def add_arguments(parser):
                         help='location where the auxiliary files for auxiliary fields will be stored.'
                              'If this option is specified then `--auxiliary-fields` must also be specified.')
 
-    parser.add_argument('--es-url',action='store',type=str,dest='es_url',default='http://localhost:9200')
-
-    parser.add_argument('--es-index',action='store',type=str,dest='es_index',default='wikidata_index')
-
     parser.add_argument('input_file',nargs='?',type=argparse.FileType('r'),default=sys.stdin)
 
 
