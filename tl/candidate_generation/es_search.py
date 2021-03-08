@@ -127,6 +127,21 @@ class Search(object):
                                 "max_expansions": 3
                             }
                         }
+                    ],
+                    "must_not":[
+                        {
+                            "terms": {
+                                "descriptions.en.keyword_lower": [
+                                    "wikimedia disambiguation page",
+                                    "wikimedia category",
+                                    "wikimedia kml file",
+                                    "wikimedia list article",
+                                    "wikimedia template",
+                                    "wikimedia module",
+                                    "wikinews article"
+                                ]
+                            }
+                        }
                     ]
                 }
             },
@@ -147,6 +162,21 @@ class Search(object):
                                 "fuzziness": "AUTO",
                                 "prefix_length": 1,
                                 "max_expansions": 3
+                            }
+                        }
+                    ],
+                    "must_not":[
+                        {
+                            "terms": {
+                                "descriptions.en.keyword_lower": [
+                                    "wikimedia disambiguation page",
+                                    "wikimedia category",
+                                    "wikimedia kml file",
+                                    "wikimedia list article",
+                                    "wikimedia template",
+                                    "wikimedia module",
+                                    "wikinews article"
+                                ]
                             }
                         }
                     ]

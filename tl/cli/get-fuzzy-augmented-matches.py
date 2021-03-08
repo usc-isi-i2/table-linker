@@ -75,4 +75,5 @@ def run(**kwargs):
     except:
         message = 'Command: get-fuzzy-augmented-matches\n'
         message += 'Error Message: {}\n'.format(traceback.format_exc())
+        print('entered except',file=sys.stderr)
         raise tl.exceptions.TLException(message)
