@@ -14,7 +14,7 @@ class Utility(object):
 
     def create_candidates_df(self, df, column, size, properties, method, lower_case=False, auxiliary_fields=None,
                              auxiliary_folder=None):
-        properties = properties.split(',')
+        properties = [_.strip() for _ in properties.split(',')]
         candidates_format = list()
         df_columns = df.columns
         all_candidates_aux_dict = {}

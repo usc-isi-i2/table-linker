@@ -113,7 +113,9 @@ class Search(object):
 
         return query
 
-    def create_fuzzy_augmented_query(self,search_term: str, size: int, properties: List[str]):
+    def create_fuzzy_augmented_query(self,search_term: str, size: int, lower_case: bool, properties: List[str]):
+        if lower_case:
+            properties =  [prop + '.keyword_lower' for prop in properties]
         query = {
             "query": {
                 "bool": {
@@ -122,43 +124,6 @@ class Search(object):
                             "multi_match": {
                                 "query": search_term,
                                 "fields": properties,
-                                "fuzziness": "AUTO",
-                                "prefix_length": 1,
-                                "max_expansions": 3
-                            }
-                        }
-                    ],
-                    "must_not":[
-                        {
-                            "terms": {
-                                "descriptions.en.keyword_lower": [
-                                    "wikimedia disambiguation page",
-                                    "wikimedia category",
-                                    "wikimedia kml file",
-                                    "wikimedia list article",
-                                    "wikimedia template",
-                                    "wikimedia module",
-                                    "wikinews article"
-                                ]
-                            }
-                        }
-                    ]
-                }
-            },
-            "size": size
-        }
-        return query
-
-    def create_fuzzy_augmented_keyword_lower_query(self,search_term: str, size: int, properties: List[str]):
-        keyword_lower_prop = [prop + '.keyword_lower' for prop in properties]
-        query = {
-            "query": {
-                "bool": {
-                    "should": [
-                        {
-                            "multi_match": {
-                                "query": search_term,
-                                "fields": keyword_lower_prop,
                                 "fuzziness": "AUTO",
                                 "prefix_length": 1,
                                 "max_expansions": 3
@@ -220,8 +185,8 @@ class Search(object):
                 elif query_type == 'fuzzy-match':
                     hits = self.search_es(self.create_fuzzy_query(search_term, size, properties))
                 elif query_type == 'fuzzy-augmented':
-                    fuzzy_augmented_hits = self.search_es(self.create_fuzzy_augmented_query(search_term,size,properties))
-                    fuzzy_augmented_keyword_lower_hits = self.search_es(self.create_fuzzy_augmented_keyword_lower_query(search_term,size,properties))
+                    fuzzy_augmented_hits = self.search_es(self.create_fuzzy_augmented_query(search_term,size, lower_case, properties))
+                    fuzzy_augmented_keyword_lower_hits = self.search_es(self.create_fuzzy_augmented_query(search_term,size, not(lower_case),properties))
                     hits = self.create_fuzzy_augmented_union(fuzzy_augmented_hits,fuzzy_augmented_keyword_lower_hits)
                 if hits is not None:
                     hits_copy = hits.copy()  # prevent change on query cache
