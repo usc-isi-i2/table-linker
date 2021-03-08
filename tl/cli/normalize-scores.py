@@ -24,6 +24,11 @@ def add_arguments(parser):
     parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column',
                         help='the output column name where the normalized scores will be stored.Default is input column'
                              ' name appended with the suffix _normalized')
+    
+    parser.add_argument('-t', '--normalization-type', action='store', type=str, dest='normalization_type', default='max_norm',
+                        help='Choose type of normalization. We support Max normalization and Z Score normalization '
+                            'Choose from "max_norm" or "zscore" '
+                            'By default the normalization type is Max normalization')
 
     parser.add_argument('-w', '--weights', action='store', type=str, dest='weights',
                         help='a comma separated string of the format '
@@ -40,9 +45,12 @@ def run(**kwargs):
 
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        if kwargs['normalization_type'] != 'max_norm' and kwargs['normalization_type'] != 'zscore':
+            raise Exception('Entered normalization type is not supported '
+                            'Select from "max_norm" or "zscore"') 
 
         odf = normalize_scores.normalize_scores(column=kwargs['column'], output_column=kwargs['output_column'], df=df,
-                                                weights=kwargs['weights'])
+                                                weights=kwargs['weights'], norm_type=kwargs['normalization_type'])
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: normalize-scores\n'

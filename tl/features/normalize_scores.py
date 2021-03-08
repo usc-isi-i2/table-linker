@@ -7,7 +7,7 @@ from tl.exceptions import RequiredInputParameterMissingException
 from tl.exceptions import RequiredColumnMissingException
 
 
-def normalize_scores(column='retrieval_score', output_column=None, weights=None, file_path=None, df=None):
+def normalize_scores(column='retrieval_score', output_column=None, weights=None, file_path=None, df=None, norm_type=None):
     """
     normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells in a column
 
@@ -44,12 +44,21 @@ def normalize_scores(column='retrieval_score', output_column=None, weights=None,
     grouped_df = df.groupby(by=['column', 'method'])
 
     o_df = list()
-    for i, gdf in grouped_df:
-        max_score = gdf[column].max()
-        # TODO find a better way to do this without having to make a copy
-        fdf = gdf.copy(deep=True)
-        fdf[output_column] = gdf[column].map(lambda x: divide_a_by_b(x, max_score) * method_weights.get(i[1], 1.0))
-        o_df.append(fdf)
+    if norm_type == 'max_norm':
+        for i, gdf in grouped_df:
+            max_score = gdf[column].max()
+            # TODO find a better way to do this without having to make a copy
+            fdf = gdf.copy(deep=True)
+            fdf[output_column] = gdf[column].map(lambda x: divide_a_by_b(x, max_score) * method_weights.get(i[1], 1.0))
+            o_df.append(fdf)
+    elif norm_type == 'zscore':
+        for i, gdf in grouped_df:
+            mean_score = gdf[column].mean()
+            std_score = gdf[column].std()
+            # TODO find a better way to do this without having to make a copy
+            fdf = gdf.copy(deep=True)
+            fdf[output_column] = gdf[column].map(lambda x: zscore_normalization(x, mean_score, std_score) * method_weights.get(i[1], 1.0))
+            o_df.append(fdf)
 
     out_df = Utility.sort_by_col_and_row(pd.concat(o_df))
     return out_df
@@ -147,3 +156,7 @@ def divide_a_by_b(a, b):
     if b == 0.0:
         return 0.0
     return a / b
+
+def zscore_normalization(val, mean_val, std_val):
+    normalized_score = (val - mean_val)/std_val
+    return normalized_score
