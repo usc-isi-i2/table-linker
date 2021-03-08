@@ -935,7 +935,17 @@ Note that the column containing the retrieval method names is `method`, added by
 
 **Options:**
 - `-c a`: column name which has the retrieval scores. Default is `retrieval_score`
+
 - `-o a`: the output column name where the normalized scores will be stored. Default is input column name appended with the suffix `_normalized`
+
+- `-t | --normalization-type`: Accepts two types of normalization that can be applied to the scores. The types accepted are
+
+   - `max_norm` which normalizes by dividing by the max value present in the column
+
+   - `zscore` which does the zscore normlaization. `score(i) - mean(score)/standard_deviation(score)`
+
+      By default the type is `max_norm`
+
 - `-w|--weights`: a comma separated string of the format `<retrieval_method_1:<weight_1>, <retrieval_method_2:<weight_2>,...>`
  specifying the weights for each retrieval method. By default, all retrieval method weights are set to 1.0
 
@@ -945,7 +955,8 @@ Note that the column containing the retrieval method names is `method`, added by
 $ tl normalize-scores < countries_candidates.csv > countries_candidates_normalized.csv
 
 # compute normalized scores for the column 'es_score', output in the column 'normalized_es_scores' with specified weights
-$ tl normalize-scores -c es_score -o normalized_es_scores -w 'es_method_1:0.4,es_method_2:0.92' countries_candidates.csv
+$ tl normalize-scores -c es_score -o normalized_es_scores -t max_norm -w 'es_method_1:0.4,es_method_2:0.92' countries_candidates.csv
+
 ```
 
 **File Example:**
