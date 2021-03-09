@@ -195,16 +195,20 @@ class Search(object):
                         _id = hit['_id']
                         all_labels = []
                         description = ""
+                        pagerank = 0.0
                         if 'en' in _source['labels']:
                             all_labels.extend(_source['labels']['en'])
                         if 'en' in _source['aliases']:
                             all_labels.extend(_source['aliases']['en'])
                         if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
                             description = "|".join(_source['descriptions']['en'])
+                        if 'pagerank' in _source:
+                            pagerank = _source['pagerank']
 
                         candidate_dict[_id] = {'score': hit['_score'],
                                                'label_str': '|'.join(all_labels),
-                                               'description_str': description}
+                                               'description_str': description,
+                                               'pagerank_float': pagerank}
                         if _id not in candidate_aux_dict:
                             candidate_aux_dict[_id] = {}
 
