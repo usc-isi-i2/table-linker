@@ -195,7 +195,7 @@ class Search(object):
                         _id = hit['_id']
                         all_labels = []
                         description = ""
-                        pagerank = 0
+                        pagerank = 0.0
                         if 'en' in _source['labels']:
                             all_labels.extend(_source['labels']['en'])
                         if 'en' in _source['aliases']:
