@@ -71,6 +71,7 @@ class Utility(object):
 
                 cf_dict['kg_id'] = ""
                 cf_dict['kg_labels'] = ""
+                cf_dict['kg_aliases'] = ""
                 cf_dict['method'] = method
                 cf_dict['kg_descriptions'] = ""
                 cf_dict['pagerank'] = 0.0
@@ -85,6 +86,7 @@ class Utility(object):
 
                     cf_dict['kg_id'] = kg_id
                     cf_dict['kg_labels'] = candidate_dict[kg_id]['label_str']
+                    cf_dict['kg_aliases'] = candidate_dict[kg_id]['alias_str']
                     cf_dict['method'] = method
                     cf_dict['kg_descriptions'] = candidate_dict[kg_id]['description_str']
                     cf_dict['pagerank'] = candidate_dict[kg_id]['pagerank_float']
@@ -114,6 +116,7 @@ class Utility(object):
 
             cf_dict['kg_id'] = ""
             cf_dict['kg_labels'] = ""
+            cf_dict['kg_aliases'] = ""
             cf_dict['method'] = method
             cf_dict['kg_descriptions'] = ""
             cf_dict['pagerank'] = 0.0
@@ -127,6 +130,7 @@ class Utility(object):
 
                 cf_dict['kg_id'] = kg_id
                 cf_dict['kg_labels'] = candidate_dict[kg_id]['label_str']
+                cf_dict['kg_aliases'] = candidate_dict[kg_id]['alias_str']
                 cf_dict['method'] = method
                 cf_dict['kg_descriptions'] = candidate_dict[kg_id]['description_str']
                 cf_dict['pagerank'] = candidate_dict[kg_id]['pagerank_float']
