@@ -88,15 +88,18 @@ class EmbeddingVector:
                     }
                 }
             }
-            response = requests.get(search_url, data=json.dumps(query))
+            # TODO index and query has changed
+            # response = requests.get(search_url, data=json.dumps(query))
+            response = requests.get(search_url, json=query)
             result = response.json()
+            # print(result, file=sys.stderr)
             if result['hits']['total'] == 0:
                 missing += part
             else:
                 hit_qnodes = []
                 for hit in result['hits']['hits']:
                     qnode = hit['_source']['id']
-                    vector = np.asarray(list(map(float, hit['_source']['embedding'].split())))
+                    vector = np.asarray(list(map(float, hit['_source']['embedding'])))
                     hit_qnodes.append(qnode)
                     self.vectors_map[qnode] = vector
                 found += hit_qnodes
@@ -193,6 +196,8 @@ class EmbeddingVector:
         if len(missing_embedding_ids):
             print(f'_centroid_of_singletons: Missing {len(missing_embedding_ids)} of {len(singleton_ids)}',
                   file=sys.stderr)
+            print(f'Missing centroids are {missing_embedding_ids}',
+                  file=sys.stderr)
 
         # centroid of singletons
         self.centroid = np.mean(np.array(vectors), axis=0)
@@ -231,6 +236,8 @@ class EmbeddingVector:
         # print(*missing_embedding_ids, file=sys.stderr)
         if len(missing_embedding_ids):
             print(f'_centroid_of_voting: Missing {len(missing_embedding_ids)} of {len(singleton_ids)}',
+                  file=sys.stderr)
+            print(f'Missing centroids are {missing_embedding_ids}',
                   file=sys.stderr)
 
         # centroid of singletons

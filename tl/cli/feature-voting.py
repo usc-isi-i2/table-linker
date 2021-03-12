@@ -55,8 +55,8 @@ def run(**kwargs):
                     tmp_df[f'vote_{ft}'] = 0
                 else:
                     tmp_df[f'vote_{ft}'] = (tmp_df[ft] == feature_votes[ft]).astype(int)
-            group['votes'] = tmp_df.loc[:, [f'vote_{ft}' for ft in feature_col_name]].sum(axis=1)
-            odf = odf.append(group)
+            tmp_df['votes'] = tmp_df.loc[:, [f'vote_{ft}' for ft in feature_col_name]].sum(axis=1)
+            odf = odf.append(tmp_df)
 
         odf.to_csv(sys.stdout, index=False)
 
