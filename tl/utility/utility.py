@@ -173,8 +173,8 @@ class Utility(object):
                             _wikipedia_anchor_text = {}
                             _abbreviated_name = {}
                             _redirect_text = {}
-                            _text_embedding = None
-                            _graph_embeddings_complex = None
+                            _text_embedding = ''
+                            _graph_embeddings_complex = ''
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
@@ -383,7 +383,7 @@ class Utility(object):
                 if is_class:
                     _['is_class'] = 'true'
                 if text_embedding:
-                    _['text_embedding']: text_embedding
+                    _['text_embedding'] = text_embedding
                 if graph_embeddings_complex:
                     _['graph_embedding_complex'] = graph_embeddings_complex
                 output_file.write(json.dumps(_))
