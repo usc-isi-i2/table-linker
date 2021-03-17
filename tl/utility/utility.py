@@ -367,7 +367,8 @@ class Utility(object):
                      'wikitable_anchor_text': _wikitable_anchor_text,
                      'wikipedia_anchor_text': _wikipedia_anchor_text,
                      'abbreviated_name': _abbreviated_name,
-                     'redirect_text': _redirect_text
+                     'redirect_text': _redirect_text,
+                     'qnode_alias': prev_node
                      }
                 if extra_info:
                     _['edges'] = _edges
