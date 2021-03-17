@@ -23,7 +23,7 @@ from tl.exceptions import TLException
 class EmbeddingVector:
     def __init__(self, kwargs):
         self.kwargs = kwargs
-        self.loaded_file = None
+        self.loaded_file = self.load_input_file(self.kwargs)
         self.vectors_map = {}
         self.centroid = None
         self.groups = defaultdict(set)
@@ -31,14 +31,21 @@ class EmbeddingVector:
         self.debug = True
         self.min_vote = int(kwargs.get('min_vote', 0))
 
-    def load_input_file(self, input_file):
+    def load_input_file(self, kwargs):
         """
             read the input file
         """
-        self.loaded_file = pd.read_csv(input_file, dtype=object)
+        if 'input_file' in kwargs:
+            self.loaded_file = pd.read_csv(kwargs['input_file'], dtype=object)
+
+        if 'df' in kwargs:
+            self.loaded_file = kwargs['df']
 
         # Drop duplicate rows for uniqueness
         self.loaded_file.drop_duplicates(inplace=True, ignore_index=True)
+
+    def get_result_df(self):
+        return self.loaded_file
 
     def _load_vectors_from_file(self, embedding_file, qnodes):
         with open(embedding_file, 'rt') as fd:

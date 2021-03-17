@@ -58,9 +58,7 @@ def add_arguments(parser):
 def run(**kwargs):
     try:
         from tl.features.external_embedding import EmbeddingVector
-        input_file_path = kwargs.pop("input_file")
         vector_transformer = EmbeddingVector(kwargs)
-        vector_transformer.load_input_file(input_file_path)
         vector_transformer.get_vectors()
         vector_transformer.process_vectors()
         vector_transformer.add_score_column()
