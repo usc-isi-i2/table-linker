@@ -36,9 +36,9 @@ def run(**kwargs):
         input_file_path = kwargs.pop("input_file")
         input_column_names = kwargs.pop("input_column_names")
         df = pd.read_csv(input_file_path)
-        feature_col_name = input_column_names.split(',')
+        feature_col_names = input_column_names.split(',')
 
-        odf = feature_voting(feature_col_name, df)
+        odf = feature_voting(feature_col_names, df)
 
         odf.to_csv(sys.stdout, index=False)
 
