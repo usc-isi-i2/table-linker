@@ -90,6 +90,12 @@ class Utility(object):
         lang = 'en'
         qnode_statement_count = 0
         is_class = False
+        _wikitable_anchor_text = {}
+        _wikipedia_anchor_text = {}
+        _abbreviated_name = {}
+        _redirect_text = {}
+        _text_embedding = ''
+        _graph_embeddings_complex = ''
 
         _pagerank = 0.0
 
@@ -111,7 +117,7 @@ class Utility(object):
                     # header line
                     cols = line.replace('\n', '').split('\t')
                     column_header_dict = {
-                        'id': cols.index('id'),
+                        # 'id': cols.index('id'),
                         'node1': cols.index('node1'),
                         'label': cols.index('label'),
                         'node2': cols.index('node2')
@@ -142,7 +148,13 @@ class Utility(object):
                                                                          data_type=data_type,
                                                                          instance_ofs=_instance_ofs,
                                                                          qnode_statement_count=qnode_statement_count,
-                                                                         is_class=is_class
+                                                                         is_class=is_class,
+                                                                         wikitable_anchor_text=_wikitable_anchor_text,
+                                                                         wikipedia_anchor_text=_wikipedia_anchor_text,
+                                                                         abbreviated_name=_abbreviated_name,
+                                                                         redirect_text=_redirect_text,
+                                                                         text_embedding=_text_embedding,
+                                                                         graph_embeddings_complex=_graph_embeddings_complex
                                                                          )
                             # initialize for next node
                             _labels = dict()
@@ -157,6 +169,12 @@ class Utility(object):
                             lang = 'en'
                             qnode_statement_count = 0
                             is_class = False
+                            _wikitable_anchor_text = {}
+                            _wikipedia_anchor_text = {}
+                            _abbreviated_name = {}
+                            _redirect_text = {}
+                            _text_embedding = None
+                            _graph_embeddings_complex = None
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
@@ -202,6 +220,38 @@ class Utility(object):
                             data_type = vals[node2_id]
                         elif vals[label_id] == 'P279' and vals[node2_id].startswith('Q'):
                             is_class = True
+                        elif vals[label_id] == 'wikipedia_table_anchor':
+                            tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            if tmp_val.strip() != "":
+                                if lang not in _wikitable_anchor_text:
+                                    _wikitable_anchor_text[lang] = set()
+                                _wikitable_anchor_text[lang].add(tmp_val)
+                        elif vals[label_id] == 'wikipedia_anchor':
+                            tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            if tmp_val.strip() != "":
+                                if lang not in _wikipedia_anchor_text:
+                                    _wikipedia_anchor_text[lang] = set()
+                                _wikipedia_anchor_text[lang].add(tmp_val)
+                        elif vals[label_id] == 'redirect_from':
+                            tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            if tmp_val.strip() != "":
+                                if lang not in _redirect_text:
+                                    _redirect_text[lang] = set()
+                                _redirect_text[lang].add(tmp_val)
+                        elif vals[label_id] == 'abbreviated_name':
+                            tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            if tmp_val.strip() != "":
+                                if lang not in _abbreviated_name:
+                                    _abbreviated_name[lang] = set()
+                                _abbreviated_name[lang].add(tmp_val)
+                        elif vals[label_id] == 'graph_embeddings_complEx':
+                            _graph_embeddings_complex = vals[node2_id]
+                            if isinstance(_graph_embeddings_complex, str):
+                                _graph_embeddings_complex = [float(x) for x in _graph_embeddings_complex.split(",")]
+                        elif vals[label_id] == 'text_embedding':
+                            _text_embedding = vals[node2_id]
+                            if isinstance(_text_embedding, str):
+                                _text_embedding = [float(x) for x in _text_embedding.split(",")]
 
                         # if it is human
                         if vals[node2_id] in human_nodes_set:
@@ -220,7 +270,13 @@ class Utility(object):
                                                          data_type=data_type,
                                                          instance_ofs=_instance_ofs,
                                                          qnode_statement_count=qnode_statement_count,
-                                                         is_class=is_class
+                                                         is_class=is_class,
+                                                         wikitable_anchor_text=_wikitable_anchor_text,
+                                                         wikipedia_anchor_text=_wikipedia_anchor_text,
+                                                         abbreviated_name=_abbreviated_name,
+                                                         redirect_text=_redirect_text,
+                                                         text_embedding=_text_embedding,
+                                                         graph_embeddings_complex=_graph_embeddings_complex
                                                          )
         except:
             print(traceback.print_exc())
@@ -262,10 +318,20 @@ class Utility(object):
         data_type = kwargs['data_type']
         qnode_statement_count = kwargs['qnode_statement_count']
         is_class = kwargs['is_class']
+        wikitable_anchor_text = kwargs['wikitable_anchor_text']
+        wikipedia_anchor_text = kwargs['wikipedia_anchor_text']
+        abbreviated_name = kwargs['abbreviated_name']
+        redirect_text = kwargs['redirect_text']
+        text_embedding = kwargs['text_embedding']
+        graph_embeddings_complex = kwargs['graph_embeddings_complex']
 
         _labels = {}
         _aliases = {}
         _descriptions = {}
+        _wikitable_anchor_text = {}
+        _wikipedia_anchor_text = {}
+        _abbreviated_name = {}
+        _redirect_text = {}
 
         for k in labels:
             _labels[k] = list(labels[k])
@@ -276,19 +342,32 @@ class Utility(object):
         for k in descriptions:
             _descriptions[k] = list(descriptions[k])
 
+        for k in wikitable_anchor_text:
+            _wikitable_anchor_text[k] = list(wikitable_anchor_text[k])
+
+        for k in wikipedia_anchor_text:
+            _wikipedia_anchor_text[k] = list(wikipedia_anchor_text[k])
+
+        for k in abbreviated_name:
+            _abbreviated_name[k] = list(abbreviated_name[k])
+
+        for k in redirect_text:
+            _redirect_text[k] = list(redirect_text[k])
+
         if len(_labels) > 0 or len(_aliases) > 0 or len(_descriptions) > 0:
             if not Utility.check_in_black_list(black_list_dict, current_node_info):
-                # # we need to add acronym for human names
-                # if is_human_name:
-                #     _labels = Utility.add_acronym(_labels)
-                #     _aliases = Utility.add_acronym(_aliases)
+
                 _edges = Utility.generate_edges_information(current_node_info, skip_edges)
                 _ = {'id': prev_node,
                      'labels': _labels,
                      'aliases': _aliases,
                      'pagerank': _pagerank,
                      'descriptions': _descriptions,
-                     'statements': qnode_statement_count
+                     'statements': qnode_statement_count,
+                     'wikitable_anchor_text': _wikitable_anchor_text,
+                     'wikipedia_anchor_text': _wikipedia_anchor_text,
+                     'abbreviated_name': _abbreviated_name,
+                     'redirect_text': _redirect_text
                      }
                 if extra_info:
                     _['edges'] = _edges
@@ -302,6 +381,10 @@ class Utility(object):
                     _['data_type'] = data_type
                 if is_class:
                     _['is_class'] = 'true'
+                if text_embedding:
+                    _['text_embedding']: text_embedding
+                if graph_embeddings_complex:
+                    _['graph_embedding_complex'] = graph_embeddings_complex
                 output_file.write(json.dumps(_))
             else:
                 skipped_node_count += 1
