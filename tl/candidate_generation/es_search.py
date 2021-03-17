@@ -4,6 +4,7 @@ import typing
 from typing import List
 import hashlib
 import logging
+import re
 
 from tl.candidate_generation.phrase_query_json import query
 from tl.utility.singleton import singleton
@@ -191,33 +192,35 @@ class Search(object):
                 if hits is not None:
                     hits_copy = hits.copy()  # prevent change on query cache
                     for hit in hits_copy:
-                        _source = hit['_source']
-                        _id = hit['_id']
-                        all_labels = []
-                        all_aliases = []
-                        description = ""
-                        pagerank = 0.0
-                        if 'en' in _source['labels']:
-                            all_labels.extend(_source['labels']['en'])
-                        if 'en' in _source['aliases']:
-                            all_aliases.extend(_source['aliases']['en'])
-                        if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
-                            description = "|".join(_source['descriptions']['en'])
-                        if 'pagerank' in _source:
-                            pagerank = _source['pagerank']
-
-                        candidate_dict[_id] = {'score': hit['_score'],
+                        if re.match(r'Q\d+',hit['_id']):
+                            _source = hit['_source']
+                            _id = hit['_id']
+                            all_labels = []
+                            all_aliases = []
+                            description = ""
+                            pagerank = 0.0
+                            if 'en' in _source['labels']:
+                                all_labels.extend(_source['labels']['en'])
+                            if 'en' in _source['aliases']:
+                                all_aliases.extend(_source['aliases']['en'])
+                            if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
+                                description = "|".join(_source['descriptions']['en'])
+                            if 'pagerank' in _source:
+                                pagerank = _source['pagerank']
+                            
+                            candidate_dict[_id] = {'score': hit['_score'],
                                                'label_str': '|'.join(all_labels),
                                                'alias_str': '|'.join(all_aliases),
                                                'description_str': description,
                                                'pagerank_float': pagerank}
-                        if _id not in candidate_aux_dict:
-                            candidate_aux_dict[_id] = {}
-
-                        if auxiliary_fields is not None:
-                            for auxiliary_field in auxiliary_fields:
-                                if auxiliary_field in _source:
-                                    candidate_aux_dict[_id][auxiliary_field] = _source[auxiliary_field]
+                            
+                            if _id not in candidate_aux_dict:
+                                candidate_aux_dict[_id] = {}
+                            
+                            if auxiliary_fields is not None:
+                                for auxiliary_field in auxiliary_fields:
+                                    if auxiliary_field in _source:
+                                        candidate_aux_dict[_id][auxiliary_field] = _source[auxiliary_field]
 
             self.query_cache[parameter] = candidate_dict
 
