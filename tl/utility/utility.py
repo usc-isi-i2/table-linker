@@ -94,8 +94,8 @@ class Utility(object):
         _wikipedia_anchor_text = {}
         _abbreviated_name = {}
         _redirect_text = {}
-        _text_embedding = ''
-        _graph_embeddings_complex = ''
+        _text_embedding = None
+        _graph_embeddings_complex = None
 
         _pagerank = 0.0
 
@@ -173,8 +173,8 @@ class Utility(object):
                             _wikipedia_anchor_text = {}
                             _abbreviated_name = {}
                             _redirect_text = {}
-                            _text_embedding = ''
-                            _graph_embeddings_complex = ''
+                            _text_embedding = None
+                            _graph_embeddings_complex = None
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
