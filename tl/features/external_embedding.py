@@ -23,7 +23,7 @@ from tl.exceptions import TLException
 class EmbeddingVector:
     def __init__(self, kwargs):
         self.kwargs = kwargs
-        self.loaded_file = self.load_input_file(self.kwargs)
+        self.load_input_file(self.kwargs)
         self.vectors_map = {}
         self.centroid = None
         self.groups = defaultdict(set)
@@ -95,7 +95,7 @@ class EmbeddingVector:
                     }
                 }
             }
-            response = requests.get(search_url, data=json.dumps(query))
+            response = requests.get(search_url, json=query)
             result = response.json()
             if result['hits']['total'] == 0:
                 missing += part
@@ -103,7 +103,10 @@ class EmbeddingVector:
                 hit_qnodes = []
                 for hit in result['hits']['hits']:
                     qnode = hit['_source']['id']
-                    vector = np.asarray(list(map(float, hit['_source']['embedding'].split())))
+                    if isinstance(hit['_source']['embedding'], str):
+                        vector = np.asarray(list(map(float, hit['_source']['embedding'].split())))
+                    else:
+                        vector = np.asarray(list(map(float, hit['_source']['embedding'])))
                     hit_qnodes.append(qnode)
                     self.vectors_map[qnode] = vector
                 found += hit_qnodes
@@ -161,7 +164,7 @@ class EmbeddingVector:
             if ((isinstance(each_row[self.input_column_name], float) and math.isnan(each_row[self.input_column_name]))
                     or each_row[self.input_column_name] is np.nan
                     or each_row[self.input_column_name] not in self.vectors_map):
-                each_score = ""
+                each_score = 0.0
             else:
                 each_score = self.compute_distance(self.centroid,
                                                    self.vectors_map[each_row[self.input_column_name]])
