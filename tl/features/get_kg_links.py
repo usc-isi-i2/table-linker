@@ -1,0 +1,38 @@
+import pandas as pd
+import sys
+from tl.exceptions import RequiredInputParameterMissingException
+
+def get_kg_links(kwargs):
+
+    file_path = kwargs['input_file']
+    num_kg_links = kwargs['num_kg_links']
+    label_column = kwargs['label_column']
+    score_column = kwargs['score_column']
+
+    if file_path is None:
+        raise RequiredInputParameterMissingException(
+            'One of the input parameters is required: {} or {}'.format('file_path', 'df'))
+
+    if score_column is None:
+        raise RequiredInputParameterMissingException(
+            'One of the input parameters is required: {}'.format('score_column'))
+    
+    df = pd.read_csv(file_path)
+    topk_df = df[df['method'] == 'fuzzy-augmented'].groupby(['column','row']) \
+                                                   .apply(lambda x: x.sort_values([score_column],ascending=False)[:num_kg_links]) \
+                                                   .reset_index(drop = True)
+    
+    final_list = []
+    grouped_obj = topk_df.groupby(['row','column'])
+    for cell in grouped_obj:
+        _ = {}
+        _['column'] = cell[0][1]
+        _['row'] = cell[0][0]
+        _['label'] = cell[1][label_column].unique()[0]
+        _['kg_id'] = '|'.join(list(cell[1]['kg_id']))
+        _['kg_label'] = '|'.join(list(cell[1]['kg_labels']))
+        _['ranking_score'] = '|'.join([str(score) for score in list(cell[1][score_column])])
+        final_list.append(_)
+    
+    odf = pd.DataFrame(final_list)
+    return odf
