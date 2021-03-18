@@ -1,10 +1,8 @@
 import pandas as pd
 import typing
-import inspect
 import copy
 import tl.features.similarity_units
 
-from collections import defaultdict
 from tl.exceptions import UnsupportTypeError, RequiredColumnMissingException
 
 DEFAULT_COLUMN_COMB_NAME = ("label_clean", "kg_labels")
@@ -51,11 +49,6 @@ class StringSimilarity:
         else:
             self.compared_column_names = None
 
-        # split the candidate labels
-        # self.df[self.candidate_label_column_name] = \
-        #     self.df[self.candidate_label_column_name].apply(lambda x: x.split("|") if isinstance(x, str) else [])
-        # kwargs["df"] = self.df
-
         for each_method in similarity_method:
             # method1:a1=v1:a2=v2:a3=v3
             try:
@@ -71,10 +64,6 @@ class StringSimilarity:
     @staticmethod
     def get_all_similarity_models():
         pass
-        # for name, obj in inspect.getmembers(foo):
-        #     if inspect.isclass(obj):
-        #         print
-        #         obj
 
     def get_similarity_score(self):
         self.df['concatenated_targets'] = list(zip(self.df[self.candidate_label_column_name],
