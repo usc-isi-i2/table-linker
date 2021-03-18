@@ -23,9 +23,8 @@ def get_kg_links(kwargs):
     if not(ffv.is_candidates_file(df)):
         raise UnsupportTypeError("The input file is not a candidate file!")
 
-    topk_df = df[df['method'] == 'fuzzy-augmented'].groupby(['column','row']) \
-                                                   .apply(lambda x: x.sort_values([score_column],ascending=False)[:num_kg_links]) \
-                                                   .reset_index(drop = True)
+    topk_df = df.groupby(['column','row']).apply(lambda x: x.sort_values([score_column],ascending=False)) \
+                                          .reset_index(drop = True).drop_duplicates(subset='kg_id')
     
     final_list = []
     grouped_obj = topk_df.groupby(['row','column'])
@@ -34,9 +33,9 @@ def get_kg_links(kwargs):
         _['column'] = cell[0][1]
         _['row'] = cell[0][0]
         _['label'] = cell[1][label_column].unique()[0]
-        _['kg_id'] = '|'.join(list(cell[1]['kg_id']))
-        _['kg_label'] = '|'.join(list(cell[1]['kg_labels']))
-        _['ranking_score'] = '|'.join([str(score) for score in list(cell[1][score_column])])
+        _['kg_id'] = '|'.join(list(cell[1]['kg_id'])[:num_kg_links])
+        _['kg_label'] = '|'.join(list(cell[1]['kg_labels'])[:num_kg_links])
+        _['ranking_score'] = '|'.join([str(round(score,2)) for score in list(cell[1][score_column])[:num_kg_links]])
         final_list.append(_)
     
     odf = pd.DataFrame(final_list)
