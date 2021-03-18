@@ -1,6 +1,7 @@
 import pandas as pd
 import sys
 from tl.exceptions import RequiredInputParameterMissingException
+from tl.file_formats_validator import FFV
 
 def get_kg_links(kwargs):
 
@@ -18,6 +19,10 @@ def get_kg_links(kwargs):
             'One of the input parameters is required: {}'.format('score_column'))
     
     df = pd.read_csv(file_path)
+    ffv = FFV()
+    if not(ffv.is_candidates_file(df)):
+        raise UnsupportTypeError("The input file is not a candidate file!")
+
     topk_df = df[df['method'] == 'fuzzy-augmented'].groupby(['column','row']) \
                                                    .apply(lambda x: x.sort_values([score_column],ascending=False)[:num_kg_links]) \
                                                    .reset_index(drop = True)
