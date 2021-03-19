@@ -3,10 +3,10 @@ import pandas as pd
 
 class Join(object):
 
-    def join(self, df: pd.DataFrame, i_df: pd.DataFrame, ranking_score_column: str):
+    def join(self, df: pd.DataFrame, i_df: pd.DataFrame, ranking_score_column: str, extra_info=False):
         columns_to_wikify = list(df['column'].unique())
         output = []
-        result_dict = self.create_result_dict(df, ranking_score_column)
+        result_dict = self.create_result_dict(df, ranking_score_column, extra_info)
         for i, row in i_df.iterrows():
             for column_to_wikify in columns_to_wikify:
                 key = f"{column_to_wikify}_{i}"

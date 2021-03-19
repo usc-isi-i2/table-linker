@@ -27,6 +27,7 @@ def add_arguments(parser):
                         help='original file for which this pipeline is run')
     parser.add_argument('--tsv', action='store_true', dest='tsv')
     parser.add_argument('--csv', action='store_true', dest='csv')
+    parser.add_argument('--extra-info', action='store_true', dest='extra_info')
 
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
@@ -40,7 +41,7 @@ def run(**kwargs):
         df = pd.read_csv(kwargs['input_file'], dtype=object)
         i_df = pd.read_csv(kwargs['original_input_file'], sep=',' if file_type == 'csv' else '\t', dtype=object)
         j = Join()
-        odf = j.join(df, i_df, kwargs['ranking_score_column'])
+        odf = j.join(df, i_df, kwargs['ranking_score_column'], extra_info=kwargs['extra_info'])
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: canonicalize\n'
