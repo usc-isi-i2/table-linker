@@ -1,8 +1,10 @@
 import copy
 import requests
 import typing
+from typing import List
 import hashlib
 import logging
+import re
 
 from tl.candidate_generation.phrase_query_json import query
 from tl.utility.singleton import singleton
@@ -11,7 +13,7 @@ from requests.auth import HTTPBasicAuth
 
 @singleton
 class Search(object):
-    def __init__(self, es_url, es_index, es_user=None, es_pass=None):
+    def __init__(self, es_url: str, es_index: str, es_user: str = None, es_pass: str = None):
         self.es_url = es_url
         self.es_index = es_index
         self.es_user = es_user
@@ -20,7 +22,7 @@ class Search(object):
         self.query_cache = dict()
         self.logger = logging.getLogger(__name__)
 
-    def search_es(self, query):
+    def search_es(self, query: dict):
         es_search_url = '{}/{}/_search'.format(self.es_url, self.es_index)
         cache_key = self.get_query_hash(query)
 
@@ -41,8 +43,8 @@ class Search(object):
 
         return self.query_cache[cache_key]
 
-    def create_exact_match_query(self, search_term, lower_case, size, properties):
-        should = list()
+    def create_exact_match_query(self, search_term: str, lower_case: bool, size: int, properties: List[str]):
+        must = list()
         for property in properties:
             query_part = {
                 "term": {
@@ -58,34 +60,27 @@ class Search(object):
                         }
                     }
                 }
-            should.append(query_part)
+            must.append(query_part)
 
         return {
             "query": {
                 "bool": {
-                    "should": should
+                    "must": must
                 }
             },
             "size": size
         }
 
-    def create_phrase_query(self, search_term, size, properties):
+    def create_phrase_query(self, search_term: str, size: int, properties):
 
         search_term_tokens = search_term.split(' ')
-        # query_type = "phrase"
         slop = 0
 
         if len(search_term_tokens) <= 3:
             query_type = 'best_fields'
-
-        # if len(search_term_tokens) <= 3:
-        #     slop = 2
-        #     query_type = "phrase"
-        # if len(search_term_tokens) > 3:
         else:
             query_type = "phrase"
             slop = 10
-            # slop = len(search_term_tokens) - 1
 
         query = self.query
         query['query']['bool']['must'][0]['multi_match']['query'] = search_term
@@ -99,7 +94,7 @@ class Search(object):
 
         return query
 
-    def create_fuzzy_query(self, search_term, size, properties):
+    def create_fuzzy_query(self, search_term: str, size: int, properties):
         query = {
             "query": {
                 "bool": {
@@ -119,18 +114,65 @@ class Search(object):
 
         return query
 
-        # elif len(search_term_tokens) > 3:
-        #     for i in range(0, -4, -1):
-        #         t_search_term = ' '.join(search_term_tokens[:i])
-        #         query['query']['function_score']['query']['bool']['must'][0]['multi_match']['query'] = t_search_term
-        #         response = self.search_es(query)
-        #         if response is not None:
-        #             return response
-        #         else:
-        #             continue
+    def create_fuzzy_augmented_query(self,search_term: str, size: int, lower_case: bool, properties: List[str]):
+        if lower_case:
+            properties =  [prop + '.keyword_lower' for prop in properties]
+        query = {
+            "query": {
+                "bool": {
+                    "should": [
+                        {
+                            "multi_match": {
+                                "query": search_term,
+                                "fields": properties,
+                                "fuzziness": "AUTO",
+                                "prefix_length": 1,
+                                "max_expansions": 3
+                            }
+                        }
+                    ],
+                    "must_not":[
+                        {
+                            "terms": {
+                                "descriptions.en.keyword_lower": [
+                                    "wikimedia disambiguation page",
+                                    "wikimedia category",
+                                    "wikimedia kml file",
+                                    "wikimedia list article",
+                                    "wikimedia template",
+                                    "wikimedia module",
+                                    "wikinews article"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "size": size
+        }
+        return query
 
-    def search_term_candidates(self, search_term_str, size, properties, query_type, lower_case=False):
+    def create_fuzzy_augmented_union(self,fuzzy_augmented_hits,fuzzy_augmented_keyword_lower_hits):
+        seen_ids = set()
+        hits = []
+        for item in fuzzy_augmented_hits:
+            if item['_id'] not in seen_ids:
+                hits.append(item)
+                seen_ids.add(item['_id'])
+        
+        for item in fuzzy_augmented_keyword_lower_hits:
+            if item['_id'] not in seen_ids:
+                hits.append(item)
+                seen_ids.add(item['_id'])
+        
+        return hits
+
+
+    def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
+                               lower_case: bool = False, auxiliary_fields: List[str] = None):
         candidate_dict = {}
+        candidate_aux_dict = {}
+
         search_terms = search_term_str.split('|')
         parameter = self.get_query_hash((search_term_str, size, properties, query_type, lower_case))
 
@@ -143,15 +185,46 @@ class Search(object):
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
                 elif query_type == 'fuzzy-match':
                     hits = self.search_es(self.create_fuzzy_query(search_term, size, properties))
+                elif query_type == 'fuzzy-augmented':
+                    fuzzy_augmented_hits = self.search_es(self.create_fuzzy_augmented_query(search_term,size, lower_case, properties))
+                    fuzzy_augmented_keyword_lower_hits = self.search_es(self.create_fuzzy_augmented_query(search_term,size, not(lower_case),properties))
+                    hits = self.create_fuzzy_augmented_union(fuzzy_augmented_hits,fuzzy_augmented_keyword_lower_hits)
                 if hits is not None:
                     hits_copy = hits.copy()  # prevent change on query cache
                     for hit in hits_copy:
-                        all_labels = hit['_source'].get('labels', [])
-                        all_labels.extend(hit['_source'].get('aliases', []))
-                        candidate_dict[hit['_id']] = {'score': hit['_score'], 'label_str': '|'.join(all_labels)}
+                        if re.match(r'Q\d+',hit['_id']):
+                            _source = hit['_source']
+                            _id = hit['_id']
+                            all_labels = []
+                            all_aliases = []
+                            description = ""
+                            pagerank = 0.0
+                            if 'en' in _source['labels']:
+                                all_labels.extend(_source['labels']['en'])
+                            if 'en' in _source['aliases']:
+                                all_aliases.extend(_source['aliases']['en'])
+                            if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
+                                description = "|".join(_source['descriptions']['en'])
+                            if 'pagerank' in _source:
+                                pagerank = _source['pagerank']
+                            
+                            candidate_dict[_id] = {'score': hit['_score'],
+                                               'label_str': '|'.join(all_labels),
+                                               'alias_str': '|'.join(all_aliases),
+                                               'description_str': description,
+                                               'pagerank_float': pagerank}
+                            
+                            if _id not in candidate_aux_dict:
+                                candidate_aux_dict[_id] = {}
+                            
+                            if auxiliary_fields is not None:
+                                for auxiliary_field in auxiliary_fields:
+                                    if auxiliary_field in _source:
+                                        candidate_aux_dict[_id][auxiliary_field] = _source[auxiliary_field]
+
             self.query_cache[parameter] = candidate_dict
 
-        return self.query_cache[parameter]
+        return self.query_cache[parameter], candidate_aux_dict
 
     def get_node_info(self, search_nodes: typing.List[str]) -> dict:
         query = {

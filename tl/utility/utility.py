@@ -21,7 +21,10 @@ class Utility(object):
                                  black_list_file_path=None,
                                  extra_info=False,
                                  add_text=False,
-                                 description_properties=None
+                                 description_properties=None,
+                                 copy_to_properties=None,
+                                 es_version=7,
+                                 separate_languages=True
                                  ):
         """
         builds a json lines file and a mapping file to support retrieval of candidates
@@ -40,6 +43,7 @@ class Utility(object):
         """
         file_names = ["KGTK input file", "Black list file"]
         file_paths = [kgtk_file_path, black_list_file_path]
+        mapping_parameter_dict = defaultdict(list)
         for each_file_name, each_file_path in zip(file_names, file_paths):
             if each_file_path and not os.path.exists(each_file_path):
                 raise FileNotExistError("{} {} does not exist!".format(each_file_name, each_file_path))
@@ -56,20 +60,45 @@ class Utility(object):
         aliases = alias_fields.split(',') if alias_fields else []
         pagerank = pagerank_fields.split(',') if pagerank_fields else []
         descriptions = description_properties.split(',') if description_properties else []
+        mapping_parameter_dict['str_fields_need_index'] = ['id', 'labels', 'is_class']
+        if len(aliases):
+            mapping_parameter_dict['str_fields_need_index'].append('aliases')
+        if len(pagerank):
+            mapping_parameter_dict['float_fields_need_index'].append('pagerank')
+        if len(descriptions):
+            mapping_parameter_dict['str_fields_need_index'].append('descriptions')
 
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
         skip_edges = set(labels + aliases)
-        output_file = open(output_path, 'w')
 
         if kgtk_file_path.endswith(".gz"):
             kgtk_file = gzip.open(kgtk_file_path)
         else:
             kgtk_file = open(kgtk_file_path, "r")
 
-        _labels = set()
-        _aliases = set()
+        if output_path.endswith(".gz"):
+            output_file = gzip.open(output_path, mode='wt')
+        else:
+            output_file = open(output_path, 'w')
+
+        _labels = dict()
+        _aliases = dict()
+        _descriptions = dict()
+        _instance_ofs = set()
+        data_type = None
+        all_langs = set()
+        lang = 'en'
+        qnode_statement_count = 0
+        is_class = False
+        _wikitable_anchor_text = {}
+        _wikipedia_anchor_text = {}
+        _abbreviated_name = {}
+        _redirect_text = {}
+        _text_embedding = None
+        _graph_embeddings_complex = None
+
         _pagerank = 0.0
-        _descriptions = set()
+
         current_node_info = defaultdict(set)
         prev_node = None
         i = 0
@@ -88,62 +117,145 @@ class Utility(object):
                     # header line
                     cols = line.replace('\n', '').split('\t')
                     column_header_dict = {
-                        'id': cols.index('id'),
+                        # 'id': cols.index('id'),
                         'node1': cols.index('node1'),
                         'label': cols.index('label'),
                         'node2': cols.index('node2')
                     }
 
-                if line.startswith('Q'):
+                # if line.startswith('Q'):
+                else:
                     vals = line.split('\t')
                     node1_id = column_header_dict['node1']
                     label_id = column_header_dict['label']
                     node2_id = column_header_dict['node2']
                     node1 = vals[node1_id]
-                    if prev_node is None:
-                        prev_node = node1
-                    if node1 != prev_node:
-                        skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases,
-                                                                     _pagerank=_pagerank,
-                                                                     black_list_dict=black_list_dict,
-                                                                     current_node_info=current_node_info,
-                                                                     is_human_name=is_human_name, prev_node=prev_node,
-                                                                     skipped_node_count=skipped_node_count,
-                                                                     output_file=output_file, skip_edges=skip_edges,
-                                                                     extra_info=extra_info,
-                                                                     _descriptions=_descriptions,
-                                                                     add_all_text=add_text
-                                                                     )
-                        # initialize for next node
-                        _labels = set()
-                        _aliases = set()
-                        _descriptions = set()
-                        _pagerank = 0.0
-                        current_node_info = defaultdict(set)
-                        prev_node = node1
-                        is_human_name = False
+                    if '-' not in node1:  # ignore qualifiers
+                        if prev_node is None:
+                            prev_node = node1
+                        if node1 != prev_node:
+                            skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases,
+                                                                         _pagerank=_pagerank,
+                                                                         black_list_dict=black_list_dict,
+                                                                         current_node_info=current_node_info,
+                                                                         is_human_name=is_human_name,
+                                                                         prev_node=prev_node,
+                                                                         skipped_node_count=skipped_node_count,
+                                                                         output_file=output_file, skip_edges=skip_edges,
+                                                                         extra_info=extra_info,
+                                                                         _descriptions=_descriptions,
+                                                                         add_all_text=add_text,
+                                                                         data_type=data_type,
+                                                                         instance_ofs=_instance_ofs,
+                                                                         qnode_statement_count=qnode_statement_count,
+                                                                         is_class=is_class,
+                                                                         wikitable_anchor_text=_wikitable_anchor_text,
+                                                                         wikipedia_anchor_text=_wikipedia_anchor_text,
+                                                                         abbreviated_name=_abbreviated_name,
+                                                                         redirect_text=_redirect_text,
+                                                                         text_embedding=_text_embedding,
+                                                                         graph_embeddings_complex=_graph_embeddings_complex
+                                                                         )
+                            # initialize for next node
+                            _labels = dict()
+                            _aliases = dict()
+                            _descriptions = dict()
+                            _instance_ofs = set()
+                            data_type = None
+                            _pagerank = 0.0
+                            current_node_info = defaultdict(set)
+                            prev_node = node1
+                            is_human_name = False
+                            lang = 'en'
+                            qnode_statement_count = 0
+                            is_class = False
+                            _wikitable_anchor_text = {}
+                            _wikipedia_anchor_text = {}
+                            _abbreviated_name = {}
+                            _redirect_text = {}
+                            _text_embedding = None
+                            _graph_embeddings_complex = None
 
-                    current_node_info[vals[label_id]].add(str(vals[node2_id]))
-                    if vals[label_id] in labels:
-                        tmp_val = Utility.remove_language_tag(vals[node2_id])
-                        if tmp_val.strip() != '':
-                            _labels.add(tmp_val)
-                    elif vals[label_id] in aliases:
-                        tmp_val = Utility.remove_language_tag(vals[node2_id])
-                        if tmp_val.strip() != '':
-                            _aliases.add(tmp_val)
-                    elif vals[label_id] in pagerank:
-                        tmp_val = Utility.to_float(vals[node2_id])
-                        if tmp_val:
-                            _pagerank = tmp_val
-                    elif vals[label_id] in descriptions:
-                        tmp_val = Utility.remove_language_tag(vals[node2_id])
-                        if tmp_val:
-                            _descriptions.add(tmp_val)
+                        qnode_statement_count += 1
+                        current_node_info[vals[label_id]].add(str(vals[node2_id]))
+                        if vals[label_id] in labels:
+                            if separate_languages:
+                                tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            else:
+                                tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if lang not in _labels:
+                                _labels[lang] = set()
+                                all_langs.add(lang)
 
-                    # if it is human
-                    if vals[node2_id] in human_nodes_set:
-                        is_human_name = True
+                            if tmp_val.strip() != '':
+                                _labels[lang].add(tmp_val)
+                        elif vals[label_id] in aliases:
+                            if separate_languages:
+                                tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            else:
+                                tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if lang not in _aliases:
+                                _aliases[lang] = set()
+                                all_langs.add(lang)
+
+                            if tmp_val.strip() != '':
+                                _aliases[lang].add(tmp_val)
+                        elif vals[label_id] in pagerank:
+                            tmp_val = Utility.to_float(vals[node2_id])
+                            if tmp_val:
+                                _pagerank = tmp_val
+                        elif vals[label_id] in descriptions:
+                            if separate_languages:
+                                tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            else:
+                                tmp_val = Utility.remove_language_tag(vals[node2_id])
+                            if lang not in _descriptions:
+                                _descriptions[lang] = set()
+                                all_langs.add(lang)
+                            if tmp_val.strip() != '':
+                                _descriptions[lang].add(tmp_val)
+                        elif vals[label_id].strip() == 'isa_star':
+                            _instance_ofs.add(vals[node2_id])
+                        elif vals[label_id].strip() == 'datatype':
+                            data_type = vals[node2_id]
+                        elif vals[label_id] == 'P279' and vals[node2_id].startswith('Q'):
+                            is_class = True
+                        elif vals[label_id] == 'wikipedia_table_anchor':
+                            tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            if tmp_val.strip() != "":
+                                if lang not in _wikitable_anchor_text:
+                                    _wikitable_anchor_text[lang] = set()
+                                _wikitable_anchor_text[lang].add(tmp_val)
+                        elif vals[label_id] == 'wikipedia_anchor':
+                            tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            if tmp_val.strip() != "":
+                                if lang not in _wikipedia_anchor_text:
+                                    _wikipedia_anchor_text[lang] = set()
+                                _wikipedia_anchor_text[lang].add(tmp_val)
+                        elif vals[label_id] == 'redirect_from':
+                            tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            if tmp_val.strip() != "":
+                                if lang not in _redirect_text:
+                                    _redirect_text[lang] = set()
+                                _redirect_text[lang].add(tmp_val)
+                        elif vals[label_id] == 'abbreviated_name':
+                            tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
+                            if tmp_val.strip() != "":
+                                if lang not in _abbreviated_name:
+                                    _abbreviated_name[lang] = set()
+                                _abbreviated_name[lang].add(tmp_val)
+                        elif vals[label_id] == 'graph_embeddings_complEx':
+                            _graph_embeddings_complex = vals[node2_id]
+                            if isinstance(_graph_embeddings_complex, str):
+                                _graph_embeddings_complex = [float(x) for x in _graph_embeddings_complex.split(",")]
+                        elif vals[label_id] == 'text_embedding':
+                            _text_embedding = vals[node2_id]
+                            if isinstance(_text_embedding, str):
+                                _text_embedding = [float(x) for x in _text_embedding.split(",")]
+
+                        # if it is human
+                        if vals[node2_id] in human_nodes_set:
+                            is_human_name = True
 
             # do one more write for last node
             skipped_node_count = Utility._write_one_node(_labels=_labels, _aliases=_aliases, _pagerank=_pagerank,
@@ -154,11 +266,30 @@ class Utility(object):
                                                          output_file=output_file, skip_edges=skip_edges,
                                                          extra_info=extra_info,
                                                          _descriptions=_descriptions,
-                                                         add_all_text=add_text)
+                                                         add_all_text=add_text,
+                                                         data_type=data_type,
+                                                         instance_ofs=_instance_ofs,
+                                                         qnode_statement_count=qnode_statement_count,
+                                                         is_class=is_class,
+                                                         wikitable_anchor_text=_wikitable_anchor_text,
+                                                         wikipedia_anchor_text=_wikipedia_anchor_text,
+                                                         abbreviated_name=_abbreviated_name,
+                                                         redirect_text=_redirect_text,
+                                                         text_embedding=_text_embedding,
+                                                         graph_embeddings_complex=_graph_embeddings_complex
+                                                         )
         except:
             print(traceback.print_exc())
 
-        mapping_dict = Utility.create_mapping_es(['id', 'labels', 'aliases'], ["pagerank", "edges"])
+        if copy_to_properties is not None:
+            mapping_parameter_dict['copy_to_fields'] = copy_to_properties.split(',')
+        else:
+            mapping_parameter_dict['copy_to_fields'] = None
+
+        mapping_dict = Utility.create_mapping_es(es_version, mapping_parameter_dict['str_fields_need_index'],
+                                                 mapping_parameter_dict['float_fields_need_index'],
+                                                 ["edges"], mapping_parameter_dict['copy_to_fields'],
+                                                 all_langs=list(all_langs), int_fields=["statements"])
         open(mapping_file_path, 'w').write(json.dumps(mapping_dict))
         print("Totally skipped {} nodes in black list".format(skipped_node_count))
         print('Done!')
@@ -170,41 +301,95 @@ class Utility(object):
         :param kwargs:
         :return:
         """
-        _labels = list(kwargs["_labels"])
-        _aliases = list(kwargs["_aliases"])
-        _descriptions = list(kwargs["_descriptions"])
+        labels = kwargs["_labels"]
+        aliases = kwargs["_aliases"]
+        descriptions = kwargs["_descriptions"]
         _pagerank = kwargs["_pagerank"]
         black_list_dict = kwargs["black_list_dict"]
         current_node_info = kwargs["current_node_info"]
-        is_human_name = kwargs["is_human_name"]
+        # is_human_name = kwargs["is_human_name"]
         prev_node = kwargs["prev_node"]
         skipped_node_count = kwargs["skipped_node_count"]
         output_file = kwargs["output_file"]
         skip_edges = kwargs["skip_edges"]
         extra_info = kwargs['extra_info']
         add_all_text = kwargs['add_all_text']
+        instance_ofs = kwargs['instance_ofs']
+        data_type = kwargs['data_type']
+        qnode_statement_count = kwargs['qnode_statement_count']
+        is_class = kwargs['is_class']
+        wikitable_anchor_text = kwargs['wikitable_anchor_text']
+        wikipedia_anchor_text = kwargs['wikipedia_anchor_text']
+        abbreviated_name = kwargs['abbreviated_name']
+        redirect_text = kwargs['redirect_text']
+        text_embedding = kwargs['text_embedding']
+        graph_embeddings_complex = kwargs['graph_embeddings_complex']
 
-        if not Utility.check_in_black_list(black_list_dict, current_node_info):
-            # we need to add acronym for human names
-            if is_human_name:
-                _labels = Utility.add_acronym(_labels)
-                _aliases = Utility.add_acronym(_aliases)
-            _edges = Utility.generate_edges_information(current_node_info, skip_edges)
-            _ = {'id': prev_node,
-                 'labels': _labels,
-                 'aliases': _aliases,
-                 'pagerank': _pagerank,
-                 'descriptions': _descriptions
-                 }
-            if extra_info:
-                _['edges'] = _edges
+        _labels = {}
+        _aliases = {}
+        _descriptions = {}
+        _wikitable_anchor_text = {}
+        _wikipedia_anchor_text = {}
+        _abbreviated_name = {}
+        _redirect_text = {}
 
-            if add_all_text:
-                _['all_text'] = Utility.create_all_text(_labels, aliases=_aliases, descriptions=_descriptions)
-            output_file.write(json.dumps(_))
-        else:
-            skipped_node_count += 1
-        output_file.write('\n')
+        for k in labels:
+            _labels[k] = list(labels[k])
+
+        for k in aliases:
+            _aliases[k] = list(aliases[k])
+
+        for k in descriptions:
+            _descriptions[k] = list(descriptions[k])
+
+        for k in wikitable_anchor_text:
+            _wikitable_anchor_text[k] = list(wikitable_anchor_text[k])
+
+        for k in wikipedia_anchor_text:
+            _wikipedia_anchor_text[k] = list(wikipedia_anchor_text[k])
+
+        for k in abbreviated_name:
+            _abbreviated_name[k] = list(abbreviated_name[k])
+
+        for k in redirect_text:
+            _redirect_text[k] = list(redirect_text[k])
+
+        if len(_labels) > 0 or len(_aliases) > 0 or len(_descriptions) > 0:
+            if not Utility.check_in_black_list(black_list_dict, current_node_info):
+
+                _edges = Utility.generate_edges_information(current_node_info, skip_edges)
+                _ = {'id': prev_node,
+                     'labels': _labels,
+                     'aliases': _aliases,
+                     'pagerank': _pagerank,
+                     'descriptions': _descriptions,
+                     'statements': qnode_statement_count,
+                     'wikitable_anchor_text': _wikitable_anchor_text,
+                     'wikipedia_anchor_text': _wikipedia_anchor_text,
+                     'abbreviated_name': _abbreviated_name,
+                     'redirect_text': _redirect_text,
+                     'qnode_alias': prev_node
+                     }
+                if extra_info:
+                    _['edges'] = _edges
+
+                if add_all_text:
+                    _['all_text'] = Utility.create_all_text(_labels, aliases=_aliases, descriptions=_descriptions)
+
+                if len(instance_ofs) > 0:
+                    _['instance_ofs'] = list(instance_ofs)
+                if data_type is not None:
+                    _['data_type'] = data_type
+                if is_class:
+                    _['is_class'] = 'true'
+                if text_embedding:
+                    _['text_embedding'] = text_embedding
+                if graph_embeddings_complex:
+                    _['graph_embedding_complex'] = graph_embeddings_complex
+                output_file.write(json.dumps(_))
+            else:
+                skipped_node_count += 1
+            output_file.write('\n')
         return skipped_node_count
 
     @staticmethod
@@ -212,13 +397,27 @@ class Utility(object):
         return re.sub(r'@.*$', '', label_str).replace("'", "")
 
     @staticmethod
+    def separate_language_text_tag(label_str):
+        if len(label_str) == 0:
+            return "", "en"
+        if "@" in label_str:
+            res = label_str.split("@")
+            text_string = "@".join(res[:-1]).replace('"', "").replace("'", "")
+            lang = res[-1].replace('"', '').replace("'", "")
+        else:
+            text_string = label_str.replace('"', "").replace("'", "")
+            lang = "en"
+        return text_string, lang
+
+    @staticmethod
     def create_all_text(labels, aliases, descriptions):
         text = ''
-        text = text + '\n'.join(labels) + '\n'
-        if aliases:
-            text = text + '\n'.join(aliases) + '\n'
-        if descriptions:
-            text = text + '\n'.join(descriptions) + '\n'
+        if 'en' in labels and labels['en']:
+            text = text + '\n'.join(labels['en']) + '\n'
+        if 'en' in aliases and aliases['en']:
+            text = text + '\n'.join(aliases['en']) + '\n'
+        if 'en' in descriptions and descriptions['en']:
+            text = text + '\n'.join(descriptions['en']) + '\n'
         return text
 
     @staticmethod
@@ -229,54 +428,182 @@ class Utility(object):
             return None
 
     @staticmethod
-    def create_mapping_es(str_fields_need_index: typing.List[str], str_fields_no_index: typing.List[str] = None):
+    def create_mapping_es(es_version: float, str_fields_need_index: typing.List[str],
+                          float_fields: typing.List[str] = None,
+                          str_fields_no_index: typing.List[str] = None, copy_to_fields: typing.List[str] = None,
+                          all_langs=None, int_fields: typing.List[str] = None):
+        if all_langs is None or len(all_langs) == 0:
+            all_langs = ['en']
         properties_dict = {}
         # add property part
         for str_field in str_fields_need_index:
-            properties_dict[str_field] = {}
-            properties_dict[str_field]['type'] = "text"
-            properties_dict[str_field]['fields'] = {
-                "keyword": {
-                    "type": "keyword",
-                    "ignore_above": 256
-                },
-                "keyword_lower": {
-                    "type": "keyword",
-                    "normalizer": "lowercase_normalizer"
+            if str_field == 'id':
+                properties_dict[str_field] = {}
+                properties_dict[str_field]["type"] = "text"
+                properties_dict[str_field]['fields'] = {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    },
+                    "keyword_lower": {
+                        "type": "keyword",
+                        "normalizer": "lowercase_normalizer"
+                    }
+                }
+            else:
+                properties_dict[str_field] = {"properties": {}}
+
+                for lang in all_langs:
+                    if lang not in properties_dict[str_field]["properties"]:
+                        properties_dict[str_field]["properties"][lang] = {}
+
+                    properties_dict[str_field]["properties"][lang]['type'] = "text"
+
+                    if str_field == "aliases" or str_field == 'labels':
+                        properties_dict[str_field]["properties"][lang]['fields'] = {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            },
+                            "keyword_lower": {
+                                "type": "keyword",
+                                "normalizer": "lowercase_normalizer"
+                            }
+                        }
+                    else:
+                        properties_dict[str_field]["properties"][lang]['fields'] = {
+                            "keyword_lower": {
+                                "type": "keyword",
+                                "normalizer": "lowercase_normalizer"
+                            }
+                        }
+
+                    if copy_to_fields:
+                        # one copy to field for different languages
+                        # one  copy to field for all languages
+
+                        if str_field in copy_to_fields:
+                            properties_dict[str_field]["properties"][lang]["copy_to"] = [
+                                f"all_labels.{lang}",
+                                "all_labels_aliases"
+                            ]
+                            if "all_labels" not in properties_dict:
+                                properties_dict["all_labels"] = {"properties": {}}
+                            properties_dict["all_labels"]["properties"][lang] = {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {
+                                        "type": "keyword",
+                                        "ignore_above": 256
+                                    },
+                                    "keyword_lower": {
+                                        "type": "keyword",
+                                        "normalizer": "lowercase_normalizer"
+                                    },
+                                    "ngram": {
+                                        "type": "text",
+                                        "analyzer": "edge_ngram_analyzer",
+                                        "search_analyzer": "edge_ngram_search_analyzer"
+                                    }
+                                }
+                            }
+        if "all_labels_aliases" not in properties_dict:
+            properties_dict["all_labels_aliases"] = {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    },
+                    "keyword_lower": {
+                        "type": "keyword",
+                        "normalizer": "lowercase_normalizer"
+                    }
                 }
             }
+
+        if float_fields:
+            for float_field in float_fields:
+                properties_dict[float_field] = {
+                    "type": "float"
+                }
+        if int_fields:
+            for int_field in int_fields:
+                properties_dict[int_field] = {
+                    "type": "integer"
+                }
+
         if str_fields_no_index:
             for str_field in str_fields_no_index:
-                properties_dict[str_field] = {
-                    "type": "text",
-                    "index": "no"
-                }
-        # finish mapping dict
-        mapping_dict = {
-            "mappings": {
-                "doc": {
-                    "properties": properties_dict
-                }
-            },
-            "settings": {
-                "index": {
-                    "analysis": {
-                        "normalizer": {
-                            "lowercase_normalizer": {
-                                "filter": [
-                                    "lowercase"
-                                ],
-                                "type": "custom"
-                            }
+                if es_version >= 6:
+                    properties_dict[str_field] = {
+                        "type": "text",
+                        "index": "false"
+                    }
+                else:
+                    properties_dict[str_field] = {
+                        "type": "text",
+                        "index": "no"
+                    }
+        settings = {
+            "index": {
+                "analysis": {
+                    "normalizer": {
+                        "lowercase_normalizer": {
+                            "filter": [
+                                "lowercase"
+                            ],
+                            "type": "custom"
+                        }
+                    },
+                    "analyzer": {
+                        "edge_ngram_analyzer": {
+                            "filter": [
+                                "lowercase"
+                            ],
+                            "tokenizer": "edge_ngram_tokenizer"
+                        },
+                        "edge_ngram_search_analyzer": {
+                            "tokenizer": "lowercase"
+                        }
+                    },
+                    "tokenizer": {
+                        "edge_ngram_tokenizer": {
+                            "token_chars": [
+                                "letter"
+                            ],
+                            "min_gram": "2",
+                            "type": "edge_ngram",
+                            "max_gram": "20"
                         }
                     }
                 }
             }
         }
+
+        # finish mapping dict
+        if es_version >= 6:
+            mapping_dict = {
+                "mappings": {
+                    "properties": properties_dict
+                },
+                "settings": settings
+            }
+
+        else:
+            mapping_dict = {
+                "mappings": {
+                    "doc": {
+                        "properties": properties_dict
+                    }
+                },
+                "settings": settings
+            }
         return mapping_dict
 
     @staticmethod
-    def load_elasticsearch_index(kgtk_jl_path, es_url, es_index, mapping_file_path=None, es_user=None, es_pass=None,
+    def load_elasticsearch_index(kgtk_jl_path, es_url, es_index, es_version, mapping_file_path=None, es_user=None,
+                                 es_pass=None,
                                  batch_size=10000):
         """
          loads a jsonlines file to Elasticsearch index.
@@ -318,7 +645,7 @@ class Utility(object):
                 print('done {} rows'.format(counter))
                 response = None
                 try:
-                    response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
+                    response = Utility.load_index(es_version, es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
                                                   mapping_file_path,
                                                   es_user=es_user, es_pass=es_pass)
                     if response.status_code >= 400:
@@ -331,16 +658,21 @@ class Utility(object):
 
         if len(load_batch) > 0:
 
-            response = Utility.load_index(es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)), mapping_file_path,
+            response = Utility.load_index(es_version, es_url, es_index, '{}\n\n'.format('\n'.join(load_batch)),
+                                          mapping_file_path,
                                           es_user=es_user, es_pass=es_pass)
             if response.status_code >= 400:
                 print(response.text)
         print('Finished loading the elasticsearch index')
 
     @staticmethod
-    def load_index(es_url, es_index, payload, mapping_file_path, es_user=None, es_pass=None):
+    def load_index(es_version, es_url, es_index, payload, mapping_file_path, es_user=None, es_pass=None):
 
-        es_url_bulk = '{}/{}/doc/_bulk'.format(es_url, es_index)
+        if es_version >= 6:
+            es_url_bulk = '{}/{}/_doc/_bulk'.format(es_url, es_index)
+        else:
+            es_url_bulk = '{}/{}/doc/_bulk'.format(es_url, es_index)
+
         headers = {
             'Content-Type': 'application/x-ndjson',
         }

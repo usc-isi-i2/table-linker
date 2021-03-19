@@ -1,11 +1,10 @@
 import pandas as pd
 import typing
-import inspect
 import copy
 import tl.features.similarity_units
 
-from collections import defaultdict
 from tl.exceptions import UnsupportTypeError, RequiredColumnMissingException
+
 DEFAULT_COLUMN_COMB_NAME = ("label_clean", "kg_labels")
 
 
@@ -13,7 +12,6 @@ class StringSimilarity:
     def __init__(self, similarity_method: typing.List[str], **kwargs):
         self.similarity_units = []
         self.df = copy.deepcopy(kwargs["df"])
-        self.original_df = kwargs["df"]
         self.target_label_column_name, self.candidate_label_column_name = kwargs.get("target_columns", (None, None))
 
         for each_col in [self.target_label_column_name, self.candidate_label_column_name]:
@@ -41,15 +39,15 @@ class StringSimilarity:
         else:
             kwargs["target_label_column_name"] = self.target_label_column_name
 
-        if (self.target_label_column_name, self.candidate_label_column_name) != DEFAULT_COLUMN_COMB_NAME:
+        output_column_name = kwargs.get("output_column", None)
+        if output_column_name is not None:
+            self.has_output_column_name = True
+            self.compared_column_names = output_column_name
+        elif (self.target_label_column_name, self.candidate_label_column_name) != DEFAULT_COLUMN_COMB_NAME:
+            self.has_output_column_name = False
             self.compared_column_names = self.target_label_column_name + "_" + self.candidate_label_column_name
         else:
             self.compared_column_names = None
-
-        # split the candidate labels
-        self.df[self.candidate_label_column_name] = \
-            self.df[self.candidate_label_column_name].apply(lambda x: x.split("|") if isinstance(x, str) else [])
-        kwargs["df"] = self.df
 
         for each_method in similarity_method:
             # method1:a1=v1:a2=v2:a3=v3
@@ -66,31 +64,26 @@ class StringSimilarity:
     @staticmethod
     def get_all_similarity_models():
         pass
-        # for name, obj in inspect.getmembers(foo):
-        #     if inspect.isclass(obj):
-        #         print
-        #         obj
 
     def get_similarity_score(self):
-        scores = defaultdict(list)
-        for _, each_row in self.df.iterrows():
-            for each_similarity_unit in self.similarity_units:
-                # the output column name, should be the type + config for this similarity calculation unit
-                similarity_unit_name = each_similarity_unit.get_name()
-                # get max score amount all labels of candidate node and use the highest one
-                max_score = 0
-                all_labels = each_row[self.candidate_label_column_name]
-                target_label = each_row[self.target_label_column_name]
-                if isinstance(all_labels, list):
-                    for each_label in all_labels:
-                        each_similarity_score = each_similarity_unit.similarity(target_label, each_label)
-                        if each_similarity_score > max_score:
-                            max_score = each_similarity_score
-                if self.compared_column_names:
-                    similarity_unit_name = self.compared_column_names + "_" + similarity_unit_name
-                scores[similarity_unit_name].append(max_score)
+        self.df['concatenated_targets'] = list(zip(self.df[self.candidate_label_column_name],
+                                                   self.df[self.target_label_column_name]))
+        self.df[self.compared_column_names] = self.df['concatenated_targets'].map(lambda x: self.string_similarity(x))
+        self.df.drop(columns=['concatenated_targets'], inplace=True)
 
-        # append the scores to input df
-        df_scores = pd.DataFrame.from_dict(scores)
-        output_df = pd.concat([self.original_df, df_scores], axis=1)
-        return output_df
+        return self.df
+
+    def string_similarity(self, pair: tuple) -> float:
+
+        og_labels = pair[0].split("|")
+        target_labels = pair[1].split("|")
+        max_score = 0.0
+
+        for each_similarity_unit in self.similarity_units:
+            # get max score amount all labels of candidate node and use the highest one
+            for each_label in og_labels:
+                for target_label in target_labels:
+                    each_similarity_score = each_similarity_unit.similarity(str(target_label), str(each_label))
+                    if each_similarity_score > max_score:
+                        max_score = each_similarity_score
+        return max_score

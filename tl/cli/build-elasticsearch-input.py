@@ -49,6 +49,13 @@ def add_arguments(parser):
     parser.add_argument('--output-file', action='store', dest='output_file_path', required=True,
                         help='output json lines file, to be loaded into ES')
 
+    parser.add_argument('--copy-to-properties', action='store', type=str, dest='copy_to_properties', default=None,
+                        help='''Name of the properties separated by comma which need to be added to all_labels in mapping file.
+                        Property Names supported by are: labels, aliases, descriptions, pagerank''')
+
+    parser.add_argument('--es-version', action='store', type=float, dest='es_version', default=7.9,
+                        help='Version of the Elasticsearch you are using')
+
 
 def run(**kwargs):
     from tl.utility.utility import Utility
@@ -61,7 +68,9 @@ def run(**kwargs):
                                          black_list_file_path=kwargs['blacklist_file_path'],
                                          extra_info=kwargs['extra_information'],
                                          description_properties=kwargs['description_properties'],
-                                         add_text=kwargs['add_text']
+                                         add_text=kwargs['add_text'],
+                                         copy_to_properties=kwargs['copy_to_properties'],
+                                         es_version=kwargs['es_version']
                                          )
     except:
         message = 'Command: build-elasticsearch-input\n'

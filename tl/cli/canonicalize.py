@@ -26,9 +26,9 @@ def add_arguments(parser):
 
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
-    parser.add_argument('--add-other-information', action='store_true', dest='add_other_information',
-                        help="if set, the information from other columns will be combined together and saved to extra column "
-                             "`other information`, each original part will be split by `|`")
+    parser.add_argument('--add-context', action='store_true', dest='add_context',
+                        help="if provided, the information from other columns will be combined together and saved "
+                             "to the column: `context`, separated by `|`")
 
 
 def run(**kwargs):
@@ -40,7 +40,7 @@ def run(**kwargs):
         df = pd.read_csv(kwargs['input_file'], sep=',' if file_type == 'csv' else '\t', dtype=object)
 
         odf = preprocess.canonicalize(kwargs['columns'], output_column=kwargs['output_column'], df=df,
-                                      file_type=file_type, add_other_information=kwargs['add_other_information'])
+                                      file_type=file_type, add_context=kwargs['add_context'])
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: canonicalize\n'
