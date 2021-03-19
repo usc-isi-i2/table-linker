@@ -43,7 +43,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`get-kgtk-search-matches`](#command_get-kgtk-search-matches)<sup>*</sup>: uses KGTK search API to retrieve identifiers of KG entities matching the input search term.
 - [`get-kg-links`](#command_get-kg-links): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
 - [`ground-truth-labeler`](#command_ground-truth-labeler)<sup>*</sup>: compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label
-- [`join`](#command_join): outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
+- [`join`](#command_join): The join command outputs the linked knowledge graph objects for an input cell. This command takes as input a Input file and a file in Ranking Score format and outputs a file in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
 - [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
 - [`metrics`](#command_metrics)<sup>*</sup>: Calculate the F1-score on the candidates tables. Only works on the dataset after ran with  `ground-truth-labeler`.
 - [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
@@ -1251,30 +1251,30 @@ In case of more than one  preferred label for a candidate, the first label is pi
 
 ### [`join`](#command_join)` [OPTIONS]`
 
-The `join` command outputs the top `k` candidates from a sorted list as linked knowledge graph objects for an input cell.
-This command takes as input a [Input](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.7pj9afmz3h1t)
- file and a file in [Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) format and outputs a file in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format.
+The `join` command outputs the linked knowledge graph objects for an input cell. This command takes as input a [Input](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.7pj9afmz3h1t) file and a file in [Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) format and outputs a file in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
 
  The candidate with the highest score is ranked highest, ties are broken alphabetically.
 
 **Options:**
-- `-f {path}`: the original input file path.
-- `-c a`: column name with ranking scores.
-- `-k {number}`: desired number of output candidates per input cell.Defaut is `k=1`. Multiple values are represented by `|` separated string
+- `-f | --original-input-file {path}`: the original input file path.
+- `-c | --ranking-score-column a`: column name with ranking scores.
+- `--tsv`: specify the original input file is a tsv file
+- `--csv`: specify the original input file is a csv file
+- `--extra-info`: is specified, the command will attempt to add `aliases` and `descriptions` for the chosen `kg_id`
 
 **Examples:**
 ```bash
 # read the input file countries.csv and the ranking score file countries_features_ranked.csv and output top 2 candidates
-$ tl join -f countries.csv -c ranking_score -k 2 countries_features_ranked.csv > countries_output.csv
+$ tl join -f countries.csv --csv -c ranking_score countries_features_ranked.csv > countries_output.csv
 
 # same example but with default options
-$ tl join -f countries.csv -c ranking_score < countries_features_ranked.csv > countries_output.csv
+$ tl join -f countries.csv --csv -c ranking_score < countries_features_ranked.csv > countries_output.csv
 ```
 
 **File Example:**
 ```bash
 # read the input file countries.csv and the ranking score file countries_features_ranked.csv and ouput top 2 candidates
-$ tl join -f countries.csv -c ranking_score -k 2 countries_features_ranked.csv > countries_output.csv
+$ tl join -f countries.csv --csv -c ranking_score countries_features_ranked.csv > countries_output.csv
 $ cat countries_output.csv
 
 country        capital_city phone_code capital_city_kg_id capital_city_kg_label capital_city_score
@@ -1288,11 +1288,13 @@ Join the input file and the ranking score file based on column and row indices t
 for a candidate, the first label is picked. The corresponding values in each output column have the same index, in case of `k > 1`
 
 This command will add the following three columns to the input file to produce the output file.
-- `<input_column_name>_kg_id`: stores the KG object identifiers. Multiple values represented as a `|` separated string.
-- `<input_column_name>_kg_label`: if the column `kg_labels` is available(added by the [`get-exact-matches`](#command_get-exact-matches) command), stores the KG object preferred labels. Each KG object will contribute one preferred label. In case of multiple preferred labels per KG object, pick the first one.
+- `kg_id`: stores the KG object identifiers. Multiple values represented as a `|` separated string.
+- `kg_label`: if the column `kg_labels` is available(added by the [`get-exact-matches`](#command_get-exact-matches) command), stores the KG object preferred labels. Each KG object will contribute one preferred label. In case of multiple preferred labels per KG object, pick the first one.
 Multiple values are represented as `|` separated string. If the column `kg_labels` is not available, empty string "" is added
-- `<input_column_name>_score`: stores the ranking score for KG objects. Multiple values are represented by a `|` separated string.
-
+- `score`: stores the ranking score for KG objects. Multiple values are represented by a `|` separated string.
+If `--extra-info` is specified, the command will add the followin extra columns as well ,
+- `kg_aliases`: aliases for the `kg_id`
+- `kg_descriptions`: descriptions for the `kg_id`
 
 ## Evaluation Commands
 Evaluation commands take as input a [Ranking Score](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.knsxbhi3xqdr) file
