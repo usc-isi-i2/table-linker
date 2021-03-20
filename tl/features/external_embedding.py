@@ -50,10 +50,13 @@ class EmbeddingVector:
     def _load_vectors_from_file(self, embedding_file, qnodes):
         with open(embedding_file, 'rt') as fd:
             for line in fd:
-                fields = line.strip().split('\t')
-                qnode = fields[0]
-                if qnode in qnodes:
-                    self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
+                if 'qnode' not in line:
+                    fields = line.strip().split('\t')
+                    qnode = fields[0]
+                    embeddings = [float(x) for x in fields[1].split(",")]
+                    if qnode in qnodes:
+                        # self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
+                        self.vectors_map[qnode] = np.asarray(embeddings)
 
     def _save_new_to_file(self, embedding_file, new_qnodes):
         with open(embedding_file, 'at') as fd:
@@ -102,13 +105,14 @@ class EmbeddingVector:
             else:
                 hit_qnodes = []
                 for hit in result['hits']['hits']:
-                    qnode = hit['_source']['id']
-                    if isinstance(hit['_source']['embedding'], str):
-                        vector = np.asarray(list(map(float, hit['_source']['embedding'].split())))
-                    else:
-                        vector = np.asarray(list(map(float, hit['_source']['embedding'])))
-                    hit_qnodes.append(qnode)
-                    self.vectors_map[qnode] = vector
+                    if 'embedding' in hit['_source']:
+                        qnode = hit['_source']['id']
+                        if isinstance(hit['_source']['embedding'], str):
+                            vector = np.asarray(list(map(float, hit['_source']['embedding'].split())))
+                        else:
+                            vector = np.asarray(list(map(float, hit['_source']['embedding'])))
+                        hit_qnodes.append(qnode)
+                        self.vectors_map[qnode] = vector
                 found += hit_qnodes
                 missing += [q for q in part if q not in hit_qnodes]
                 # print(f'found:{len(found)} missing:{len(missing)}', file=sys.stderr)
