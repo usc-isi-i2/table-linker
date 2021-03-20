@@ -43,4 +43,5 @@ class ExactMatches(object):
                                                  'exact-match',
                                                  lower_case=lower_case,
                                                  auxiliary_fields=auxiliary_fields,
-                                                 auxiliary_folder=auxiliary_folder)
+                                                 auxiliary_folder=auxiliary_folder,
+                                                 auxiliary_file_prefix='exact_matches_')
