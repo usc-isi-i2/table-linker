@@ -37,4 +37,5 @@ class FuzzyAugmented(object):
                                                  'fuzzy-augmented',
                                                  lower_case=False,
                                                  auxiliary_fields=auxiliary_fields,
-                                                 auxiliary_folder=auxiliary_folder)
+                                                 auxiliary_folder=auxiliary_folder,
+                                                 auxiliary_file_prefix='fuzzy_augmented_')
