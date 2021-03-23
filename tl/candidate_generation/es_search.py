@@ -169,14 +169,14 @@ class Search(object):
 
 
     def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
-                               lower_case: bool = False, auxiliary_fields: List[str] = None):
+                               lower_case: bool = False, auxiliary_fields: List[str] = None, ignore_cache=True):
         candidate_dict = {}
         candidate_aux_dict = {}
 
         search_terms = search_term_str.split('|')
         parameter = self.get_query_hash((search_term_str, size, properties, query_type, lower_case))
 
-        if parameter not in self.query_cache:
+        if parameter not in self.query_cache or ignore_cache:
             for search_term in search_terms:
                 hits = None
                 if query_type == 'exact-match':
