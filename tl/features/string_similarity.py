@@ -75,8 +75,8 @@ class StringSimilarity:
 
     def string_similarity(self, pair: tuple) -> float:
 
-        og_labels = pair[0].split("|")
-        target_labels = pair[1].split("|")
+        og_labels = str(pair[0]).split("|")
+        target_labels = str(pair[1]).split("|")
         max_score = 0.0
 
         for each_similarity_unit in self.similarity_units:
