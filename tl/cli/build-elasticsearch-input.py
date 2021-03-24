@@ -56,6 +56,9 @@ def add_arguments(parser):
     parser.add_argument('--es-version', action='store', type=float, dest='es_version', default=7.9,
                         help='Version of the Elasticsearch you are using')
 
+    parser.add_argument('--property-datatype-file', action='store', dest='property_datatype_file', default=None,
+                        help='A file in KGTK edge file format with data types for properties')
+
 
 def run(**kwargs):
     from tl.utility.utility import Utility
@@ -70,7 +73,8 @@ def run(**kwargs):
                                          description_properties=kwargs['description_properties'],
                                          add_text=kwargs['add_text'],
                                          copy_to_properties=kwargs['copy_to_properties'],
-                                         es_version=kwargs['es_version']
+                                         es_version=kwargs['es_version'],
+                                         property_datatype_file=kwargs['property_datatype_file']
                                          )
     except:
         message = 'Command: build-elasticsearch-input\n'

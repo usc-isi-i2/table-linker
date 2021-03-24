@@ -24,7 +24,8 @@ class Utility(object):
                                  description_properties=None,
                                  copy_to_properties=None,
                                  es_version=7,
-                                 separate_languages=True
+                                 separate_languages=True,
+                                 property_datatype_file=None
                                  ):
         """
         builds a json lines file and a mapping file to support retrieval of candidates
@@ -67,6 +68,11 @@ class Utility(object):
             mapping_parameter_dict['float_fields_need_index'].append('pagerank')
         if len(descriptions):
             mapping_parameter_dict['str_fields_need_index'].append('descriptions')
+
+        # create the property data type dict
+        property_datatype_dict = {}
+        if property_datatype_file:
+            property_datatype_dict = Utility.create_property_metadata_dict(property_datatype_file)
 
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
         skip_edges = set(labels + aliases)
@@ -218,6 +224,8 @@ class Utility(object):
                             _instance_ofs.add(vals[node2_id])
                         elif vals[label_id].strip() == 'datatype':
                             data_type = vals[node2_id]
+                        elif node1 in property_datatype_dict:
+                            data_type = property_datatype_dict[node1]
                         elif vals[label_id] == 'P279' and vals[node2_id].startswith('Q'):
                             is_class = True
                         elif vals[label_id] == 'wikipedia_table_anchor':
@@ -900,3 +908,19 @@ class Utility(object):
                     # edge = edge[3:-3]
                     res.add("{}#{}".format(edge, each_node))
         return list(res)
+
+    @staticmethod
+    def create_property_metadata_dict(property_file_path):
+        _ = {}
+        f = gzip.open(property_file_path, 'rt')
+        node1_idx = -1
+        node2_idx = -1
+        for line in f:
+            vals = line.strip().split("\t")
+            if 'node1' in vals and 'node2' in vals:
+                node1_idx = vals.index('node1')
+                node2_idx = vals.index('node2')
+            else:
+                _[vals[node1_idx]] = vals[node2_idx]
+
+        return _
