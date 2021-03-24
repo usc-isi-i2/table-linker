@@ -102,6 +102,7 @@ class Utility(object):
         _redirect_text = {}
         _text_embedding = None
         _graph_embeddings_complex = None
+        _graph_embeddings_transE = None
 
         _pagerank = 0.0
 
@@ -160,7 +161,8 @@ class Utility(object):
                                                                          abbreviated_name=_abbreviated_name,
                                                                          redirect_text=_redirect_text,
                                                                          text_embedding=_text_embedding,
-                                                                         graph_embeddings_complex=_graph_embeddings_complex
+                                                                         graph_embeddings_complex=_graph_embeddings_complex,
+                                                                         graph_embeddings_transe=_graph_embeddings_transE
                                                                          )
                             # initialize for next node
                             _labels = dict()
@@ -181,6 +183,7 @@ class Utility(object):
                             _redirect_text = {}
                             _text_embedding = None
                             _graph_embeddings_complex = None
+                            _graph_embeddings_transE = None
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
@@ -254,12 +257,10 @@ class Utility(object):
                                 _abbreviated_name[lang].add(tmp_val)
                         elif vals[label_id] == 'graph_embeddings_complEx':
                             _graph_embeddings_complex = vals[node2_id]
-                            if isinstance(_graph_embeddings_complex, str):
-                                _graph_embeddings_complex = [float(x) for x in _graph_embeddings_complex.split(",")]
+                        elif vals[label_id] == 'graph_embeddings_transE':
+                            _graph_embeddings_transE = vals[node2_id]
                         elif vals[label_id] == 'text_embedding':
                             _text_embedding = vals[node2_id]
-                            if isinstance(_text_embedding, str):
-                                _text_embedding = [float(x) for x in _text_embedding.split(",")]
 
                         # if it is human
                         if vals[node2_id] in human_nodes_set:
@@ -284,7 +285,8 @@ class Utility(object):
                                                          abbreviated_name=_abbreviated_name,
                                                          redirect_text=_redirect_text,
                                                          text_embedding=_text_embedding,
-                                                         graph_embeddings_complex=_graph_embeddings_complex
+                                                         graph_embeddings_complex=_graph_embeddings_complex,
+                                                         graph_embeddings_transe=_graph_embeddings_transE
                                                          )
         except:
             print(traceback.print_exc())
@@ -332,6 +334,7 @@ class Utility(object):
         redirect_text = kwargs['redirect_text']
         text_embedding = kwargs['text_embedding']
         graph_embeddings_complex = kwargs['graph_embeddings_complex']
+        graph_embeddings_transe = kwargs['graph_embeddings_transE']
 
         _labels = {}
         _aliases = {}
@@ -394,6 +397,8 @@ class Utility(object):
                     _['text_embedding'] = text_embedding
                 if graph_embeddings_complex:
                     _['graph_embedding_complex'] = graph_embeddings_complex
+                if graph_embeddings_transe:
+                    _['graph_embeddings_transe'] = graph_embeddings_transe
                 output_file.write(json.dumps(_))
             else:
                 skipped_node_count += 1
