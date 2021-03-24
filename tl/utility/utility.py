@@ -334,7 +334,7 @@ class Utility(object):
         redirect_text = kwargs['redirect_text']
         text_embedding = kwargs['text_embedding']
         graph_embeddings_complex = kwargs['graph_embeddings_complex']
-        graph_embeddings_transe = kwargs['graph_embeddings_transE']
+        graph_embeddings_transe = kwargs['graph_embeddings_transe']
 
         _labels = {}
         _aliases = {}
