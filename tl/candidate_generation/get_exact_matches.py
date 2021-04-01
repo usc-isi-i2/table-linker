@@ -11,7 +11,7 @@ class ExactMatches(object):
         self.utility = Utility(self.es, output_column_name)
 
     def get_exact_matches(self, column, lower_case=False, size=50, file_path=None,
-                          df=None, auxiliary_fields: List[str] = None, auxiliary_folder: str = None):
+                          df=None, auxiliary_fields: List[str] = None, auxiliary_folder: str = None, isa: str = None):
         """
         retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
 
@@ -34,6 +34,16 @@ class ExactMatches(object):
 
         df.fillna(value="", inplace=True)
 
+        extra_musts = None
+        if isa:
+            extra_musts = {
+                "term": {
+                    "instance_ofs.keyword_lower": {
+                        "value": isa.lower()
+                    }
+                }
+            }
+
         properties = "all_labels.en"
 
         return self.utility.create_candidates_df(df,
@@ -44,4 +54,5 @@ class ExactMatches(object):
                                                  lower_case=lower_case,
                                                  auxiliary_fields=auxiliary_fields,
                                                  auxiliary_folder=auxiliary_folder,
-                                                 auxiliary_file_prefix='exact_matches_')
+                                                 auxiliary_file_prefix='exact_matches_',
+                                                 extra_musts=extra_musts)
