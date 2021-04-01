@@ -13,7 +13,7 @@ class Utility(object):
         self.score_column_name = output_column_name
 
     def create_candidates_df(self, df, column, size, properties, method, lower_case=False, auxiliary_fields=None,
-                             auxiliary_folder=None, auxiliary_file_prefix=''):
+                             auxiliary_folder=None, auxiliary_file_prefix='', extra_musts: dict = None):
         properties = [_.strip() for _ in properties.split(',')]
         candidates_format = list()
         df_columns = df.columns
@@ -22,7 +22,8 @@ class Utility(object):
         if self.ffv.is_canonical_file(df):
             candidates_format, all_candidates_aux_dict = self.create_cfd_canonical(df, df_columns, column, size,
                                                                                    properties, method, lower_case,
-                                                                                   auxiliary_fields=auxiliary_fields)
+                                                                                   auxiliary_fields=auxiliary_fields,
+                                                                                   extra_musts=extra_musts)
 
             self.write_auxiliary_files(auxiliary_folder,
                                        all_candidates_aux_dict,
@@ -41,7 +42,8 @@ class Utility(object):
 
                 _candidates_format, candidates_aux_dict = self.create_cfd_candidates(tuple, column, size,
                                                                                      properties, method, lower_case,
-                                                                                     auxiliary_fields=auxiliary_fields)
+                                                                                     auxiliary_fields=auxiliary_fields,
+                                                                                     extra_musts=extra_musts)
                 all_candidates_aux_dict = {**all_candidates_aux_dict, **candidates_aux_dict}
 
                 candidates_format.extend(_candidates_format)
@@ -54,7 +56,7 @@ class Utility(object):
             raise UnsupportTypeError("The input df is neither a canonical format or a candidate format!")
 
     def create_cfd_canonical(self, df, relevant_columns, column, size, properties, method, lower_case,
-                             auxiliary_fields=None):
+                             auxiliary_fields=None, extra_musts=None):
         candidates_format = list()
         all_candidates_aux_dict = {}
 
@@ -64,7 +66,8 @@ class Utility(object):
                                                                                 properties,
                                                                                 method,
                                                                                 lower_case=lower_case,
-                                                                                auxiliary_fields=auxiliary_fields)
+                                                                                auxiliary_fields=auxiliary_fields,
+                                                                                extra_musts=extra_musts)
 
             all_candidates_aux_dict = {**all_candidates_aux_dict, **candidate_aux_dict}
 
@@ -99,7 +102,8 @@ class Utility(object):
                     candidates_format.append(cf_dict)
         return candidates_format, all_candidates_aux_dict
 
-    def create_cfd_candidates(self, key_tuple, column, size, properties, method, lower_case, auxiliary_fields=None):
+    def create_cfd_candidates(self, key_tuple, column, size, properties, method, lower_case, auxiliary_fields=None,
+                              extra_musts=None):
         candidates_format = list()
 
         _ = {}
@@ -111,7 +115,8 @@ class Utility(object):
                                                                             properties,
                                                                             method,
                                                                             lower_case=lower_case,
-                                                                            auxiliary_fields=auxiliary_fields)
+                                                                            auxiliary_fields=auxiliary_fields,
+                                                                            extra_musts=extra_musts)
 
         if not candidate_dict:
             cf_dict = {}
