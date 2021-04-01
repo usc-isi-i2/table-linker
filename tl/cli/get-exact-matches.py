@@ -42,6 +42,9 @@ def add_arguments(parser):
                         help='location where the auxiliary files for auxiliary fields will be stored.'
                              'If this option is specified then `--auxiliary-fields` must also be specified.')
 
+    parser.add_argument('--isa', action='store', type=str, dest='isa', default=None,
+                        help='only candidates which are instance of this Qnode will be returned')
+
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
@@ -67,7 +70,8 @@ def run(**kwargs):
                                    lower_case=kwargs['case_sensitive'],
                                    size=kwargs['size'], df=df,
                                    auxiliary_fields=auxiliary_fields,
-                                   auxiliary_folder=auxiliary_folder)
+                                   auxiliary_folder=auxiliary_folder,
+                                   isa=kwargs['isa'])
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-exact-matches\n'
