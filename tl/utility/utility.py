@@ -105,6 +105,7 @@ class Utility(object):
         _graph_embeddings_complex = None
         _graph_embeddings_transE = None
         ascii_labels = set()
+        all_labels = set()
 
         _pagerank = 0.0
 
@@ -188,6 +189,7 @@ class Utility(object):
                             _graph_embeddings_complex = None
                             _graph_embeddings_transE = None
                             ascii_labels = set()
+                            all_labels = set()
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
@@ -202,11 +204,13 @@ class Utility(object):
 
                             if tmp_val.strip() != '':
                                 _labels[lang].add(tmp_val)
+                                all_labels.add(tmp_val)
 
-                                # add transilerated value as well
-                                _ascii_label = Utility.transliterate_label(tmp_val)
-                                if _ascii_label != "" and _ascii_label != tmp_val:
-                                    ascii_labels.add(_ascii_label)
+                                if lang in {'en', 'de', 'es', 'fr', 'it', 'pt'}:
+                                    # add transilerated value as well
+                                    _ascii_label = Utility.transliterate_label(tmp_val)
+                                    if _ascii_label != "" and _ascii_label not in all_labels:
+                                        ascii_labels.add(_ascii_label)
 
                         elif vals[label_id] in aliases:
                             if separate_languages:
@@ -219,11 +223,13 @@ class Utility(object):
 
                             if tmp_val.strip() != '':
                                 _aliases[lang].add(tmp_val)
+                                all_labels.add(tmp_val)
 
-                                # add transilerated value as well
-                                _ascii_alias = Utility.transliterate_label(tmp_val)
-                                if _ascii_alias != "" and _ascii_alias != tmp_val:
-                                    ascii_labels.add(_ascii_alias)
+                                if lang in {'en', 'de', 'es', 'fr', 'it', 'pt'}:
+                                    # add transilerated value as well
+                                    _ascii_alias = Utility.transliterate_label(tmp_val)
+                                    if _ascii_alias != "" and _ascii_alias not in all_labels:
+                                        ascii_labels.add(_ascii_alias)
 
                         elif vals[label_id] in pagerank:
                             tmp_val = Utility.to_float(vals[node2_id])
