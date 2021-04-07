@@ -11,6 +11,7 @@ import pprint
 from collections import defaultdict
 from tl.exceptions import FileNotExistError, UploadError
 from requests.auth import HTTPBasicAuth
+from unidecode import unidecode
 
 
 class Utility(object):
@@ -103,6 +104,7 @@ class Utility(object):
         _text_embedding = None
         _graph_embeddings_complex = None
         _graph_embeddings_transE = None
+        ascii_labels = set()
 
         _pagerank = 0.0
 
@@ -162,7 +164,8 @@ class Utility(object):
                                                                          redirect_text=_redirect_text,
                                                                          text_embedding=_text_embedding,
                                                                          graph_embeddings_complex=_graph_embeddings_complex,
-                                                                         graph_embeddings_transe=_graph_embeddings_transE
+                                                                         graph_embeddings_transe=_graph_embeddings_transE,
+                                                                         ascii_labels=ascii_labels
                                                                          )
                             # initialize for next node
                             _labels = dict()
@@ -184,6 +187,7 @@ class Utility(object):
                             _text_embedding = None
                             _graph_embeddings_complex = None
                             _graph_embeddings_transE = None
+                            ascii_labels = set()
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
@@ -198,6 +202,12 @@ class Utility(object):
 
                             if tmp_val.strip() != '':
                                 _labels[lang].add(tmp_val)
+
+                                # add transilerated value as well
+                                _ascii_label = Utility.transliterate_label(tmp_val)
+                                if _ascii_label != "" and _ascii_label != tmp_val:
+                                    ascii_labels.add(_ascii_label)
+
                         elif vals[label_id] in aliases:
                             if separate_languages:
                                 tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
@@ -209,6 +219,12 @@ class Utility(object):
 
                             if tmp_val.strip() != '':
                                 _aliases[lang].add(tmp_val)
+
+                                # add transilerated value as well
+                                _ascii_alias = Utility.transliterate_label(tmp_val)
+                                if _ascii_alias != "" and _ascii_alias != tmp_val:
+                                    ascii_labels.add(_ascii_alias)
+
                         elif vals[label_id] in pagerank:
                             tmp_val = Utility.to_float(vals[node2_id])
                             if tmp_val:
@@ -286,7 +302,8 @@ class Utility(object):
                                                          redirect_text=_redirect_text,
                                                          text_embedding=_text_embedding,
                                                          graph_embeddings_complex=_graph_embeddings_complex,
-                                                         graph_embeddings_transe=_graph_embeddings_transE
+                                                         graph_embeddings_transe=_graph_embeddings_transE,
+                                                         ascii_labels=ascii_labels
                                                          )
         except:
             print(traceback.print_exc())
@@ -335,6 +352,7 @@ class Utility(object):
         text_embedding = kwargs['text_embedding']
         graph_embeddings_complex = kwargs['graph_embeddings_complex']
         graph_embeddings_transe = kwargs['graph_embeddings_transe']
+        ascii_labels = list(kwargs['ascii_labels'])
 
         _labels = {}
         _aliases = {}
@@ -399,6 +417,8 @@ class Utility(object):
                     _['graph_embedding_complex'] = graph_embeddings_complex
                 if graph_embeddings_transe:
                     _['graph_embeddings_transe'] = graph_embeddings_transe
+                if len(ascii_labels) > 0:
+                    _['ascii_labels'] = ascii_labels
                 output_file.write(json.dumps(_))
             else:
                 skipped_node_count += 1
@@ -915,7 +935,7 @@ class Utility(object):
         return list(res)
 
     @staticmethod
-    def create_property_metadata_dict(property_file_path):
+    def create_property_metadata_dict(property_file_path: str) -> dict:
         _ = {}
         f = gzip.open(property_file_path, 'rt')
         node1_idx = -1
@@ -929,3 +949,12 @@ class Utility(object):
                 _[vals[node1_idx]] = vals[node2_idx]
 
         return _
+
+    @staticmethod
+    def transliterate_label(label: str) -> str:
+        ascii_label = ""
+        try:
+            ascii_label = unidecode(label)
+        except Exception as e:
+            print(e, f'input label: {label}')
+        return ascii_label
