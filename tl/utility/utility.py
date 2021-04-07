@@ -106,6 +106,8 @@ class Utility(object):
         _graph_embeddings_transE = None
         ascii_labels = set()
         all_labels = set()
+        property_count = None
+        class_count = None
 
         _pagerank = 0.0
 
@@ -166,7 +168,9 @@ class Utility(object):
                                                                          text_embedding=_text_embedding,
                                                                          graph_embeddings_complex=_graph_embeddings_complex,
                                                                          graph_embeddings_transe=_graph_embeddings_transE,
-                                                                         ascii_labels=ascii_labels
+                                                                         ascii_labels=ascii_labels,
+                                                                         property_count=property_count,
+                                                                         class_count=class_count
                                                                          )
                             # initialize for next node
                             _labels = dict()
@@ -190,6 +194,8 @@ class Utility(object):
                             _graph_embeddings_transE = None
                             ascii_labels = set()
                             all_labels = set()
+                            property_count = None
+                            class_count = None
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
@@ -283,6 +289,10 @@ class Utility(object):
                             _graph_embeddings_transE = vals[node2_id]
                         elif vals[label_id] == 'text_embedding':
                             _text_embedding = vals[node2_id]
+                        elif vals[label_id] == 'property_count':
+                            property_count = vals[node2_id]
+                        elif vals[label_id] == 'class_count':
+                            class_count = vals[node2_id]
 
                         # if it is human
                         if vals[node2_id] in human_nodes_set:
@@ -309,7 +319,9 @@ class Utility(object):
                                                          text_embedding=_text_embedding,
                                                          graph_embeddings_complex=_graph_embeddings_complex,
                                                          graph_embeddings_transe=_graph_embeddings_transE,
-                                                         ascii_labels=ascii_labels
+                                                         ascii_labels=ascii_labels,
+                                                         property_count=property_count,
+                                                         class_count=class_count
                                                          )
         except:
             print(traceback.print_exc())
@@ -359,6 +371,8 @@ class Utility(object):
         graph_embeddings_complex = kwargs['graph_embeddings_complex']
         graph_embeddings_transe = kwargs['graph_embeddings_transe']
         ascii_labels = list(kwargs['ascii_labels'])
+        property_count = kwargs['property_count']
+        class_count = kwargs['class_count']
 
         _labels = {}
         _aliases = {}
@@ -425,6 +439,10 @@ class Utility(object):
                     _['graph_embeddings_transe'] = graph_embeddings_transe
                 if len(ascii_labels) > 0:
                     _['ascii_labels'] = ascii_labels
+                if class_count:
+                    _['class_count'] = class_count
+                if property_count:
+                    _['property_count'] = property_count
                 output_file.write(json.dumps(_))
             else:
                 skipped_node_count += 1
