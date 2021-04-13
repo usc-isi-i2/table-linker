@@ -1,6 +1,7 @@
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException
 from tl.file_formats_validator import FFV
+import sys
 
 
 def get_kg_links(score_column, file_path=None, df=None, label_column='label', top_k=5, k_rows=False):
@@ -27,7 +28,7 @@ def get_kg_links(score_column, file_path=None, df=None, label_column='label', to
     grouped_obj = topk_df.groupby(['row', 'column'])
     for cell in grouped_obj:
         cell[1].drop_duplicates(subset='kg_id', inplace=True)
-        if k_rows:
+        if not(k_rows):
             _ = {}
             _['column'] = cell[0][1]
             _['row'] = cell[0][0]
@@ -38,7 +39,8 @@ def get_kg_links(score_column, file_path=None, df=None, label_column='label', to
             _['ranking_score'] = '|'.join([str(round(score, 2)) for score in list(cell[1][score_column])[:top_k]])
             final_list.append(_)
         else:
-            final_list.append(cell[1].head(top_k))
+            topk_df_row = cell[1].head(top_k)
+            final_list.extend(topk_df_row.to_dict(orient='records'))
 
     odf = pd.DataFrame(final_list)
     return odf

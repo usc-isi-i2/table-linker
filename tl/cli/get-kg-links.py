@@ -29,7 +29,7 @@ def add_arguments(parser):
                         default=5,
                         help='desired number of output candidates per input cell.')
 
-    parser.add_argument('--k-rows', action='store_true', type=bool, dest='k_rows', required=False,
+    parser.add_argument('--k-rows', action='store', type=bool, dest='k_rows', required=False,
                         default=False,
                         help='if specified, output top k candidates in different rows, rather than concatenated in a'
                              'single row')
