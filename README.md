@@ -1217,6 +1217,7 @@ The candidate with the highest score is ranked highest, ties are broken alphabet
 - `-c a`: column name with ranking scores.
 - `-l a`: column name with input cell labels. Default is `label`. These values will be stored in the output column `label` in the output file for this command.
 - `-k {number}`: desired number of output candidates per input cell.Default is `k=1`. Multiple values are represented by a `|` separated string
+- `--k-rows`: It is a `boolean` parameter. If specified , it will output the top k candidates in different rows, rather than concatenated in a single row.
 
 **Examples:**
 ```bash
@@ -1228,6 +1229,7 @@ $ tl get-kg-links -c ranking_score < countries_features_ranked.csv > countries_o
 ```
 
 **File Example:**
+
 ```bash
 # read the ranking score file countries_features_ranked.csv and ouput top 2 candidates, column 'clean_labels' have the cleaned input labels
 $ tl get-kg-links -c ranking_score -l clean_labels -k 2 countries_features_ranked.csv > countries_kg_links.csv
@@ -1239,7 +1241,22 @@ column row label        kg_id           kg_labels         ranking_score
 1      2   London       Q84|Q92561      London|London ON  2.75|1.914823584
 ```
 
+The following example shows the use of `--k-rows` parameter
+
+```bash
+$ tl get-kg-links -c ranking_score -l clean_labels -k 2 --k-rows comapnies_features_ranked.csv > companies_kg_links.csv
+$ cat companies_kg_links.csv
+
+|column|row|label          |kg_id    |kg_labels            |ranking_score      |
+|------|---|---------------|---------|---------------------|-------------------|
+|1     |0  |Citigroup      |Q219508  |Citigroup            |0.9823348588687812 |
+|1     |0  |Citigroup      |Q1023765 |CIT Group            |-0.3970555555555555|
+|1     |1  |Bank of America|Q487907  |Bank of America      |0.9054747474747477 |
+|1     |1  |Bank of America|Q50316068|Bank of America      |0.227679847085417  |
+```
+
 #### Implementation
+
 Group by  column and row indices and pick the top `k` candidates for each input cell to produce an output file in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
 
 Pick the preferred labels for candidate KG objects from the column `kg_labels`, which is added by the [`get-exact-matches`](#command_get-exact-matches) command.
