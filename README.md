@@ -1217,7 +1217,7 @@ The candidate with the highest score is ranked highest, ties are broken alphabet
 - `-c a`: column name with ranking scores.
 - `-l a`: column name with input cell labels. Default is `label`. These values will be stored in the output column `label` in the output file for this command.
 - `-k {number}`: desired number of output candidates per input cell.Default is `k=1`. Multiple values are represented by a `|` separated string
-- `--k-rows`: It is a `boolean` parameter. If specified as `True` , it will output the top k candidates in different rows, rather than concatenated in a single row.
+- `--k-rows`: It is a `boolean` parameter. If specified , it will output the top k candidates in different rows, rather than concatenated in a single row.
 
 **Examples:**
 ```bash
@@ -1244,20 +1244,15 @@ column row label        kg_id           kg_labels         ranking_score
 The following example shows the use of `--k-rows` parameter
 
 ```bash
-$ tl get-kg-links -c ranking_score -l clean_labels -k 5 --k-rows True comapnies_features_ranked.csv > companies_kg_links.csv
+$ tl get-kg-links -c ranking_score -l clean_labels -k 2 --k-rows comapnies_features_ranked.csv > companies_kg_links.csv
 $ cat companies_kg_links.csv
 
-column  row     label   kg_id   kg_labels       ranking_score
-1       0       Citigroup       Q219508 Citigroup       0.9823348588687812
-1       0       Citigroup       Q1023765        CIT Group       -0.3970555555555555
-1       0       Citigroup       Q856322 CITIC Group     -0.6592308802308804
-1       0       Citigroup       Q857063 Citibank        -0.6692800819252434
-1       0       Citigroup       Q27313706       CHT Group       -0.7734761904761907
-1       1       Bank of America Q487907 Bank of America 0.9054747474747477
-1       1       Bank of America Q50316068       Bank of America 0.227679847085417
-1       1       Bank of America Q4856042        Bank of America Plaza   -0.1529523809523809
-1       1       Bank of America Q2882627        Bank of Africa  -0.1539929214929215
-1       1       Bank of America Q7837522        TreePeople      -0.3539365079365079
+|column|row|label          |kg_id    |kg_labels            |ranking_score      |
+|------|---|---------------|---------|---------------------|-------------------|
+|1     |0  |Citigroup      |Q219508  |Citigroup            |0.9823348588687812 |
+|1     |0  |Citigroup      |Q1023765 |CIT Group            |-0.3970555555555555|
+|1     |1  |Bank of America|Q487907  |Bank of America      |0.9054747474747477 |
+|1     |1  |Bank of America|Q50316068|Bank of America      |0.227679847085417  |
 ```
 
 #### Implementation
