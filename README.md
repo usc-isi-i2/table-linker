@@ -33,9 +33,11 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG.
 - [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value.
 - [`compute-tf-idf`](#command_compute-tf-idf)<sup>*</sup>: compute the "tf-idf" like score base on the candidates. It is not the real tf-idf score algorithm but using a algorithm similar to tf-idf score.
+- [`create-singleton-feature`](#command_create-singleton-feature)<sup>*</sup>: generates a boolean feature for exact match singletons
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
 - [`feature-voting`](#command_feature-voting)<sup>*</sup>: Perform voting on user specified feature column, for instance smallest_qnode_score, pagerank etc.
+- [`generate-reciprocal-rank`](#command_generate-reciprocal-rank)<sup>*</sup>: Generates a new feature reciprocal rank based on a scoring column provided as input by the user.
 - [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
 - [`get-fuzzy-matches`](#command_get-fuzzy-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search fuzzy match.
 - [`get-fuzzy-augmented-matches`](#command_get-fuzzy-augmented-matches)<sup>*</sup>: retrieves the identifiers of KG entities from an elasticsearch index. It does fuzzy search over multilingual labels, aliases, wikipedia and wikitable anchor text and wikipedia redirects.
@@ -46,6 +48,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`join`](#command_join): The join command outputs the linked knowledge graph objects for an input cell. This command takes as input a Input file and a file in Ranking Score format and outputs a file in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
 - [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
 - [`metrics`](#command_metrics)<sup>*</sup>: Calculate the F1-score on the candidates tables. Only works on the dataset after ran with  `ground-truth-labeler`.
+- [`mosaic-features`](#command_mosaic-features)<sup>*</sup>: Computes general features which are number of characters, number of tokens for each cell present in a specified column.
 - [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
 - [`plot-score-figure`](#command_plot-score-figure)<sup>*</sup>: visulize the score of the input data with 2 different kind of bar charts.
 - [`score-using-embedding`](#command_score-using-embedding)<sup>*</sup>: Score candidates using pre-computed embedding vectors
@@ -771,6 +774,89 @@ column  row  label  ||other_information||  ...  method       retrieval_score ret
 Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
 Wikipedia part: achieved with the python pacakge `wikipedia-api`
 
+<a name="command_creat-singleton-feature" />
+
+### [`create-singleton-feature`](#command_create-singleton-feature)` [OPTIONS]`
+
+The command takes as input a candidate file and filters out the candidates retrieved by `exact-matches`. The cells having single `exact-match` candidate are given a boolean label of 1. Others are a given a boolean label of 0.
+
+The command takes one command line parameter:
+
+* `-o | --output-column-name`: The user needs to specify the name of the output column for the singleton feature. By default the output column is named as `singleton`.
+
+**Example Command**
+
+```bash
+$ tl create-singleton-feature -o singleton companies_candidates.csv > companies_singletons.csv
+$ cat companies_singletons.csv
+
+|column|row|label          |kg_id     |kg_labels         |method     |singleton|
+|------|---|---------------|----------|------------------|-----------|---------|
+|1     |0  |Citigroup      |Q219508   |Citigroup         |exact-match|1        |
+|1     |1  |Bank of America|Q487907   |Bank of America   |exact-match|0        |
+|1     |1  |Bank of America|Q50316068 |Bank of America   |exact-match|0        |
+|1     |10 |BP             |Q1004647  |bullous pemphigoid|exact-match|0        |
+|1     |10 |BP             |Q100151423|brutal prog       |exact-match|0        |
+|1     |10 |BP             |Q131755   |bipolar disorder  |exact-match|0        |
+|1     |10 |BP             |Q11605804 |BlitzPlus         |exact-match|0        |
+|1     |10 |BP             |Q152057   |BP                |exact-match|0        |
+|1     |10 |BP             |Q27968500 |BP                |exact-match|0        |
+```
+
+<a name="command_creat-singleton-feature" />
+
+### [`generate-reciprocal-rank`](#command_generate-reciprocal-rank)` [OPTIONS]`
+
+The command takes as input a candidate file and a score column that needs to be used for generating the reciprocal rank.
+
+The command takes the following parameters:
+
+* `-c | --column`: Name of the score column that needs to be used for computing the reciprocal.
+* `-o | --output-column-name`: Name of the column where the output feature will be stored.
+
+**Example Command**
+
+```bash
+$ tl generate-reciprocal-rank -c graph-embedding-score -o reciprocal_rank companies.csv > companies_reciprocal_rank.csv
+
+$ cat companies_reciprocal_rank.csv
+|column|row|label          |kg_id     |kg_labels         |method     |graph-embedding-score|reciprocal_rank   |
+|------|---|---------------|----------|------------------|-----------|---------------------|------------------|
+|1     |0  |Citigroup      |Q219508   |Citigroup         |fuzzy-augmented|0.8419203745525644   |1.0               |
+|1     |0  |Citigroup      |Q219508   |Citigroup         |exact-match|0.8419203745525644   |0.5               |
+|1     |0  |Citigroup      |Q857063   |Citibank          |fuzzy-augmented|0.7356934287270128   |0.3333333333333333|
+|1     |0  |Citigroup      |Q1023765  |CIT Group         |fuzzy-augmented|0.7323310965247516   |0.25              |
+|1     |0  |Citigroup      |Q856322   |CITIC Group       |fuzzy-augmented|0.7199133878669514   |0.2               |
+|1     |0  |Citigroup      |Q11307286 |Citigroup Japan Holdings|fuzzy-augmented|0.7126768515646021   |0.1666666666666666|
+
+```
+
+<a name="command_mosaic-features" />
+
+### [`mosaic-features`](#command_mosaic-features)` [OPTIONS]`
+
+The `mosaic-features` command computes general features (number of characters and number of tokens) for a specified column.
+
+The command takes the following parameters:
+
+* `-c | --column`: The name of the column for which these features need to be computed. Default value is `kg-labels`.
+* `--num-char`: It is a boolean parameter. If specified, number of characters would be computed for each cell in the specified column.
+* `--num-tokens`: It is a boolean parameter. If specified, number of tokens would be computed for each cell in the specified column.
+
+**Example Command**
+
+```bash
+$ tl mosaic-features -c kg_labels --num-char --num-tokens companies.csv > companies_mosaic.csv
+$ cat companies_mosaic.csv
+
+|column|row|label          |kg_id     |kg_labels         |method     |num_char|num_tokens        |
+|------|---|---------------|----------|------------------|-----------|--------|------------------|
+|1     |0  |Citigroup      |Q219508   |Citigroup         |fuzzy-augmented|9       |1                 |
+|1     |0  |Citigroup      |Q781961   |One Court Square  |fuzzy-augmented|16      |3                 |
+|1     |0  |Citigroup      |Q867663   |Citigroup Centre  |fuzzy-augmented|16      |2                 |
+|1     |0  |Citigroup      |Q5122510  |Citigroup Global Markets Japan|fuzzy-augmented|30      |4                 |
+|1     |0  |Citigroup      |Q54491    |Citigroup Centre  |fuzzy-augmented|16      |2                 |
+```
 
 <a name="command_string-similarity" />
 
