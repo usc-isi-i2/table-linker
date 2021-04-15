@@ -6,7 +6,7 @@ import tl.exceptions
 
 def parser():
     return {
-        'help': 'generates a new feature column called reciprocal rank that takes as input a score column'
+        'help': 'generates a boolean features for exact match singleton'
     }
 
 
@@ -17,6 +17,12 @@ def add_arguments(parser):
         parser: (argparse.ArgumentParser)
 
     """
+    # output
+    parser.add_argument(
+        '-o', '--output-column-name', action='store', dest='output_column_name',
+        default="singleton",
+        help="the name of the column where the output feature will be stored.")
+
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
@@ -25,7 +31,8 @@ def run(**kwargs):
     import pandas as pd
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-        odf = create_singleton_feature.create_singleton_feature(df=df)
+        odf = create_singleton_feature.create_singleton_feature(kwargs['output_column_name'],
+                                                                df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: create-singleton-feature\n'

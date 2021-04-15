@@ -17,6 +17,11 @@ def add_arguments(parser):
         parser: (argparse.ArgumentParser)
 
     """
+    # output
+    parser.add_argument('-o', '--output-column-name', action='store', dest='output_column_name',
+        default="reciprocal_rank",
+        help="the name of the column where the output feature will be stored.")
+
     parser.add_argument('-c', '--column', action='store', type=str, dest='score_column', required=True,
                         help='name of the column which has the final score used for ranking')
 
@@ -28,8 +33,9 @@ def run(**kwargs):
     import pandas as pd
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-        odf = generate_reciprocal_rank.generate_reciprocal_rank(kwargs['score_column'],
-                                        df=df)
+        odf = generate_reciprocal_rank.generate_reciprocal_rank(kwargs['score_column'], 
+                                                               kwargs['output_column_name'],
+                                                               df=df)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: generate-reciprocal-rank\n'

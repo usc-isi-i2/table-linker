@@ -4,7 +4,7 @@ from tl.file_formats_validator import FFV
 import sys
 
 
-def create_singleton_feature(file_path=None, df=None):
+def create_singleton_feature(output_column, file_path=None, df=None):
     if file_path is None and df is None:
         raise RequiredInputParameterMissingException(
             'One of the input parameters is required: {} or {}'.format("file_path", "df"))
@@ -25,5 +25,5 @@ def create_singleton_feature(file_path=None, df=None):
             singleton_feat.append(1)
         else:
             singleton_feat.append(0)
-    df['singleton'] = singleton_feat
+    df[output_column] = singleton_feat
     return df
