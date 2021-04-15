@@ -1,5 +1,5 @@
 import pandas as pd
-from tl.exceptions import RequiredInputParameterMissingException
+from tl.exceptions import RequiredInputParameterMissingException, UnsupportTypeError
 from tl.file_formats_validator import FFV
 import sys
 
