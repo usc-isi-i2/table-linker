@@ -22,10 +22,8 @@ def add_arguments(parser):
     parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column_name',
                         default="tf_idf_score",
                         help='the output column name where the normalized scores will be stored.Default is tf_idf_score')
-    parser.add_argument('--similarity-column', action='store', nargs='?', dest='similarity_column', required=False,
-                        default="retrieval_score_normalized",
-                        help="The similarity column used to support as weight of computing tf-idf scores. "
-                             "If not specified, default will use `retrieval_score_normalized`")
+    parser.add_argument('--singleton-column', action='store', dest='singleton_column', required=True,
+                        help="Name of the column with singleton feature")
     parser.add_argument('--feature-file', action='store', dest='feature_file', required=True,
                         help="a tsv file with feature on which to compute tf idf score")
     parser.add_argument('--feature-name', action='store', dest='feature_name', required=True,
@@ -47,7 +45,8 @@ def run(**kwargs):
                                  kwargs['output_column_name'],
                                  kwargs['feature_file'],
                                  kwargs['feature_name'],
-                                 kwargs['total_docs'])
+                                 kwargs['total_docs'],
+                                 kwargs['singleton_column'])
         odf = tfidf_unit.compute_tfidf()
         odf.to_csv(sys.stdout, index=False)
     except:

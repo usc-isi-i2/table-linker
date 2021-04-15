@@ -3,7 +3,7 @@ import pandas as pd
 
 
 class TFIDF(object):
-    def __init__(self, input_file, output_column_name, feature_file, feature_name, total_docs):
+    def __init__(self, input_file, output_column_name, feature_file, feature_name, total_docs, singleton_column):
         """
         initialize the qnodes_dict as original tfidf required input, it is a dict with
             key: Q node id
@@ -16,6 +16,7 @@ class TFIDF(object):
 
         self.feature_dict, self.feature_count_dict = self.build_qnode_feature_dict(feature_file, feature_name)
         self.feature_idf_dict = self.calculate_idf_features()
+        self.singleton_column = singleton_column
 
     def calculate_idf_features(self):
         _ = {}
@@ -40,7 +41,7 @@ class TFIDF(object):
 
     def normalize_idf_high_confidence_classes(self):
         # hc = high confidence
-        hc_candidates = self.input_df[self.input_df['singleton'] == "1"]['kg_id'].unique().tolist()
+        hc_candidates = self.input_df[self.input_df[self.singleton_column] == "1"]['kg_id'].unique().tolist()
         hc_classes_count = {}
         hc_classes_idf = {}
         for candidate in hc_candidates:
