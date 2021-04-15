@@ -18,7 +18,7 @@ def add_arguments(parser):
 
     """
     parser.add_argument('-c', '--column', action='store', type=str, dest='label_column', required=True,
-                        default='kg_labels'
+                        default='kg_labels',
                         help='name of the column for which number of characters and tokens need to be calculated')
 
     parser.add_argument('--num-char', action='store_true', dest='num_char', required=False,
