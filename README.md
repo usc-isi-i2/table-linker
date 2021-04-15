@@ -676,98 +676,84 @@ $ cat output_file.csv
 ```
 
 #### Implementation
-Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
-Wikipedia part: achieved with the python pacakge `wikipedia-api`
 
 <a name="command_compute-tf-idf" />
 
 ### [`compute-tf-idf`](#command_compute-tf-idf)` [OPTIONS]`
 
-The `compute-tf-idf` function add a feature column by computing the tf-idf like score base on current all input candidates of the file.
+The `compute-tf-idf` function adds a feature column by computing the tf-idf like score based on all candidates for an input column.
 
-Unlike tf-idf score, here each unit is an edge / node values instead of a word in the text.
- For example, assume we have 3 nodes with very similar labels as:
-Node1`Q207638` (`Gambela Region`), with following edges:
-```
-P17: Q115,
-P31: Q10864048,
-P2006190001: Q207638,
-```
-Node2 `Q3094932` (`Gambela Zuria`), with following edges:
-```
-P17: Q115,
-P31: Q13221722,
-P2006190001: Q207638,
-P2006190002: Q4777700,
-P2006190003: Q3094932,
-```
-Node3 `Q4837972` (`Babo Gambela`), with following edges:
-```
-P17: Q115,
-P31: Q13221722,
-P2006190001: Q202107,
-P2006190002: Q1709377,
-P2006190003: Q4837972,
-```
-We can then represent each nodes with a vector like:
-```
-'Gambela': {'Q207638': [1, 1, 0, 0, 1, 1, 0],
-'Q3094932': [1, 0, 1, 1, 1, 1, 1],
-'Q4837972': [1, 0, 1, 1, 1, 1, 1]}
-```
-with the property map
-`{'P17': 0, 'Q10864048': 1, 'Q13221722': 2, 'P2006190003': 3, 'P2006190001': 4, 'P31': 5, 'P2006190002': 6}`
-Here 1 indicates this node exist, 0 indicates not exist. Also, a little explain on how the property map was generated:
-For all edges with name `P31`, we will also consider the node2 for this edge, otherwise we only consider the edge name but ignore node2 of the edge.
-```
-{'tf': 3, 'df': 3, 'idf': 0.0},                  # edge 0, P17
-{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 1, Q10864048
-{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 2, Q13221722
-{'tf': 3, 'df': 3, 'idf': 0.0},                  # edge 3, P2006190003
-{'tf': 2, 'df': 1, 'idf': 0.47712125471966244},  # edge 4, P2006190001
-{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 5, P31
-{'tf': 3, 'df': 3, 'idf': 0.0}                   # edge 6, P2006190002
-```
-Then, we will compute the score for those 3 nodes as:
- score = sum(for each node in properties: `tf_score` * `idf_score` * `1 if this node exist in target` * `similarity score`)
- Here similarity score is optional, in default it will use `retrieval_score_normalized`, If no similarity score is provided similairy score will be set as 1.
- Finally we can get the tf-idf score as:
-```
-Q207638: 0.9542425094393249,
-Q3094932: 1.0565475543340874,
-Q4837972: 1.0565475543340874
-```
-If further support with `high-preceision candidates` and string similarity score mentioned, we can get a more precious score.
+This commands follows the following procedure:
 
+Step 1: Get the set of high confidence candidates. High confidence candidates are defined as candidates which has the method `exact-match` and count per cell is 
+one.
+
+Step 2: For each of the high confidence candidates get the class-count data. This data is stored in Elasticseach index and is gathered during the 
+candidate generation step.
+
+The data consists of q-node:count pairs where the q-node represents a class and the count is the number of instances below the class. These counts use a generalized version of is-a where occupations and position held are considered is-a, eg, Scwarzenegger is an actor.
+
+Similarly, another dataset consists of p-node:count pairs where p-node represents a property the candidate qnode has and count is the total number of qnodes in
+the corpus which has this property.
+
+Step 3: Make a set of all the classes that appear in the high confidence classes, and count the number of times each class occurs in each candidate. For example, if two high precision candidates are human, then Q5 will have num-occurrences = 2.
+
+Step 4: Convert the instance counts for the set constructed in step 3 to IDF (see https://en.wikipedia.org/wiki/Tf–idf), and then multiply the IDF score of each class by the num-occurrences number from step 3. Then, normalize them so that all the IDF scores for the high confidence candidates sum to 1.0.
+
+Step 5: For each candidate, including high confidence candidates, compute the tf-idf score by adding up the IDF scores (computed in Step 4), for all the classes. If the class appears in the high confidence classes, then multiple the class IDF by 1 otherwise by 0.
 
 **Options:**
 - `-o / --output-column {string}`: The output scoring column name. If not provided, the column name will be `tf_idf_score`.
-- `--similarity-column {string}`: The similairty column applied for using on similarity score during calculating the tf-idf score.
+- `--singleton-column {string}`: Name of the column with singleton feature. This feature can be computed using the `create-singleton-feature` command.
+- `--feature-file {string}`: a tsv file with feature on which to compute tf idf score.
+- `--feature-name {string}`: name of the column which contains the class-count or property count in the `--feature-file`
+- `--N {int}`: total number of documents in ES index, used to compute IDF. `N` for DWD is 42123553
 
 **Examples:**
 ```bash
-# compute the tf-idf score, use the similarity score from column `LevenshteinSimilarity()`
-$ tl --url http://kg2018a.isi.edu:9200 --index wiki_labels_aliases_3 \
-  compute-tf-idf --similarity-column "LevenshteinSimilarity()" input_file.csv
+$ tl compute-tf-idf --feature-file class_count.tsv \
+     --feature-name class_count \
+     --singleton-column singleton \
+     -o class_count_tf_idf_score \
+     candidates.csv
 ```
 
 **File Example:**
 ```bash
-# compute the tf-idf score with default similairty column (retrieval_score_normalized)
-$ tl --url http://kg2018a.isi.edu:9200 --index wiki_labels_aliases_3 \
-  compute-tf-idf input_file.csv
+$ tl compute-tf-idf --feature-file class_count.tsv \
+     --feature-name class_count \
+     --singleton-column singleton \
+     -o class_count_tf_idf_score \
+     candidates.csv
 
 $ cat input_file.csv
-column  row  label  ||other_information||  ...  method       retrieval_score  retrieval_score_normalized
- 0      0  Gambela    ...                       exact-match  8.503553         1.000000
- 0      0  Gambela    ...                       exact-match  3.996364         0.469964
- 0      0  Gambela    ...                       phrase-match 30.137339        0.917484
+| column | row | label       | context                                   | label_clean | kg_id      | kg_labels                | kg_aliases                             | method          | kg_descriptions                     | pagerank               | retrieval_score | singleton | 
+|--------|-----|-------------|-------------------------------------------|-------------|------------|--------------------------|----------------------------------------|-----------------|-------------------------------------|------------------------|-----------------|-----------| 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q213854    | Virat Kohli              | Cheeku                                 | fuzzy-augmented | Indian cricket player               | 3.983031232217997e-09  | 36.39384        | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q102354285 | Marie Virat              |                                        | fuzzy-augmented | Ph. D. 2009                         | 5.918546005357847e-09  | 23.48463        | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16027751  | Bernard Virat            |                                        | fuzzy-augmented | French biologist (1921-2003)        | 3.7401912005599e-09    | 23.48463        | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q7907059   | VIRAT                    |                                        | fuzzy-augmented |                                     | 0.0                    | 20.582134       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q2978459   | Virata                   | Virat                                  | fuzzy-augmented | character from the epic Mahabharata | 6.8901323967569805e-09 | 20.520416       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16682735  |                          |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.623405       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q6426050   | Kohli                    |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.601744       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q46251     | Fränzi Mägert-Kohli      | Franziska Kohli\|Fraenzi Maegert-Kohli | fuzzy-augmented | Swiss snowboarder                   | 3.5396131256502836e-09 | 19.233713       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16434086  | Wirat Wachirarattanawong |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.010628       | 0         | 
+
+
 
 $ cat output_file.csv
-column  row  label  ||other_information||  ...  method       retrieval_score retrieval_score_normalized   tf_idf_score
- 0      0  Gambela    ...                       exact-match  8.503553         1.000000                    20.141398
- 0      0  Gambela    ...                       exact-match  3.996364         0.469964                    0.662052
- 0      0  Gambela    ...                       phrase-match 30.137339        0.917484                    0.323122
+| column | row | label             | context                                   | label_clean       | kg_id     | kg_labels         | kg_aliases                                                       | method          | kg_descriptions         | pagerank               | retrieval_score | singleton | class_count_tf_idf_score | 
+|--------|-----|-------------------|-------------------------------------------|-------------------|-----------|-------------------|------------------------------------------------------------------|-----------------|-------------------------|------------------------|-----------------|-----------|--------------------------| 
+| 0      | 0   | Virat Kohli       | royal challengers bangalore\|152\|5/11/88 | Virat Kohli       | Q213854   | Virat Kohli       | Cheeku                                                           | fuzzy-augmented | Indian cricket player   | 3.983031232217997e-09  | 36.39384        | 0         | 1.0000000000000002       | 
+| 0      | 1   | Tendulkar         | mumbai indians\|137\|24/04/1973           | Tendulkar         | Q9488     | Sachin Tendulkar  | Sachin Ramesh Tendulkar\|Master Blaster                          | fuzzy-augmented | Indian former cricketer | 1.196002906162983e-08  | 28.334663       | 0         | 1.0000000000000002       | 
+| 0      | 10  | Cheteshwar Pujara | deccan chargers\|157\|25/01/1988          | Cheteshwar Pujara | Q142613   | Cheteshwar Pujara | Cheteshwar Arvind Pujara                                         | fuzzy-augmented | Indian cricket player   | 3.936610257588056e-09  | 40.74549        | 0         | 1.0000000000000002       | 
+| 0      | 11  | Ishant Sharma     | delhi capitals\|168\|2/9/88               | Ishant Sharma     | Q3522062  | Ishant Sharma     |                                                                  | fuzzy-augmented | Indian cricket player.  | 3.5396131256502836e-09 | 30.923111       | 0         | 1.0000000000000002       | 
+| 0      | 12  | Mohammad Shami    | kings XI punjab\|152\|3/9/90              | Mohammad Shami    | Q7487531  | Mohammed Shami    | Mohammad Shami\|Mohammed Shami Ahmed\|Mohammad Shami Ahmed       | fuzzy-augmented | Indian cricketer        | 3.5396131256502836e-09 | 28.241823       | 0         | 1.0000000000000002       | 
+| 0      | 2   | Dhoni             | chennai super kings\|154\|7/7/81          | Dhoni             | Q470774   | MS Dhoni          | Mr Cool\|Mahi\|Mahendra Singh Dhoni\|Finisher\|Captain Cool\|MSD | fuzzy-augmented | Indian cricket player   | 6.350345434600185e-09  | 21.508753       | 0         | 1.0000000000000002       | 
+| 0      | 3   | Jasprit Bumrah    | mumbai indians\|154\|6/12/93              | Jasprit Bumrah    | Q16227998 | Jasprit Bumrah    | Jasprit Jasbirsingh Bumrah\|Jasprit Jasbir Singh Bumrah          | fuzzy-augmented | cricketer               | 3.5396131256502836e-09 | 40.825333       | 0         | 1.0000000000000002       | 
+| 0      | 4   | Ajinkya Rahane    |  rajasthan royals\|134\|6/6/88            | Ajinkya Rahane    | Q137669   | Ajinkya Rahane    | Ajinkya Madhukar Rahane\|rahane                                  | fuzzy-augmented | Indian cricketer        | 3.5396131256502836e-09 | 41.210064       | 0         | 1.0000000000000002       | 
+| 0      | 5   | Rohit Sharma      | mumbai indians\|159\|30/04/1987           | Rohit Sharma      | Q3520045  | Rohit Sharma      | Rohit Gurunath Sharma\|Hitman                                    | fuzzy-augmented | Indian cricketer        | 3.840480238014708e-09  | 31.262672       | 0         | 1.0000000000000002       | 
+
 ```
 
 #### Implementation
