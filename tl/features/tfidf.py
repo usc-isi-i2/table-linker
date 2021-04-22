@@ -16,9 +16,9 @@ class TFIDF(object):
             raise RequiredInputParameterMissingException(
                 'One of the input parameters is required: {} or {}'.format("input_file", "df"))
 
-        if input_file:
+        if input_file is not None:
             self.input_df = pd.read_csv(input_file, dtype=object)
-        elif df:
+        elif df is not None:
             self.input_df = df
         self.output_col_name = output_column_name
         self.N = float(total_docs)

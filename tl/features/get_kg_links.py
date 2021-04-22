@@ -34,8 +34,8 @@ def get_kg_links(score_column, file_path=None, df=None, label_column='label', to
             _['row'] = cell[0][0]
             _['label'] = cell[1][label_column].unique()[0]
             _['kg_id'] = '|'.join(list(cell[1]['kg_id'])[:top_k])
-            _['kg_label'] = '|'.join(list(cell[1]['kg_labels'])[:top_k])
-            _['kg_description'] = '|'.join(list(cell[1]['kg_descriptions'])[:top_k])
+            _['kg_labels'] = '|'.join(list(cell[1]['kg_labels'])[:top_k])
+            _['kg_descriptions'] = '|'.join(list(cell[1]['kg_descriptions'])[:top_k])
             _['ranking_score'] = '|'.join([str(round(score, 2)) for score in list(cell[1][score_column])[:top_k]])
             final_list.append(_)
         else:
