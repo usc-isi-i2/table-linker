@@ -1,16 +1,25 @@
 import math
 import pandas as pd
+from tl.exceptions import RequiredInputParameterMissingException
 
 
 class TFIDF(object):
-    def __init__(self, input_file, output_column_name, feature_file, feature_name, total_docs, singleton_column):
+    def __init__(self, output_column_name, feature_file, feature_name, total_docs, singleton_column, input_file=None,
+                 df=None):
         """
         initialize the qnodes_dict as original tfidf required input, it is a dict with
             key: Q node id
             value: list of edges in format "property#node2"
         :param kwargs:
         """
-        self.input_df = pd.read_csv(input_file, dtype=object)
+        if df is None and input_file is None:
+            raise RequiredInputParameterMissingException(
+                'One of the input parameters is required: {} or {}'.format("input_file", "df"))
+
+        if input_file:
+            self.input_df = pd.read_csv(input_file, dtype=object)
+        elif df:
+            self.input_df = df
         self.output_col_name = output_column_name
         self.N = float(total_docs)
 

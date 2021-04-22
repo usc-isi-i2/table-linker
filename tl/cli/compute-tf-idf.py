@@ -41,12 +41,12 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features import tfidf
     try:
-        tfidf_unit = tfidf.TFIDF(kwargs['input_file'],
-                                 kwargs['output_column_name'],
+        tfidf_unit = tfidf.TFIDF(kwargs['output_column_name'],
                                  kwargs['feature_file'],
                                  kwargs['feature_name'],
                                  kwargs['total_docs'],
-                                 kwargs['singleton_column'])
+                                 kwargs['singleton_column'],
+                                 input_file=kwargs['input_file'])
         odf = tfidf_unit.compute_tfidf()
         odf.to_csv(sys.stdout, index=False)
     except:
