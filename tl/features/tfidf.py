@@ -1,6 +1,7 @@
 import math
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException
+from collections import defaultdict
 
 
 class TFIDF(object):
@@ -20,6 +21,7 @@ class TFIDF(object):
             self.input_df = pd.read_csv(input_file, dtype=object)
         elif df is not None:
             self.input_df = df
+        self.input_df = self.input_df.sort_values(['column', 'row'])
         self.output_col_name = output_column_name
         self.N = float(total_docs)
 
@@ -49,26 +51,33 @@ class TFIDF(object):
         return feature_dict, feature_count_dict
 
     def normalize_idf_high_confidence_classes(self):
+        grouped_obj = self.input_df.groupby('column')
         # hc = high confidence
-        hc_candidates = self.input_df[self.input_df[self.singleton_column] == "1"]['kg_id'].unique().tolist()
-        hc_classes_count = {}
-        hc_classes_idf = {}
-        for candidate in hc_candidates:
-            if candidate in self.feature_dict:
-                classes = self.feature_dict[candidate]
-                for c in classes:
-                    if c not in hc_classes_count:
-                        hc_classes_count[c] = 0
-                    hc_classes_count[c] += 1
+        hc_classes_count = defaultdict(dict)
+        hc_classes_idf = defaultdict(dict)
+        for column, col_candidates_df in grouped_obj:
+            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column] == "1"]['kg_id'].unique().tolist()
+            for candidate in hc_candidates:
+                if candidate in self.feature_dict:
+                    classes = self.feature_dict[candidate]
+                    for c in classes:
+                        if c not in hc_classes_count:
+                            hc_classes_count[column][c] = 0
+                        hc_classes_count[column][c] += 1
 
         # multiply hc class count with idf
-        for c in hc_classes_count:
-            hc_classes_idf[c] = hc_classes_count[c] * self.feature_idf_dict[c]
+        for column, col_hc_classes in hc_classes_count.items():
+            for c in col_hc_classes:
+                hc_classes_idf[column][c] = col_hc_classes[c] * self.feature_idf_dict[c]
 
         # normalize the high confidence idf scores so that they sum to 1
-        hc_classes_idf_sum = sum([hc_classes_idf[x] for x in hc_classes_idf])
-        for c in hc_classes_idf:
-            hc_classes_idf[c] = hc_classes_idf[c] / hc_classes_idf_sum
+        hc_classes_idf_sum = {}
+        for column, col_idf in hc_classes_idf.items():
+            hc_classes_idf_sum[column] = sum([col_idf[x] for x in col_idf])
+        #hc_classes_idf_sum = sum([hc_classes_idf[x] for x in hc_classes_idf])
+        for column, col_idf in hc_classes_idf.items():
+            for c in col_idf:
+                hc_classes_idf[column][c] = hc_classes_idf[column][c] / hc_classes_idf_sum[column]
         return hc_classes_idf
 
     def compute_tfidf(self):
@@ -80,11 +89,12 @@ class TFIDF(object):
         hc_classes_idf = self.normalize_idf_high_confidence_classes()
         output = []
         for i, row in self.input_df.iterrows():
+            _column = row['column']
             _score = 0.0
             _feature_classes = self.feature_dict.get(row['kg_id'], None)
             if _feature_classes:
                 for _class in _feature_classes:
-                    _score += hc_classes_idf.get(_class, 0.0)
+                    _score += hc_classes_idf[_column].get(_class, 0.0)
             row[self.output_col_name] = _score
             output.append(row)
 
