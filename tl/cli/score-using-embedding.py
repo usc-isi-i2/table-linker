@@ -28,7 +28,7 @@ def add_arguments(parser):
         For graph embedding use: "http://kg2018a.isi.edu:9200/wikidataos-graph-embedding-01/".''')
 
     parser.add_argument('--column-vector-strategy', action='store', dest='column_vector_strategy',
-                        default="centroid-of-singletons", choices=["centroid-of-singletons", 'centroid-of-voting'],
+                        default="centroid-of-singletons", choices=["centroid-of-singletons", 'centroid-of-voting', 'centroid-of-lof'],
                         help="the name of the strategy to use to create the vector for the column.")
 
     # distance function
@@ -47,6 +47,16 @@ def add_arguments(parser):
         '--min-vote', action='store', dest='min_vote',
         default=0,
         help="When using centroid-of-voting, the minimum vote count a candidate need to receive to be count as high confidence candidate.")
+
+    parser.add_argument(
+        '--lof-strategy', action='store', dest='lof_strategy',
+        default='ems-mv', choices=["ems-mv", 'ems-only'],
+        help='''
+        The name of outlier removal (lof) strategy: 
+        - on exact-match-singleton candidates only 
+        - on exact-match-singleton and model-voted candidates combined
+        This argument is only valid for column-vector-strategy == centroid-of-lof
+        ''')
 
     # output
     parser.add_argument(
