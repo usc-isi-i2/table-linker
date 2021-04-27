@@ -25,7 +25,7 @@ class EmbeddingVector:
         self.kwargs = kwargs
         self.load_input_file(self.kwargs)
         self.vectors_map = {}
-        self.centroid = None
+        self.centroid = dict()
         self.groups = defaultdict(set)
         self.input_column_name = kwargs['input_column_name']
         self.debug = True
@@ -43,6 +43,7 @@ class EmbeddingVector:
 
         # Drop duplicate rows for uniqueness
         self.loaded_file.drop_duplicates(inplace=True, ignore_index=True)
+        self.loaded_file = self.loaded_file.sort_values(['column', 'row'])
 
     def get_result_df(self):
         return self.loaded_file
@@ -170,7 +171,8 @@ class EmbeddingVector:
                     or each_row[self.input_column_name] not in self.vectors_map):
                 each_score = 0.0
             else:
-                each_score = self.compute_distance(self.centroid,
+                column = each_row['column']
+                each_score = self.compute_distance(self.centroid[column],
                                                    self.vectors_map[each_row[self.input_column_name]])
 
             scores.append(each_score)
@@ -180,36 +182,37 @@ class EmbeddingVector:
         self.loaded_file.to_csv(sys.stdout, index=False)
 
     def _centroid_of_singletons(self) -> bool:
+        grouped_obj = self.loaded_file.groupby('column')
+        for column, col_candidates_df in grouped_obj:
+            # Use only results from exact-match
+            data = col_candidates_df[col_candidates_df['method'] == 'exact-match']
+            # Find singleton ids, i.e. ids from candidation generation sets of size one
+            singleton_ids = []
+            for ((col, row), group) in data.groupby(['column', 'row']):
+                ids = group[self.input_column_name].unique().tolist()
+                if np.nan in ids:
+                    ids.remove(np.nan)
+                if len(ids) == 1:
+                    singleton_ids.append(ids[0])
+                    
+            if not singleton_ids:
+                return False
+            
+            missing_embedding_ids = []
+            vectors = []
+            for kg_id in singleton_ids:
+                if kg_id not in self.vectors_map:
+                    missing_embedding_ids.append(kg_id)
+                else:
+                    vectors.append(self.vectors_map[kg_id])
+                    
+            if len(missing_embedding_ids):
+                print(f'_centroid_of_singletons: Missing {len(missing_embedding_ids)} of {len(singleton_ids)}',
+                     file=sys.stderr)
+                     
+            # centroid of singletons
+            self.centroid[column] = np.mean(np.array(vectors), axis=0)
 
-        # Use only results from exact-match
-        data = self.loaded_file[self.loaded_file['method'] == 'exact-match']
-
-        # Find singleton ids, i.e. ids from candidation generation sets of size one
-        singleton_ids = []
-        for ((col, row), group) in data.groupby(['column', 'row']):
-            ids = group[self.input_column_name].unique().tolist()
-            if np.nan in ids:
-                ids.remove(np.nan)
-            if len(ids) == 1:
-                singleton_ids.append(ids[0])
-
-        if not singleton_ids:
-            return False
-
-        missing_embedding_ids = []
-        vectors = []
-        for kg_id in singleton_ids:
-            if kg_id not in self.vectors_map:
-                missing_embedding_ids.append(kg_id)
-            else:
-                vectors.append(self.vectors_map[kg_id])
-
-        if len(missing_embedding_ids):
-            print(f'_centroid_of_singletons: Missing {len(missing_embedding_ids)} of {len(singleton_ids)}',
-                  file=sys.stderr)
-
-        # centroid of singletons
-        self.centroid = np.mean(np.array(vectors), axis=0)
         return True
 
     def _centroid_of_voting(self) -> bool:
