@@ -55,10 +55,11 @@ class EmbeddingVector:
                 if 'qnode' not in line:
                     fields = line.strip().split('\t')
                     qnode = fields[0]
-                    embeddings = [float(x) for x in fields[1].split(",")]
+                    # embeddings = [float(x) for x in fields[1].split(",")]
                     if qnode in qnodes:
-                        # self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
-                        self.vectors_map[qnode] = np.asarray(embeddings)
+                        # TODO: hotfix for Ke-Thia's cache file
+                        self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
+                        # self.vectors_map[qnode] = np.asarray(embeddings)
 
     def _save_new_to_file(self, embedding_file, new_qnodes):
         with open(embedding_file, 'at') as fd:
@@ -92,7 +93,8 @@ class EmbeddingVector:
         for i in range(0, len(qnodes), batch_size):
             part = qnodes[i:i + batch_size]
             query = {
-                "_source": ["id", "embedding"],
+                # TODO: index update, see http://ckg07:9200/wikidatadwd-augmented/_doc/Q2
+                "_source": ["id", "graph_embedding_complex"],
                 "size": batch_size,
                 "query": {
                     "ids": {
@@ -102,22 +104,28 @@ class EmbeddingVector:
             }
             response = requests.get(search_url, json=query)
             result = response.json()
+
+            # print(result, file=sys.stderr)
+
             if result['hits']['total'] == 0:
                 missing += part
             else:
                 hit_qnodes = []
                 for hit in result['hits']['hits']:
-                    if 'embedding' in hit['_source']:
+                    if 'graph_embedding_complex' in hit['_source']:
                         qnode = hit['_source']['id']
-                        if isinstance(hit['_source']['embedding'], str):
-                            vector = np.asarray(list(map(float, hit['_source']['embedding'].split())))
+                        if isinstance(hit['_source']['graph_embedding_complex'], str):
+                            vector = np.asarray(list(map(float, hit['_source']['graph_embedding_complex'].split(','))))
                         else:
-                            vector = np.asarray(list(map(float, hit['_source']['embedding'])))
+                            vector = np.asarray(list(map(float, hit['_source']['graph_embedding_complex'])))
+                        # print(qnode, file=sys.stderr)
+                        # print(vector, file=sys.stderr)
                         hit_qnodes.append(qnode)
                         self.vectors_map[qnode] = vector
                 found += hit_qnodes
                 missing += [q for q in part if q not in hit_qnodes]
                 # print(f'found:{len(found)} missing:{len(missing)}', file=sys.stderr)
+        # print(self.vectors_map['Q185888'], file=sys.stderr)
         return found
 
     def get_vectors(self):
@@ -266,12 +274,18 @@ class EmbeddingVector:
             # data = self.loaded_file.copy()
             data = col_candidates_df.copy()
 
+            # print(pd.unique(data['is_model_voted']), file=sys.stderr)
+
             # label exact-match-singleton candidates
-            data['is_ems'] = -1
+            # data['is_ems'] = -1
+            tmp_df = pd.DataFrame()
             for ((col, row), group) in data.groupby(['column', 'row']):
+                group['is_ems'] = -1
                 if len(group[group['method'] == 'exact-match']) == 1 and pd.notna(group[group['method'] == 'exact-match'].iloc[0]['kg_id']):
                     # exact match is singleton, non-nan candidate set
                     group.loc[group['method'] == 'exact-match', 'is_ems'] = 1
+                tmp_df = tmp_df.append(group)
+            data = tmp_df
             assert 1 in pd.unique(data['is_ems']), 'there is no exact-match-singleton in this dataset!'
 
             # check lof strategy
@@ -281,11 +295,18 @@ class EmbeddingVector:
                 # check input data: should contain column 'is_model_voted'
                 assert 'is_model_voted' in data, f"Missing column 'is_model_voted' to use lof-strategy: ems-mv"
                 lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
-                lof_candidate_ids += list(data[data['is_model_voted'] == 1]['kg_id'])
+                lof_candidate_ids += list(data[data['is_model_voted'].astype(int) == 1]['kg_id'])
+
+                # print(data[data['is_ems'] == 1], file=sys.stderr)
+                # print(data[data['is_model_voted'].astype(int) == 1], file=sys.stderr)
+
             elif lof_strategy == 'ems-only':
                 lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
+                # TODO: there's more to ems only method: need to include mv within radius
             else:
                 raise ValueError(f"No such lof strategy available! {lof_strategy}")
+
+            # print(len(lof_candidate_ids), file=sys.stderr)
 
             if not lof_candidate_ids:
                 return False
@@ -299,15 +320,22 @@ class EmbeddingVector:
                 else:
                     vectors.append(self.vectors_map[kg_id])
             if len(missing_embedding_ids):
-                print(f'_centroid_of_singletons: Missing {len(missing_embedding_ids)} of {len(lof_candidate_ids)}',
+                print(f'_centroid_of_lof: Missing {len(missing_embedding_ids)} of {len(lof_candidate_ids)}',
                       file=sys.stderr)
+            vectors = np.array(vectors)
+
+            # print(self.vectors_map['Q185888'], file=sys.stderr)
+            # print(vectors, file=sys.stderr)
 
             # run outlier removal algorithm
             n_neigh = min(10, len(vectors) // 3)
             clf = LocalOutlierFactor(n_neighbors=n_neigh, contamination=0.4, metric='cosine')
             lof_pred = clf.fit_predict(vectors)
             assert len(lof_pred) == len(vectors)
-            lof_vectors = vectors[lof_pred]
+            # print(lof_pred, file=sys.stderr)
+            lof_vectors = vectors[lof_pred == 1]
+
+            # print(len(lof_vectors), file=sys.stderr)
 
             # centroid of lof-voted candidates
             self.centroid[column] = np.mean(lof_vectors, axis=0)
