@@ -192,7 +192,7 @@ class EmbeddingVector:
         for column, col_candidates_df in grouped_obj:
             # Use only results from exact-match
             data = col_candidates_df[col_candidates_df['method'] == 'exact-match']
-            # Find singleton ids, i.e. ids from candidation generation sets of size one
+            # Find singleton ids, i.e. ids from candidate generation sets of size one
             singleton_ids = []
             for ((col, row), group) in data.groupby(['column', 'row']):
                 ids = group[self.input_column_name].unique().tolist()
@@ -282,10 +282,10 @@ class EmbeddingVector:
             lof_strategy = self.kwargs.get("lof_strategy", 'ems-mv')
             lof_candidate_ids = []
             if lof_strategy == 'ems-mv':
-                # check input data: should contain column 'is_model_voted'
-                assert 'is_model_voted' in data, f"Missing column 'is_model_voted' to use lof-strategy: ems-mv"
+                # check input data: should contain column 'vote_by_classifier'
+                assert 'vote_by_classifier' in data, f"Missing column 'vote_by_classifier' to use lof-strategy: ems-mv"
                 lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
-                lof_candidate_ids += list(data[data['is_model_voted'].astype(int) == 1]['kg_id'])
+                lof_candidate_ids += list(data[data['vote_by_classifier'].astype(int) == 1]['kg_id'])
             elif lof_strategy == 'ems-only':
                 lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
             else:

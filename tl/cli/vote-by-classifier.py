@@ -68,11 +68,11 @@ def run(**kwargs):
 
         # odf['pred'] = preds
         # odf['prob_0'] = [p[0] for p in prob]
-        odf['prob_1'] = [p[1] for p in prob]
-        odf['is_model_voted'] = (odf['prob_1'] > prob_threshold).astype(int)
+        df['prob_1'] = [p[1] for p in prob]
+        odf['vote_by_classifier'] = (df['prob_1'] > prob_threshold).astype(int)
 
         odf.to_csv(sys.stdout, index=False)
     except:
-        message = 'Command: is-model-voted\n'
+        message = 'Command: vote-by-classifier\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)
