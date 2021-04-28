@@ -25,7 +25,6 @@ class EmbeddingVector:
         self.kwargs = kwargs
         self.load_input_file(self.kwargs)
         self.vectors_map = {}
-        # TODO: needs discussion
         self.centroid = dict()
         self.groups = defaultdict(set)
         self.input_column_name = kwargs['input_column_name']
@@ -55,18 +54,17 @@ class EmbeddingVector:
                 if 'qnode' not in line:
                     fields = line.strip().split('\t')
                     qnode = fields[0]
-                    # embeddings = [float(x) for x in fields[1].split(",")]
+                    embeddings = [float(x) for x in fields[1].split(",")]
                     if qnode in qnodes:
-                        # TODO: hotfix for Ke-Thia's cache file
-                        self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
-                        # self.vectors_map[qnode] = np.asarray(embeddings)
+                        # self.vectors_map[qnode] = np.asarray(list(map(float, fields[1:])))
+                        self.vectors_map[qnode] = np.asarray(embeddings)
 
     def _save_new_to_file(self, embedding_file, new_qnodes):
         with open(embedding_file, 'at') as fd:
             for qnode in new_qnodes:
                 vector = self.vectors_map[qnode]
                 line = f'{qnode}\t'
-                line += '\t'.join([str(x) for x in vector])
+                line += ','.join([str(x) for x in vector])
                 line += '\n'
                 fd.write(line)
 
@@ -92,8 +90,8 @@ class EmbeddingVector:
         missing = []
         for i in range(0, len(qnodes), batch_size):
             part = qnodes[i:i + batch_size]
+            # query response example: see http://ckg07:9200/wikidatadwd-augmented/_doc/Q2
             query = {
-                # TODO: index update, see http://ckg07:9200/wikidatadwd-augmented/_doc/Q2
                 "_source": ["id", "graph_embedding_complex"],
                 "size": batch_size,
                 "query": {
@@ -118,14 +116,10 @@ class EmbeddingVector:
                             vector = np.asarray(list(map(float, hit['_source']['graph_embedding_complex'].split(','))))
                         else:
                             vector = np.asarray(list(map(float, hit['_source']['graph_embedding_complex'])))
-                        # print(qnode, file=sys.stderr)
-                        # print(vector, file=sys.stderr)
                         hit_qnodes.append(qnode)
                         self.vectors_map[qnode] = vector
                 found += hit_qnodes
                 missing += [q for q in part if q not in hit_qnodes]
-                # print(f'found:{len(found)} missing:{len(missing)}', file=sys.stderr)
-        # print(self.vectors_map['Q185888'], file=sys.stderr)
         return found
 
     def get_vectors(self):
@@ -271,13 +265,9 @@ class EmbeddingVector:
 
         grouped_obj = self.loaded_file.groupby('column')
         for column, col_candidates_df in grouped_obj:
-            # data = self.loaded_file.copy()
             data = col_candidates_df.copy()
 
-            # print(pd.unique(data['is_model_voted']), file=sys.stderr)
-
             # label exact-match-singleton candidates
-            # data['is_ems'] = -1
             tmp_df = pd.DataFrame()
             for ((col, row), group) in data.groupby(['column', 'row']):
                 group['is_ems'] = -1
@@ -296,17 +286,10 @@ class EmbeddingVector:
                 assert 'is_model_voted' in data, f"Missing column 'is_model_voted' to use lof-strategy: ems-mv"
                 lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
                 lof_candidate_ids += list(data[data['is_model_voted'].astype(int) == 1]['kg_id'])
-
-                # print(data[data['is_ems'] == 1], file=sys.stderr)
-                # print(data[data['is_model_voted'].astype(int) == 1], file=sys.stderr)
-
             elif lof_strategy == 'ems-only':
                 lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
-                # TODO: there's more to ems only method: need to include mv within radius
             else:
                 raise ValueError(f"No such lof strategy available! {lof_strategy}")
-
-            # print(len(lof_candidate_ids), file=sys.stderr)
 
             if not lof_candidate_ids:
                 return False
@@ -324,18 +307,12 @@ class EmbeddingVector:
                       file=sys.stderr)
             vectors = np.array(vectors)
 
-            # print(self.vectors_map['Q185888'], file=sys.stderr)
-            # print(vectors, file=sys.stderr)
-
             # run outlier removal algorithm
             n_neigh = min(10, len(vectors) // 3)
             clf = LocalOutlierFactor(n_neighbors=n_neigh, contamination=0.4, metric='cosine')
             lof_pred = clf.fit_predict(vectors)
             assert len(lof_pred) == len(vectors)
-            # print(lof_pred, file=sys.stderr)
             lof_vectors = vectors[lof_pred == 1]
-
-            # print(len(lof_vectors), file=sys.stderr)
 
             # centroid of lof-voted candidates
             self.centroid[column] = np.mean(lof_vectors, axis=0)
