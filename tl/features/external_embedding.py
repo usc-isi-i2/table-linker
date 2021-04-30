@@ -64,7 +64,7 @@ class EmbeddingVector:
             for qnode in new_qnodes:
                 vector = self.vectors_map[qnode]
                 line = f'{qnode}\t'
-                line += '\t'.join([str(x) for x in vector])
+                line += ','.join([str(x) for x in vector])
                 line += '\n'
                 fd.write(line)
 
@@ -90,8 +90,9 @@ class EmbeddingVector:
         missing = []
         for i in range(0, len(qnodes), batch_size):
             part = qnodes[i:i + batch_size]
+            # query response example: see http://ckg07:9200/wikidatadwd-augmented/_doc/Q2
             query = {
-                "_source": ["id", "embedding"],
+                "_source": ["id", "graph_embedding_complex"],
                 "size": batch_size,
                 "query": {
                     "ids": {
@@ -101,22 +102,24 @@ class EmbeddingVector:
             }
             response = requests.get(search_url, json=query)
             result = response.json()
+
+            # print(result, file=sys.stderr)
+
             if result['hits']['total'] == 0:
                 missing += part
             else:
                 hit_qnodes = []
                 for hit in result['hits']['hits']:
-                    if 'embedding' in hit['_source']:
+                    if 'graph_embedding_complex' in hit['_source']:
                         qnode = hit['_source']['id']
-                        if isinstance(hit['_source']['embedding'], str):
-                            vector = np.asarray(list(map(float, hit['_source']['embedding'].split())))
+                        if isinstance(hit['_source']['graph_embedding_complex'], str):
+                            vector = np.asarray(list(map(float, hit['_source']['graph_embedding_complex'].split(','))))
                         else:
-                            vector = np.asarray(list(map(float, hit['_source']['embedding'])))
+                            vector = np.asarray(list(map(float, hit['_source']['graph_embedding_complex'])))
                         hit_qnodes.append(qnode)
                         self.vectors_map[qnode] = vector
                 found += hit_qnodes
                 missing += [q for q in part if q not in hit_qnodes]
-                # print(f'found:{len(found)} missing:{len(missing)}', file=sys.stderr)
         return found
 
     def get_vectors(self):
@@ -150,6 +153,9 @@ class EmbeddingVector:
                 raise TLException(f'Column_vector_stragtegy {vector_strategy} failed')
         elif vector_strategy == "centroid-of-voting":
             if not self._centroid_of_voting():
+                raise TLException(f'Column_vector_stragtegy {vector_strategy} failed')
+        elif vector_strategy == "centroid-of-lof":
+            if not self._centroid_of_lof():
                 raise TLException(f'Column_vector_stragtegy {vector_strategy} failed')
         else:
             raise TLException(f'Unknown column_vector_stragtegy')
@@ -186,7 +192,7 @@ class EmbeddingVector:
         for column, col_candidates_df in grouped_obj:
             # Use only results from exact-match
             data = col_candidates_df[col_candidates_df['method'] == 'exact-match']
-            # Find singleton ids, i.e. ids from candidation generation sets of size one
+            # Find singleton ids, i.e. ids from candidate generation sets of size one
             singleton_ids = []
             for ((col, row), group) in data.groupby(['column', 'row']):
                 ids = group[self.input_column_name].unique().tolist()
@@ -197,7 +203,7 @@ class EmbeddingVector:
                     
             if not singleton_ids:
                 return False
-            
+
             missing_embedding_ids = []
             vectors = []
             for kg_id in singleton_ids:
@@ -205,7 +211,7 @@ class EmbeddingVector:
                     missing_embedding_ids.append(kg_id)
                 else:
                     vectors.append(self.vectors_map[kg_id])
-                    
+
             if len(missing_embedding_ids):
                 print(f'_centroid_of_singletons: Missing {len(missing_embedding_ids)} of {len(singleton_ids)}',
                      file=sys.stderr)
@@ -252,6 +258,65 @@ class EmbeddingVector:
 
         # centroid of singletons
         self.centroid = np.mean(np.array(vectors), axis=0)
+        return True
+
+    def _centroid_of_lof(self) -> bool:
+        from sklearn.neighbors import LocalOutlierFactor
+
+        grouped_obj = self.loaded_file.groupby('column')
+        for column, col_candidates_df in grouped_obj:
+            data = col_candidates_df.copy()
+
+            # label exact-match-singleton candidates
+            tmp_df = pd.DataFrame()
+            for ((col, row), group) in data.groupby(['column', 'row']):
+                group['is_ems'] = -1
+                if len(group[group['method'] == 'exact-match']) == 1 and pd.notna(group[group['method'] == 'exact-match'].iloc[0]['kg_id']):
+                    # exact match is singleton, non-nan candidate set
+                    group.loc[group['method'] == 'exact-match', 'is_ems'] = 1
+                tmp_df = tmp_df.append(group)
+            data = tmp_df
+            # assert 1 in pd.unique(data['is_ems']), 'there is no exact-match-singleton in this dataset!'
+
+            # check lof strategy
+            lof_strategy = self.kwargs.get("lof_strategy", 'ems-mv')
+            lof_candidate_ids = []
+            if lof_strategy == 'ems-mv':
+                # check input data: should contain column 'vote_by_classifier'
+                assert 'vote_by_classifier' in data, f"Missing column 'vote_by_classifier' to use lof-strategy: ems-mv"
+                lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
+                lof_candidate_ids += list(data[data['vote_by_classifier'].astype(int) == 1]['kg_id'])
+            elif lof_strategy == 'ems-only':
+                lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
+            else:
+                raise ValueError(f"No such lof strategy available! {lof_strategy}")
+
+            if not lof_candidate_ids:
+                return False
+
+            # obtain graph embedding
+            missing_embedding_ids = []
+            vectors = []
+            for kg_id in lof_candidate_ids:
+                if kg_id not in self.vectors_map:
+                    missing_embedding_ids.append(kg_id)
+                else:
+                    vectors.append(self.vectors_map[kg_id])
+            if len(missing_embedding_ids):
+                print(f'_centroid_of_lof: Missing {len(missing_embedding_ids)} of {len(lof_candidate_ids)}',
+                      file=sys.stderr)
+            vectors = np.array(vectors)
+
+            # run outlier removal algorithm
+            n_neigh = min(10, len(vectors) // 3)
+            clf = LocalOutlierFactor(n_neighbors=n_neigh, contamination=0.4, metric='cosine')
+            lof_pred = clf.fit_predict(vectors)
+            assert len(lof_pred) == len(vectors)
+            lof_vectors = vectors[lof_pred == 1]
+
+            # centroid of lof-voted candidates
+            self.centroid[column] = np.mean(lof_vectors, axis=0)
+
         return True
 
     def compute_distance(self, v1: np.array, v2: np.array):

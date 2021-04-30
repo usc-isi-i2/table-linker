@@ -28,6 +28,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 **Table of Contents:**
 - [`add-color`](#command_add-color)<sup>*</sup>: Add some color on the specified score columns for better visualization.
 - [`add-text-embedding-feature`](#command_add-text-embedding-feature)<sup>*</sup>: computes text embedding vectors of the candidates and similarity to rank candidates.
+- [`align-page-rank`](#command_align-page-rank)<sup>*</sup>: computes aligned page rank (exact-match candidates retain its pagerank as is, fuzzy-match candidates receive 0 for page rank).
 - [`canonicalize`](#command_canonicalize)<sup>*</sup>: translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
 - [`check-extra-information`](#command_check-extra-information)<sup>*</sup> : Check if the given extra information exists in the given kg node and corresponding wikipedia page (if exists).
 - [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG.
@@ -56,6 +57,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
 - [`string-similarity`](#command_string-similarity)<sup>*</sup>: compares the cell values in two input columns and outputs a similarity score for each pair of participating strings
 - [`tee`](#command_tee)<sup>*</sup>: saves the input to disk and echoes the input to the standard output without modification.
+- [`vote-by-classifier`](#command_vote-by-classifier) <sup>*</sup>: generates vote_by_model column as specified classifier's prediction output.
 
 
 **Note: only the commands marked with <sup>*</sup> are currently implemented**
@@ -622,6 +624,29 @@ $ tl add-text-embedding-feature input_file.csv \
 This command mainly wrap from kgtk's text-embedding functions.
 please refer to kgtk's readme page [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
 
+<a name="command_align-page-rank" />
+
+### [`align-page-rank`](#command_align-page-rank)` [OPTIONS]`
+Generates `aligned_pagerank` feature which is used in `vote-by-classifier` command.
+Aligned page rank means exact-match candidates retain page rank, fuzzy-match candidates receives 0.
+
+**Examples:**
+```bash
+tl align-page-rank candidates.csv > aligned_candidates.csv
+```
+
+**File Examples:**
+```
+|column|row|label          |kg_id     |pagerank          |method         |aligned_pagerank|
+|------|---|---------------|----------|------------------|---------------|----------------|
+|1     |0  |Citigroup      |Q219508   |3.988134e-09      |exact-match    |3.988134e-09    |
+|1     |1  |Bank of America|Q487907   |5.115590e-09      |exact-match    |5.115590e-09    |
+|1     |1  |Bank of America|Q50316068 |5.235995e-09 	 |exact-match    |5.235995e-09    |
+|1     |10 |BP             |Q100151423|5.115590e-09 	 |fuzzy-augmented|0.000000e+00    |
+|1     |10 |BP             |Q131755   |5.235995e-09 	 |fuzzy-augmented|0.000000e+00    |
+```
+
+
 <a name="command_check-extra-information" />
 
 ### [`check-extra-information`](#command_check-extra-information)` [OPTIONS]`
@@ -1081,6 +1106,7 @@ Currently, there are two strategies for ranking:
 - `-c INPUT_COLUMN_NAME`, `--input-column-name INPUT_COLUMN_NAME`: The name of the column containing the Qnodes.
 - `-o OUTPUT_COLUMN_NAME`, `--output-column-name OUTPUT_COLUMN_NAME`: The output scoring column name. If not provided, the name of the embedding model will be used.
 - `--min-vote`: The minimum number of votes a candidate should get in order to be considered as high-confidence candidate. Default value is 0.
+- `--lof-strategy`: The outlier removal strategy to use when using column-vector-strategy: centroid-of-lof.
 
 <a name="#command_feature-voting" />
 
@@ -1606,4 +1632,37 @@ $ tl clean /
     / tee --output xxx-features.csv \
     / normalize-scores \
     / metrics
+```
+
+<a name="command_vote-by-classifier" />
+
+###  [`vote-by-classifier`](#command_vote-by-classifier)` [OPTIONS]`
+The `vote-by-classifier` command computes the prediction result of specified voting classifier on input tables with the following features:
+- aligned_page_rank
+- smallest_qnode_number
+- monge_elkan
+- des_cont_jaccard_normalized
+
+**Options:**
+- `--model {trained_model_path}`: pkl file path of trained voting classifier.
+- `--prob-threshold {prob_1_threshold}`: the probability threshold used in binary classifier prediction. 
+
+**Examples:**
+```bash
+# After performing the expensive operations to get candidates and compute embeddings, save the file to disk and continue the pipeline.
+$ tl vote-by-classifier candidates.csv \
+--prob-threshold 0.995 \
+--model weighted_lr.pkl \
+> voted_candidates.csv
+```
+
+**File Examples:**
+```
+|column|row|label          |kg_id     |...|method            |aligned_pagerank|vote_by_classifier|
+|------|---|---------------|----------|---|------------------|----------------|------------------|
+|1     |0  |Citigroup      |Q219508   |...|exact-match       |3.988134e-09    |0                 |
+|1     |1  |Bank of America|Q487907   |...|exact-match       |5.115590e-09    |1                 |
+|1     |1  |Bank of America|Q50316068 |...|exact-match       |5.235995e-09    |1                 |
+|1     |10 |BP             |Q100151423|...|fuzzy-augmented   |0.000000e+00    |0                 |
+|1     |10 |BP             |Q131755   |...|fuzzy-augmented   |0.000000e+00    |1                 |
 ```
