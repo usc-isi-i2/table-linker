@@ -276,7 +276,7 @@ class EmbeddingVector:
                     group.loc[group['method'] == 'exact-match', 'is_ems'] = 1
                 tmp_df = tmp_df.append(group)
             data = tmp_df
-            assert 1 in pd.unique(data['is_ems']), 'there is no exact-match-singleton in this dataset!'
+            # assert 1 in pd.unique(data['is_ems']), 'there is no exact-match-singleton in this dataset!'
 
             # check lof strategy
             lof_strategy = self.kwargs.get("lof_strategy", 'ems-mv')

@@ -46,7 +46,7 @@ def run(**kwargs):
         # check model file
         model_file = kwargs.get('model', '')
         assert os.path.isfile(model_file), f'There\'s no model file: {model_file}!'
-        with open('weighted_lr.pkl', 'rb') as fid:
+        with open(model_file, 'rb') as fid:
             model_loaded = pickle.load(fid)
 
         # check prediction threshold

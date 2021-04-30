@@ -25,7 +25,7 @@ def generate_reciprocal_rank(score_column, output_column, file_path=None, df=Non
     final_list = []
     grouped_obj = df.groupby(['row', 'column'])
     for cell in grouped_obj:
-        reciprocal_rank = list(1/cell[1]['graph-embedding-score'].rank(method='first',ascending=False))
+        reciprocal_rank = list(1/cell[1][score_column].rank(method='first',ascending=False))
         cell[1][output_column] = reciprocal_rank
         final_list.extend(cell[1].to_dict(orient='records'))
     
