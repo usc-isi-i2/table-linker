@@ -108,6 +108,7 @@ class Utility(object):
         all_labels = set()
         property_count = None
         class_count = None
+        context = None
 
         _pagerank = 0.0
 
@@ -170,7 +171,8 @@ class Utility(object):
                                                                          graph_embeddings_transe=_graph_embeddings_transE,
                                                                          ascii_labels=ascii_labels,
                                                                          property_count=property_count,
-                                                                         class_count=class_count
+                                                                         class_count=class_count,
+                                                                         context=context
                                                                          )
                             # initialize for next node
                             _labels = dict()
@@ -196,6 +198,7 @@ class Utility(object):
                             all_labels = set()
                             property_count = None
                             class_count = None
+                            context = None
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
@@ -293,6 +296,8 @@ class Utility(object):
                             property_count = vals[node2_id]
                         elif vals[label_id] == 'class_count':
                             class_count = vals[node2_id]
+                        elif vals[label_id] == 'context':
+                            context = vals[node2_id]
 
                         # if it is human
                         if vals[node2_id] in human_nodes_set:
@@ -321,7 +326,8 @@ class Utility(object):
                                                          graph_embeddings_transe=_graph_embeddings_transE,
                                                          ascii_labels=ascii_labels,
                                                          property_count=property_count,
-                                                         class_count=class_count
+                                                         class_count=class_count,
+                                                         context=context
                                                          )
         except:
             print(traceback.print_exc())
@@ -373,6 +379,7 @@ class Utility(object):
         ascii_labels = list(kwargs['ascii_labels'])
         property_count = kwargs['property_count']
         class_count = kwargs['class_count']
+        context = kwargs['context']
 
         _labels = {}
         _aliases = {}
@@ -443,6 +450,8 @@ class Utility(object):
                     _['class_count'] = class_count
                 if property_count:
                     _['property_count'] = property_count
+                if context:
+                    _['context'] = context
                 output_file.write(json.dumps(_))
             else:
                 skipped_node_count += 1
