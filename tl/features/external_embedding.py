@@ -263,49 +263,62 @@ class EmbeddingVector:
     def _centroid_of_lof(self) -> bool:
         from sklearn.neighbors import LocalOutlierFactor
 
+        updated_loaded_file = pd.DataFrame()
         grouped_obj = self.loaded_file.groupby('column')
         for column, col_candidates_df in grouped_obj:
             data = col_candidates_df.copy()
 
             # label exact-match-singleton candidates
-            tmp_df = pd.DataFrame()
-            for ((col, row), group) in data.groupby(['column', 'row']):
-                group['is_ems'] = -1
-                if len(group[group['method'] == 'exact-match']) == 1 and pd.notna(group[group['method'] == 'exact-match'].iloc[0]['kg_id']):
-                    # exact match is singleton, non-nan candidate set
-                    group.loc[group['method'] == 'exact-match', 'is_ems'] = 1
-                tmp_df = tmp_df.append(group)
-            data = tmp_df
+            if 'singleton' not in data:
+                tmp_df = pd.DataFrame()
+                for ((col, row), group) in data.groupby(['column', 'row']):
+                    group['singleton'] = 0
+                    if len(group[group['method'] == 'exact-match']) == 1 and pd.notna(group[group['method'] == 'exact-match'].iloc[0]['kg_id']):
+                        # exact match is singleton, non-nan candidate set
+                        group.loc[group['method'] == 'exact-match', 'singleton'] = 1
+                    tmp_df = tmp_df.append(group)
+                data = tmp_df
             # assert 1 in pd.unique(data['is_ems']), 'there is no exact-match-singleton in this dataset!'
 
             # check lof strategy
             lof_strategy = self.kwargs.get("lof_strategy", 'ems-mv')
-            lof_candidate_ids = []
+            data['is_lof'] = 0
             if lof_strategy == 'ems-mv':
                 # check input data: should contain column 'vote_by_classifier'
                 assert 'vote_by_classifier' in data, f"Missing column 'vote_by_classifier' to use lof-strategy: ems-mv"
-                lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
-                lof_candidate_ids += list(data[data['vote_by_classifier'].astype(int) == 1]['kg_id'])
+                assert 'singleton' in data, f"Missing column 'singleton' to use lof-strategy: ems-mv"
+                data.loc[data['vote_by_classifier'].astype(int) == 1, 'is_lof'] = 1
+                data.loc[data['singleton'] == 1, 'is_lof'] = 1
             elif lof_strategy == 'ems-only':
-                lof_candidate_ids += list(data[data['is_ems'] == 1]['kg_id'])
+                assert 'singleton' in data, f"Missing column 'singleton' to use lof-strategy: ems-only"
+                data.loc[data['singleton'] == 1, 'is_lof'] = 1
             else:
                 raise ValueError(f"No such lof strategy available! {lof_strategy}")
+            lof_candidate_ids = list(data[data['is_lof'] == 1]['kg_id'])
 
             if not lof_candidate_ids:
                 return False
 
             # obtain graph embedding
             missing_embedding_ids = []
+            data['retrieved_embedding_vector'] = 0
             vectors = []
             for kg_id in lof_candidate_ids:
                 if kg_id not in self.vectors_map:
                     missing_embedding_ids.append(kg_id)
+                    vectors.append([np.nan])
                 else:
                     vectors.append(self.vectors_map[kg_id])
             if len(missing_embedding_ids):
                 print(f'_centroid_of_lof: Missing {len(missing_embedding_ids)} of {len(lof_candidate_ids)}',
                       file=sys.stderr)
+
+            data.loc[data['is_lof'] == 1, 'retrieved_embedding_vector'] = [0 if len(v) == 1 else 1 for v in vectors]
+            data.loc[data['retrieved_embedding_vector'] == 0, 'is_lof'] = 0
             vectors = np.array(vectors)
+
+            assert data['is_lof'].equals(data['retrieved_embedding_vector']), "Not all lof candidates have retrieved embedding!"
+            data.drop(['retrieved_embedding_vector'], axis=1, inplace=True)
 
             # run outlier removal algorithm
             n_neigh = min(10, len(vectors) // 3)
@@ -313,10 +326,15 @@ class EmbeddingVector:
             lof_pred = clf.fit_predict(vectors)
             assert len(lof_pred) == len(vectors)
             lof_vectors = vectors[lof_pred == 1]
+            print(f"Outlier removal generates {len(lof_vectors)} lof-voted candidates", file=sys.stderr)
+            data.loc[data['is_lof'] == 1, 'is_lof'] = lof_pred
 
             # centroid of lof-voted candidates
             self.centroid[column] = np.mean(lof_vectors, axis=0)
+            assert "is_lof" in data, "is_lof column doesn't exist!"
+            updated_loaded_file = updated_loaded_file.append(data)
 
+        self.loaded_file = updated_loaded_file
         return True
 
     def compute_distance(self, v1: np.array, v2: np.array):
