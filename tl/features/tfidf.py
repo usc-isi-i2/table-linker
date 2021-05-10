@@ -61,7 +61,7 @@ class TFIDF(object):
                 if candidate in self.feature_dict:
                     classes = self.feature_dict[candidate]
                     for c in classes:
-                        if c not in hc_classes_count:
+                        if c not in hc_classes_count[column]:
                             hc_classes_count[column][c] = 0
                         hc_classes_count[column][c] += 1
 
