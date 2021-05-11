@@ -295,9 +295,6 @@ class EmbeddingVector:
             else:
                 raise ValueError(f"No such lof strategy available! {lof_strategy}")
             lof_candidate_ids = list(data[data['is_lof'] == 1]['kg_id'])
-            # TODO: manually insert EMS and MV overlap ?
-            # overlap_candidate_ids = list(data[(data['vote_by_classifier'].astype(int) == 1) & (data['singleton'] == 1)]['kg_id']) * 3
-            # print(overlap_candidate_ids, file=sys.stderr)
 
             if not lof_candidate_ids:
                 return False
@@ -319,14 +316,6 @@ class EmbeddingVector:
             data.loc[data['is_lof'] == 1, 'retrieved_embedding_vector'] = [-1 if len(v) == 1 else 1 for v in vectors]
             data.loc[data['retrieved_embedding_vector'] == -1, 'is_lof'] = -1
 
-            # TODO
-            # for kg_id in overlap_candidate_ids:
-            #     if kg_id not in self.vectors_map:
-            #         missing_embedding_ids.append(kg_id)
-            #         vectors.append([np.nan])
-            #     else:
-            #         vectors.append(self.vectors_map[kg_id])
-
             vectors = np.array([v for v in vectors if len(v) > 1])
 
             assert data['is_lof'].equals(data['retrieved_embedding_vector']), "Not all lof candidates have retrieved embedding!"
@@ -337,10 +326,6 @@ class EmbeddingVector:
             clf = LocalOutlierFactor(n_neighbors=n_neigh, contamination=0.4, metric='cosine')
             lof_pred = clf.fit_predict(vectors)
             assert len(lof_pred) == len(vectors)
-
-            # TODO
-            # lof_pred = lof_pred[:len(lof_candidate_ids)]
-            # vectors = vectors[:len(lof_candidate_ids)]
 
             lof_vectors = vectors[lof_pred == 1]
             print(f"Outlier removal generates {len(lof_vectors)} lof-voted candidates", file=sys.stderr)
