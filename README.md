@@ -52,6 +52,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`mosaic-features`](#command_mosaic-features)<sup>*</sup>: Computes general features which are number of characters, number of tokens for each cell present in a specified column.
 - [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
 - [`plot-score-figure`](#command_plot-score-figure)<sup>*</sup>: visulize the score of the input data with 2 different kind of bar charts.
+- [`predict-using-model`](#command_predict-using-model)<sup>*</sup>: Use trained contrastive loss neural network for final prediction 
 - [`score-using-embedding`](#command_score-using-embedding)<sup>*</sup>: Score candidates using pre-computed embedding vectors
 - [`smallest-qnode-number`](#command_smallest-qnode-number)<sup>*</sup>: Add a feature column called smallest_qnode_number where candidates with smallest qnode number receives 1 for this feature while others receive 0.
 - [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
@@ -1182,6 +1183,59 @@ Multiply the values in the input score-columns with their corresponding weights 
 For each candidate `c` and the set of score-columns `S`,
 
 <code> rankingScore(c) := ∑(value(s) * weight(s)) ∀ s ∈ S </code>
+
+<a name="command_predict-using-model" />
+
+### [`predict-using-model`](#command_predict-using-model)` [OPTIONS]`
+
+Uses a trained contrastive loss neural network to give a score to each of the candidates in the input file. The scores given by the model is used for final ranking.
+
+**Options**
+
+* `-o | --output_column`: Name of the column where the final score predicted by the model should be stored. By default, name of the column would be `siamese_pred`
+* `--ranking_model`: Path where the trained model is stored.
+* `--normalization_factor`: Path of the global normalization factor that is computed during data generation for model training.
+
+**Example**
+
+```bash
+$ tl predict-using-model -o siamese_prediction \
+--ranking_model epoch_3_loss_0.09958004206418991_top1_0.8912429378531074.pth \
+--normalization_factor normalization_factor.pkl \
+> model_prediction.csv
+
+$ cat model_prediction.csv | head -n 10
+|column|row|label      |kg_id    |kg_labels       |kg_descriptions                    |pagerank              |retrieval_score   |monge_elkan       |jaro_winkler      |levenshtein       |des_cont_jaccard|num_char          |num_tokens        |singleton|is_lof|lof-graph-embedding-score|lof-reciprocal-rank|lof_class_count_tf_idf_score|lof_property_count_tf_idf_score|siamese_prediction    |
+|------|---|-----------|---------|----------------|-----------------------------------|----------------------|------------------|------------------|------------------|------------------|----------------|------------------|------------------|---------|------|-------------------------|-------------------|----------------------------|-------------------------------|----------------------|
+|0     |0  |Virat Kohli|Q213854  |Virat Kohli     |Indian cricket player              |3.866466298654773e-07 |0.220935099736807 |1.0               |1.0               |1.0               |0.0             |0.0445344129554655|0.0526315789473684|1.0      |0.0   |0.8509996990991101       |0.3306451612903225 |0.9999999999999998          |0.799244652580565              |1.0                   |
+|0     |0  |Virat Kohli|Q4792485 |Armaan Kohli    |Indian actor                       |8.030872767011763e-07 |0.175499656429328 |0.788888888888889 |0.7563131313131314|0.5833333333333333|0.0             |0.048582995951417 |0.0526315789473684|0.0      |0.0   |0.7711897128982282       |0.0872434017595308 |0.5442234316047087          |0.3725338919656602             |0.0007842204649932    |
+|0     |0  |Virat Kohli|Q19843060|Rahul Kohli     |British actor                      |3.9787774655528806e-07|0.175499656429328 |0.8               |0.7348484848484849|0.5454545454545454|0.0             |0.0445344129554655|0.0526315789473684|0.0      |0.0   |0.639493810277712        |0.0173301304049416 |0.5442234316047087          |0.2965526540013362             |3.3086947951233014e-05|
+|0     |0  |Virat Kohli|Q7686953 |Taruwar Kohli   |Indian cricketer                   |3.436024992699295e-07 |0.1771932406714975|0.6976190476190476|0.7997927997927997|0.6153846153846154|0.0             |0.0526315789473684|0.0526315789473684|0.0      |0.0   |0.8969803538708947       |1.0                |0.9999999999999998          |0.326228198225337              |1.56978567247279e-05  |
+|0     |0  |Virat Kohli|Q19899153|Virat Singh     |Indian cricketer                   |3.436024992699295e-07 |0.1936199254596482|0.7333333333333333|0.865909090909091 |0.5454545454545454|0.0             |0.0445344129554655|0.0526315789473684|0.0      |0.0   |0.8317018964479719       |0.1967741935483871 |0.9999999999999998          |0.3708899236436936             |7.526116405642824e-06 |
+|0     |1  |Tendulkar  |Q9488    |Sachin Tendulkar|Indian former cricketer            |1.1610014233298505e-06|0.2886305013881558|0.8564814814814814|0.3912037037037037|0.5625            |0.0             |0.0647773279352226|0.0526315789473684|0.0      |0.0   |0.8200359660591946       |0.4979838709677419 |0.9999999999999998          |0.8192843820684729             |0.9999990463256836    |
+|0     |1  |Tendulkar  |Q22327439|Arjun Tendulkar |cricketer                          |4.474188254297618e-07 |0.2090650830325064|0.8435185185185186|0.2851851851851851|0.6               |0.0             |0.0607287449392712|0.0526315789473684|0.0      |0.0   |0.9052622170519932       |1.0                |0.9999999999999998          |0.2971309514678164             |7.058250776026398e-05 |
+|0     |1  |Tendulkar  |Q7645792 |Suresh Tendulkar|Indian economist                   |4.935716273049558e-07 |0.2172269801922356|0.837962962962963 |0.2824074074074074|0.5625            |0.0             |0.0647773279352226|0.0526315789473684|0.0      |0.0   |0.7507507619140121       |0.2469758064516128 |0.5442234316047087          |0.1367737750251897             |7.929103048809338e-06 |
+|0     |1  |Tendulkar  |Q3630378 |Priya Tendulkar |Marathi actress and social activist|5.024522125756764e-07 |0.2090650830325064|0.75              |0.3925925925925926|0.6               |0.0             |0.0607287449392712|0.0526315789473684|0.0      |0.0   |0.61134836412485         |0.0550284629981024 |0.5442234316047087          |0.1821786700772206             |5.9532030718401074e-06|
+|0     |1  |Tendulkar  |Q55744   |Vijay Tendulkar |Indian writer                      |1.1221833978198972e-06|0.2110825609717666|0.75              |0.3925925925925926|0.6               |0.0             |0.0607287449392712|0.0526315789473684|0.0      |0.0   |0.6894453526957718       |0.0732009925558312 |0.5442234316047087          |0.1846962963661935             |5.565782885241788e-06 |
+
+```
+
+The model is trained on 14 features. So while predicting, the model expects the following 14 features:
+
+* pagerank
+* retrieval_score
+* monge_elkan
+* des_cont_jaccard
+* Jaro_winkler
+* levenshtein
+* singleton
+* is_lof
+* num_char
+* num_tokens
+* lof_class_count_tf_idf_score
+* lof_property_count_tf_idf_score
+* lof-graph-embedding-score
+* lof-reciprocal-rank
 
 
 ## Commands on Ranking Score File
