@@ -52,6 +52,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`mosaic-features`](#command_mosaic-features)<sup>*</sup>: Computes general features which are number of characters, number of tokens for each cell present in a specified column.
 - [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
 - [`plot-score-figure`](#command_plot-score-figure)<sup>*</sup>: visulize the score of the input data with 2 different kind of bar charts.
+- [`predict-using-model`](#command_predict-using-model)<sup>*</sup>: Use trained contrastive loss neural network for final prediction 
 - [`score-using-embedding`](#command_score-using-embedding)<sup>*</sup>: Score candidates using pre-computed embedding vectors
 - [`smallest-qnode-number`](#command_smallest-qnode-number)<sup>*</sup>: Add a feature column called smallest_qnode_number where candidates with smallest qnode number receives 1 for this feature while others receive 0.
 - [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
@@ -1182,6 +1183,47 @@ Multiply the values in the input score-columns with their corresponding weights 
 For each candidate `c` and the set of score-columns `S`,
 
 <code> rankingScore(c) := ∑(value(s) * weight(s)) ∀ s ∈ S </code>
+
+<a name="command_predict-using-model" />
+
+### [`predict-using-model`](#command_predict-using-model)` [OPTIONS]`
+
+Uses a trained contrastive loss neural network to give a score to each of the candidates in the input file. The scores given by the model is used for final ranking.
+
+**Options**
+
+* `-o | --output_column`: Name of the column where the final score predicted by the model should be stored. By default, name of the column would be `siamese_pred`
+* `--ranking_model`: Path where the trained model is stored.
+* `--normalization_factor`: Path of the global normalization factor that is computed during data generation for model training.
+
+**Example**
+
+```bash
+$ tl predict-using-model -o siamese_prediction \
+--ranking_model epoch_3_loss_0.09958004206418991_top1_0.8912429378531074.pth \
+--normalization_factor normalization_factor.pkl \
+> model_prediction.csv
+
+$ cat model_prediction.csv | head -n 10
+
+```
+
+The model is trained on 14 features. So while predicting, the model expects the following 14 features:
+
+* pagerank
+* retrieval_score
+* monge_elkan
+* des_cont_jaccard
+* Jaro_winkler
+* levenshtein
+* singleton
+* is_lof
+* num_char
+* num_tokens
+* lof_class_count_tf_idf_score
+* lof_property_count_tf_idf_score
+* lof-graph-embedding-score
+* lof-reciprocal-rank
 
 
 ## Commands on Ranking Score File
