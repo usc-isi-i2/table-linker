@@ -22,19 +22,12 @@ def add_arguments(parser):
 
 def run(**kwargs):
     import pandas as pd
+    from tl.features.align_page_rank import align_page_rank
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-        assert 'pagerank' in df, 'There\'s no page rank column in the table!'
 
-        odf = pd.DataFrame()
-        for ((col, row), group) in df.groupby(['column', 'row']):
-            exact_match_df = group[group['method'] == 'exact-match'].copy()
-            exact_match_df['aligned_pagerank'] = exact_match_df['pagerank'].astype(float)
-            odf = odf.append(exact_match_df)
+        odf = align_page_rank(df=df)
 
-            fuzzy_match_df = group[group['method'] == 'fuzzy-augmented'].copy()
-            fuzzy_match_df['aligned_pagerank'] = 0
-            odf = odf.append(fuzzy_match_df)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: align-page-rank\n'
