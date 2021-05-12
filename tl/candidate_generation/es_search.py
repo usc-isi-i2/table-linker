@@ -43,7 +43,8 @@ class Search(object):
 
         return self.query_cache[cache_key]
 
-    def create_exact_match_query(self, search_term: str, lower_case: bool, size: int, properties: List[str]):
+    def create_exact_match_query(self, search_term: str, lower_case: bool, size: int, properties: List[str],
+                                 extra_musts: dict = None):
         must = list()
         for property in properties:
             query_part = {
@@ -61,6 +62,9 @@ class Search(object):
                     }
                 }
             must.append(query_part)
+
+        if extra_musts:
+            must.append(extra_musts)
 
         return {
             "query": {
@@ -114,13 +118,14 @@ class Search(object):
 
         return query
 
-    def create_fuzzy_augmented_query(self,search_term: str, size: int, lower_case: bool, properties: List[str]):
+    def create_fuzzy_augmented_query(self, search_term: str, size: int, lower_case: bool, properties: List[str],
+                                     extra_musts: dict = None):
         if lower_case:
-            properties =  [prop + '.keyword_lower' for prop in properties]
+            properties = [prop + '.keyword_lower' for prop in properties]
         query = {
             "query": {
                 "bool": {
-                    "should": [
+                    "must": [
                         {
                             "multi_match": {
                                 "query": search_term,
@@ -131,7 +136,7 @@ class Search(object):
                             }
                         }
                     ],
-                    "must_not":[
+                    "must_not": [
                         {
                             "terms": {
                                 "descriptions.en.keyword_lower": [
@@ -150,49 +155,57 @@ class Search(object):
             },
             "size": size
         }
+        if extra_musts:
+            query['query']['bool']['must'].append(extra_musts)
+
         return query
 
-    def create_fuzzy_augmented_union(self,fuzzy_augmented_hits,fuzzy_augmented_keyword_lower_hits):
+    def create_fuzzy_augmented_union(self, fuzzy_augmented_hits, fuzzy_augmented_keyword_lower_hits):
         seen_ids = set()
         hits = []
         for item in fuzzy_augmented_hits:
             if item['_id'] not in seen_ids:
                 hits.append(item)
                 seen_ids.add(item['_id'])
-        
+
         for item in fuzzy_augmented_keyword_lower_hits:
             if item['_id'] not in seen_ids:
                 hits.append(item)
                 seen_ids.add(item['_id'])
-        
+
         return hits
 
-
     def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
-                               lower_case: bool = False, auxiliary_fields: List[str] = None):
+                               lower_case: bool = False, auxiliary_fields: List[str] = None, ignore_cache=True,
+                               extra_musts: dict = None):
         candidate_dict = {}
         candidate_aux_dict = {}
 
         search_terms = search_term_str.split('|')
         parameter = self.get_query_hash((search_term_str, size, properties, query_type, lower_case))
 
-        if parameter not in self.query_cache:
+        if parameter not in self.query_cache or ignore_cache:
             for search_term in search_terms:
                 hits = None
                 if query_type == 'exact-match':
-                    hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties))
+                    hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties,
+                                                                        extra_musts=extra_musts))
                 elif query_type == 'phrase-match':
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
                 elif query_type == 'fuzzy-match':
                     hits = self.search_es(self.create_fuzzy_query(search_term, size, properties))
                 elif query_type == 'fuzzy-augmented':
-                    fuzzy_augmented_hits = self.search_es(self.create_fuzzy_augmented_query(search_term,size, lower_case, properties))
-                    fuzzy_augmented_keyword_lower_hits = self.search_es(self.create_fuzzy_augmented_query(search_term,size, not(lower_case),properties))
-                    hits = self.create_fuzzy_augmented_union(fuzzy_augmented_hits,fuzzy_augmented_keyword_lower_hits)
+                    fuzzy_augmented_hits = self.search_es(
+                        self.create_fuzzy_augmented_query(search_term, size, lower_case, properties,
+                                                          extra_musts=extra_musts))
+                    fuzzy_augmented_keyword_lower_hits = self.search_es(
+                        self.create_fuzzy_augmented_query(search_term, size, not (lower_case), properties,
+                                                          extra_musts=extra_musts))
+                    hits = self.create_fuzzy_augmented_union(fuzzy_augmented_hits, fuzzy_augmented_keyword_lower_hits)
                 if hits is not None:
                     hits_copy = hits.copy()  # prevent change on query cache
                     for hit in hits_copy:
-                        if re.match(r'Q\d+',hit['_id']):
+                        if re.match(r'Q\d+', hit['_id']):
                             _source = hit['_source']
                             _id = hit['_id']
                             all_labels = []
@@ -207,16 +220,16 @@ class Search(object):
                                 description = "|".join(_source['descriptions']['en'])
                             if 'pagerank' in _source:
                                 pagerank = _source['pagerank']
-                            
+
                             candidate_dict[_id] = {'score': hit['_score'],
-                                               'label_str': '|'.join(all_labels),
-                                               'alias_str': '|'.join(all_aliases),
-                                               'description_str': description,
-                                               'pagerank_float': pagerank}
-                            
+                                                   'label_str': '|'.join(all_labels),
+                                                   'alias_str': '|'.join(all_aliases),
+                                                   'description_str': description,
+                                                   'pagerank_float': pagerank}
+
                             if _id not in candidate_aux_dict:
                                 candidate_aux_dict[_id] = {}
-                            
+
                             if auxiliary_fields is not None:
                                 for auxiliary_field in auxiliary_fields:
                                     if auxiliary_field in _source:

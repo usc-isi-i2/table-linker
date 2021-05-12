@@ -11,7 +11,7 @@ DEFAULT_COLUMN_COMB_NAME = ("label_clean", "kg_labels")
 class StringSimilarity:
     def __init__(self, similarity_method: typing.List[str], **kwargs):
         self.similarity_units = []
-        self.df = copy.deepcopy(kwargs["df"])
+        self.df = copy.deepcopy(kwargs["df"]).fillna("")
         self.target_label_column_name, self.candidate_label_column_name = kwargs.get("target_columns", (None, None))
 
         for each_col in [self.target_label_column_name, self.candidate_label_column_name]:

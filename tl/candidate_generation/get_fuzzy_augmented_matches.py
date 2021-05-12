@@ -4,14 +4,15 @@ from tl.candidate_generation.es_search import Search
 from tl.candidate_generation.utility import Utility
 from tl.exceptions import RequiredInputParameterMissingException
 
+
 class FuzzyAugmented(object):
     def __init__(self, es_url, es_index, es_user, es_pass, properties, output_column_name):
         self.properties = properties
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
         self.utility = Utility(self.es, output_column_name)
 
-    def get_matches(self,column, size=100, file_path=None,
-                    df=None, auxiliary_fields: List[str] = None, auxiliary_folder: str = None):
+    def get_matches(self, column, size=100, file_path=None,
+                    df=None, auxiliary_fields: List[str] = None, auxiliary_folder: str = None, isa: str = None):
         """
         Used the ElasticSearch which has the labels, aliases, wikipedia/wikitable anchor text, redirect text
         :param column: the column used to retrieve the candidates
@@ -30,6 +31,16 @@ class FuzzyAugmented(object):
 
         df.fillna(value="", inplace=True)
         properties = self.properties
+
+        extra_musts = None
+        if isa:
+            extra_musts = {
+                "term": {
+                    "instance_ofs.keyword_lower": {
+                        "value": isa.lower()
+                    }
+                }
+            }
         return self.utility.create_candidates_df(df,
                                                  column,
                                                  size,
@@ -37,4 +48,6 @@ class FuzzyAugmented(object):
                                                  'fuzzy-augmented',
                                                  lower_case=False,
                                                  auxiliary_fields=auxiliary_fields,
-                                                 auxiliary_folder=auxiliary_folder)
+                                                 auxiliary_folder=auxiliary_folder,
+                                                 auxiliary_file_prefix='fuzzy_augmented_',
+                                                 extra_musts=extra_musts)

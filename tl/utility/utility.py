@@ -11,6 +11,7 @@ import pprint
 from collections import defaultdict
 from tl.exceptions import FileNotExistError, UploadError
 from requests.auth import HTTPBasicAuth
+from unidecode import unidecode
 
 
 class Utility(object):
@@ -24,7 +25,8 @@ class Utility(object):
                                  description_properties=None,
                                  copy_to_properties=None,
                                  es_version=7,
-                                 separate_languages=True
+                                 separate_languages=True,
+                                 property_datatype_file=None
                                  ):
         """
         builds a json lines file and a mapping file to support retrieval of candidates
@@ -68,6 +70,11 @@ class Utility(object):
         if len(descriptions):
             mapping_parameter_dict['str_fields_need_index'].append('descriptions')
 
+        # create the property data type dict
+        property_datatype_dict = {}
+        if property_datatype_file:
+            property_datatype_dict = Utility.create_property_metadata_dict(property_datatype_file)
+
         human_nodes_set = {"Q15632617", "Q95074", "Q5"}
         skip_edges = set(labels + aliases)
 
@@ -96,6 +103,12 @@ class Utility(object):
         _redirect_text = {}
         _text_embedding = None
         _graph_embeddings_complex = None
+        _graph_embeddings_transE = None
+        ascii_labels = set()
+        all_labels = set()
+        property_count = None
+        class_count = None
+        context = None
 
         _pagerank = 0.0
 
@@ -154,7 +167,12 @@ class Utility(object):
                                                                          abbreviated_name=_abbreviated_name,
                                                                          redirect_text=_redirect_text,
                                                                          text_embedding=_text_embedding,
-                                                                         graph_embeddings_complex=_graph_embeddings_complex
+                                                                         graph_embeddings_complex=_graph_embeddings_complex,
+                                                                         graph_embeddings_transe=_graph_embeddings_transE,
+                                                                         ascii_labels=ascii_labels,
+                                                                         property_count=property_count,
+                                                                         class_count=class_count,
+                                                                         context=context
                                                                          )
                             # initialize for next node
                             _labels = dict()
@@ -175,6 +193,12 @@ class Utility(object):
                             _redirect_text = {}
                             _text_embedding = None
                             _graph_embeddings_complex = None
+                            _graph_embeddings_transE = None
+                            ascii_labels = set()
+                            all_labels = set()
+                            property_count = None
+                            class_count = None
+                            context = None
 
                         qnode_statement_count += 1
                         current_node_info[vals[label_id]].add(str(vals[node2_id]))
@@ -189,6 +213,14 @@ class Utility(object):
 
                             if tmp_val.strip() != '':
                                 _labels[lang].add(tmp_val)
+                                all_labels.add(tmp_val)
+
+                                if lang in {'en', 'de', 'es', 'fr', 'it', 'pt'}:
+                                    # add transilerated value as well
+                                    _ascii_label = Utility.transliterate_label(tmp_val)
+                                    if _ascii_label != "" and _ascii_label not in all_labels:
+                                        ascii_labels.add(_ascii_label)
+
                         elif vals[label_id] in aliases:
                             if separate_languages:
                                 tmp_val, lang = Utility.separate_language_text_tag(vals[node2_id])
@@ -200,6 +232,14 @@ class Utility(object):
 
                             if tmp_val.strip() != '':
                                 _aliases[lang].add(tmp_val)
+                                all_labels.add(tmp_val)
+
+                                if lang in {'en', 'de', 'es', 'fr', 'it', 'pt'}:
+                                    # add transilerated value as well
+                                    _ascii_alias = Utility.transliterate_label(tmp_val)
+                                    if _ascii_alias != "" and _ascii_alias not in all_labels:
+                                        ascii_labels.add(_ascii_alias)
+
                         elif vals[label_id] in pagerank:
                             tmp_val = Utility.to_float(vals[node2_id])
                             if tmp_val:
@@ -218,6 +258,8 @@ class Utility(object):
                             _instance_ofs.add(vals[node2_id])
                         elif vals[label_id].strip() == 'datatype':
                             data_type = vals[node2_id]
+                        elif node1 in property_datatype_dict:
+                            data_type = property_datatype_dict[node1]
                         elif vals[label_id] == 'P279' and vals[node2_id].startswith('Q'):
                             is_class = True
                         elif vals[label_id] == 'wikipedia_table_anchor':
@@ -246,12 +288,16 @@ class Utility(object):
                                 _abbreviated_name[lang].add(tmp_val)
                         elif vals[label_id] == 'graph_embeddings_complEx':
                             _graph_embeddings_complex = vals[node2_id]
-                            if isinstance(_graph_embeddings_complex, str):
-                                _graph_embeddings_complex = [float(x) for x in _graph_embeddings_complex.split(",")]
+                        elif vals[label_id] == 'graph_embeddings_transE':
+                            _graph_embeddings_transE = vals[node2_id]
                         elif vals[label_id] == 'text_embedding':
                             _text_embedding = vals[node2_id]
-                            if isinstance(_text_embedding, str):
-                                _text_embedding = [float(x) for x in _text_embedding.split(",")]
+                        elif vals[label_id] == 'property_count':
+                            property_count = vals[node2_id]
+                        elif vals[label_id] == 'class_count':
+                            class_count = vals[node2_id]
+                        elif vals[label_id] == 'context':
+                            context = vals[node2_id]
 
                         # if it is human
                         if vals[node2_id] in human_nodes_set:
@@ -276,7 +322,12 @@ class Utility(object):
                                                          abbreviated_name=_abbreviated_name,
                                                          redirect_text=_redirect_text,
                                                          text_embedding=_text_embedding,
-                                                         graph_embeddings_complex=_graph_embeddings_complex
+                                                         graph_embeddings_complex=_graph_embeddings_complex,
+                                                         graph_embeddings_transe=_graph_embeddings_transE,
+                                                         ascii_labels=ascii_labels,
+                                                         property_count=property_count,
+                                                         class_count=class_count,
+                                                         context=context
                                                          )
         except:
             print(traceback.print_exc())
@@ -324,6 +375,11 @@ class Utility(object):
         redirect_text = kwargs['redirect_text']
         text_embedding = kwargs['text_embedding']
         graph_embeddings_complex = kwargs['graph_embeddings_complex']
+        graph_embeddings_transe = kwargs['graph_embeddings_transe']
+        ascii_labels = list(kwargs['ascii_labels'])
+        property_count = kwargs['property_count']
+        class_count = kwargs['class_count']
+        context = kwargs['context']
 
         _labels = {}
         _aliases = {}
@@ -386,6 +442,16 @@ class Utility(object):
                     _['text_embedding'] = text_embedding
                 if graph_embeddings_complex:
                     _['graph_embedding_complex'] = graph_embeddings_complex
+                if graph_embeddings_transe:
+                    _['graph_embeddings_transe'] = graph_embeddings_transe
+                if len(ascii_labels) > 0:
+                    _['ascii_labels'] = ascii_labels
+                if class_count:
+                    _['class_count'] = class_count
+                if property_count:
+                    _['property_count'] = property_count
+                if context:
+                    _['context'] = context
                 output_file.write(json.dumps(_))
             else:
                 skipped_node_count += 1
@@ -900,3 +966,28 @@ class Utility(object):
                     # edge = edge[3:-3]
                     res.add("{}#{}".format(edge, each_node))
         return list(res)
+
+    @staticmethod
+    def create_property_metadata_dict(property_file_path: str) -> dict:
+        _ = {}
+        f = gzip.open(property_file_path, 'rt')
+        node1_idx = -1
+        node2_idx = -1
+        for line in f:
+            vals = line.strip().split("\t")
+            if 'node1' in vals and 'node2' in vals:
+                node1_idx = vals.index('node1')
+                node2_idx = vals.index('node2')
+            else:
+                _[vals[node1_idx]] = vals[node2_idx]
+
+        return _
+
+    @staticmethod
+    def transliterate_label(label: str) -> str:
+        ascii_label = ""
+        try:
+            ascii_label = unidecode(label)
+        except Exception as e:
+            print(e, f'input label: {label}')
+        return ascii_label

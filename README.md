@@ -28,14 +28,17 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 **Table of Contents:**
 - [`add-color`](#command_add-color)<sup>*</sup>: Add some color on the specified score columns for better visualization.
 - [`add-text-embedding-feature`](#command_add-text-embedding-feature)<sup>*</sup>: computes text embedding vectors of the candidates and similarity to rank candidates.
+- [`align-page-rank`](#command_align-page-rank)<sup>*</sup>: computes aligned page rank (exact-match candidates retain its pagerank as is, fuzzy-match candidates receive 0 for page rank).
 - [`canonicalize`](#command_canonicalize)<sup>*</sup>: translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
 - [`check-extra-information`](#command_check-extra-information)<sup>*</sup> : Check if the given extra information exists in the given kg node and corresponding wikipedia page (if exists).
 - [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG.
 - [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value.
 - [`compute-tf-idf`](#command_compute-tf-idf)<sup>*</sup>: compute the "tf-idf" like score base on the candidates. It is not the real tf-idf score algorithm but using a algorithm similar to tf-idf score.
+- [`create-singleton-feature`](#command_create-singleton-feature)<sup>*</sup>: generates a boolean feature for exact match singletons
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
 - [`feature-voting`](#command_feature-voting)<sup>*</sup>: Perform voting on user specified feature column, for instance smallest_qnode_score, pagerank etc.
+- [`generate-reciprocal-rank`](#command_generate-reciprocal-rank)<sup>*</sup>: Generates a new feature reciprocal rank based on a scoring column provided as input by the user.
 - [`get-exact-matches`](#command_get-exact-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
 - [`get-fuzzy-matches`](#command_get-fuzzy-matches)<sup>*</sup>: retrieves the identifiers of KG entities whose label or aliases base on the elastic search fuzzy match.
 - [`get-fuzzy-augmented-matches`](#command_get-fuzzy-augmented-matches)<sup>*</sup>: retrieves the identifiers of KG entities from an elasticsearch index. It does fuzzy search over multilingual labels, aliases, wikipedia and wikitable anchor text and wikipedia redirects.
@@ -46,13 +49,16 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`join`](#command_join): The join command outputs the linked knowledge graph objects for an input cell. This command takes as input a Input file and a file in Ranking Score format and outputs a file in [Output](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.6rlemqh56vyi) format
 - [`merge-columns`](#command_merge-columns): merges values from two or more columns and outputs the concatenated value in the output column
 - [`metrics`](#command_metrics)<sup>*</sup>: Calculate the F1-score on the candidates tables. Only works on the dataset after ran with  `ground-truth-labeler`.
+- [`mosaic-features`](#command_mosaic-features)<sup>*</sup>: Computes general features which are number of characters, number of tokens for each cell present in a specified column.
 - [`normalize-scores`](#command_normalize-scores)<sup>*</sup>: normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells.
 - [`plot-score-figure`](#command_plot-score-figure)<sup>*</sup>: visulize the score of the input data with 2 different kind of bar charts.
+- [`predict-using-model`](#command_predict-using-model)<sup>*</sup>: Use trained contrastive loss neural network for final prediction 
 - [`score-using-embedding`](#command_score-using-embedding)<sup>*</sup>: Score candidates using pre-computed embedding vectors
 - [`smallest-qnode-number`](#command_smallest-qnode-number)<sup>*</sup>: Add a feature column called smallest_qnode_number where candidates with smallest qnode number receives 1 for this feature while others receive 0.
 - [`run-pipeline`](#command_run-pipeline)<sup>*</sup>: runs a pipeline on a collection of files to produce a single CSV file with the results for all the files.
 - [`string-similarity`](#command_string-similarity)<sup>*</sup>: compares the cell values in two input columns and outputs a similarity score for each pair of participating strings
 - [`tee`](#command_tee)<sup>*</sup>: saves the input to disk and echoes the input to the standard output without modification.
+- [`vote-by-classifier`](#command_vote-by-classifier) <sup>*</sup>: generates vote_by_model column as specified classifier's prediction output.
 
 
 **Note: only the commands marked with <sup>*</sup> are currently implemented**
@@ -619,6 +625,29 @@ $ tl add-text-embedding-feature input_file.csv \
 This command mainly wrap from kgtk's text-embedding functions.
 please refer to kgtk's readme page [here](https://github.com/usc-isi-i2/kgtk/blob/feature/embedding/kgtk/cli/text_embedding_README.md "here") for details.
 
+<a name="command_align-page-rank" />
+
+### [`align-page-rank`](#command_align-page-rank)` [OPTIONS]`
+Generates `aligned_pagerank` feature which is used in `vote-by-classifier` command.
+Aligned page rank means exact-match candidates retain page rank, fuzzy-match candidates receives 0.
+
+**Examples:**
+```bash
+tl align-page-rank candidates.csv > aligned_candidates.csv
+```
+
+**File Examples:**
+```
+|column|row|label          |kg_id     |pagerank          |method         |aligned_pagerank|
+|------|---|---------------|----------|------------------|---------------|----------------|
+|1     |0  |Citigroup      |Q219508   |3.988134e-09      |exact-match    |3.988134e-09    |
+|1     |1  |Bank of America|Q487907   |5.115590e-09      |exact-match    |5.115590e-09    |
+|1     |1  |Bank of America|Q50316068 |5.235995e-09 	 |exact-match    |5.235995e-09    |
+|1     |10 |BP             |Q100151423|5.115590e-09 	 |fuzzy-augmented|0.000000e+00    |
+|1     |10 |BP             |Q131755   |5.235995e-09 	 |fuzzy-augmented|0.000000e+00    |
+```
+
+
 <a name="command_check-extra-information" />
 
 ### [`check-extra-information`](#command_check-extra-information)` [OPTIONS]`
@@ -673,104 +702,173 @@ $ cat output_file.csv
 ```
 
 #### Implementation
-Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
-Wikipedia part: achieved with the python pacakge `wikipedia-api`
 
 <a name="command_compute-tf-idf" />
 
 ### [`compute-tf-idf`](#command_compute-tf-idf)` [OPTIONS]`
 
-The `compute-tf-idf` function add a feature column by computing the tf-idf like score base on current all input candidates of the file.
+The `compute-tf-idf` function adds a feature column by computing the tf-idf like score based on all candidates for an input column.
 
-Unlike tf-idf score, here each unit is an edge / node values instead of a word in the text.
- For example, assume we have 3 nodes with very similar labels as:
-Node1`Q207638` (`Gambela Region`), with following edges:
-```
-P17: Q115,
-P31: Q10864048,
-P2006190001: Q207638,
-```
-Node2 `Q3094932` (`Gambela Zuria`), with following edges:
-```
-P17: Q115,
-P31: Q13221722,
-P2006190001: Q207638,
-P2006190002: Q4777700,
-P2006190003: Q3094932,
-```
-Node3 `Q4837972` (`Babo Gambela`), with following edges:
-```
-P17: Q115,
-P31: Q13221722,
-P2006190001: Q202107,
-P2006190002: Q1709377,
-P2006190003: Q4837972,
-```
-We can then represent each nodes with a vector like:
-```
-'Gambela': {'Q207638': [1, 1, 0, 0, 1, 1, 0],
-'Q3094932': [1, 0, 1, 1, 1, 1, 1],
-'Q4837972': [1, 0, 1, 1, 1, 1, 1]}
-```
-with the property map
-`{'P17': 0, 'Q10864048': 1, 'Q13221722': 2, 'P2006190003': 3, 'P2006190001': 4, 'P31': 5, 'P2006190002': 6}`
-Here 1 indicates this node exist, 0 indicates not exist. Also, a little explain on how the property map was generated:
-For all edges with name `P31`, we will also consider the node2 for this edge, otherwise we only consider the edge name but ignore node2 of the edge.
-```
-{'tf': 3, 'df': 3, 'idf': 0.0},                  # edge 0, P17
-{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 1, Q10864048
-{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 2, Q13221722
-{'tf': 3, 'df': 3, 'idf': 0.0},                  # edge 3, P2006190003
-{'tf': 2, 'df': 1, 'idf': 0.47712125471966244},  # edge 4, P2006190001
-{'tf': 2, 'df': 2, 'idf': 0.17609125905568124},  # edge 5, P31
-{'tf': 3, 'df': 3, 'idf': 0.0}                   # edge 6, P2006190002
-```
-Then, we will compute the score for those 3 nodes as:
- score = sum(for each node in properties: `tf_score` * `idf_score` * `1 if this node exist in target` * `similarity score`)
- Here similarity score is optional, in default it will use `retrieval_score_normalized`, If no similarity score is provided similairy score will be set as 1.
- Finally we can get the tf-idf score as:
-```
-Q207638: 0.9542425094393249,
-Q3094932: 1.0565475543340874,
-Q4837972: 1.0565475543340874
-```
-If further support with `high-preceision candidates` and string similarity score mentioned, we can get a more precious score.
+This commands follows the following procedure:
 
+Step 1: Get the set of high confidence candidates. High confidence candidates are defined as candidates which has the method `exact-match` and count per cell is 
+one.
+
+Step 2: For each of the high confidence candidates get the class-count data. This data is stored in Elasticseach index and is gathered during the 
+candidate generation step.
+
+The data consists of q-node:count pairs where the q-node represents a class and the count is the number of instances below the class. These counts use a generalized version of is-a where occupations and position held are considered is-a, eg, Scwarzenegger is an actor.
+
+Similarly, another dataset consists of p-node:count pairs where p-node represents a property the candidate qnode has and count is the total number of qnodes in
+the corpus which has this property.
+
+Step 3: Make a set of all the classes that appear in the high confidence classes, and count the number of times each class occurs in each candidate. For example, if two high precision candidates are human, then Q5 will have num-occurrences = 2.
+
+Step 4: Convert the instance counts for the set constructed in step 3 to IDF (see https://en.wikipedia.org/wiki/Tf–idf), and then multiply the IDF score of each class by the num-occurrences number from step 3. Then, normalize them so that all the IDF scores for the high confidence candidates sum to 1.0.
+
+Step 5: For each candidate, including high confidence candidates, compute the tf-idf score by adding up the IDF scores (computed in Step 4), for all the classes. If the class appears in the high confidence classes, then multiple the class IDF by 1 otherwise by 0.
 
 **Options:**
 - `-o / --output-column {string}`: The output scoring column name. If not provided, the column name will be `tf_idf_score`.
-- `--similarity-column {string}`: The similairty column applied for using on similarity score during calculating the tf-idf score.
+- `--singleton-column {string}`: Name of the column with singleton feature. This feature can be computed using the `create-singleton-feature` command.
+- `--feature-file {string}`: a tsv file with feature on which to compute tf idf score.
+- `--feature-name {string}`: name of the column which contains the class-count or property count in the `--feature-file`
+- `--N {int}`: total number of documents in ES index, used to compute IDF. `N` for DWD is 42123553
 
 **Examples:**
 ```bash
-# compute the tf-idf score, use the similarity score from column `LevenshteinSimilarity()`
-$ tl --url http://kg2018a.isi.edu:9200 --index wiki_labels_aliases_3 \
-  compute-tf-idf --similarity-column "LevenshteinSimilarity()" input_file.csv
+$ tl compute-tf-idf --feature-file class_count.tsv \
+     --feature-name class_count \
+     --singleton-column singleton \
+     -o class_count_tf_idf_score \
+     candidates.csv
 ```
 
 **File Example:**
 ```bash
-# compute the tf-idf score with default similairty column (retrieval_score_normalized)
-$ tl --url http://kg2018a.isi.edu:9200 --index wiki_labels_aliases_3 \
-  compute-tf-idf input_file.csv
+$ tl compute-tf-idf --feature-file class_count.tsv \
+     --feature-name class_count \
+     --singleton-column singleton \
+     -o class_count_tf_idf_score \
+     candidates.csv
 
 $ cat input_file.csv
-column  row  label  ||other_information||  ...  method       retrieval_score  retrieval_score_normalized
- 0      0  Gambela    ...                       exact-match  8.503553         1.000000
- 0      0  Gambela    ...                       exact-match  3.996364         0.469964
- 0      0  Gambela    ...                       phrase-match 30.137339        0.917484
+| column | row | label       | context                                   | label_clean | kg_id      | kg_labels                | kg_aliases                             | method          | kg_descriptions                     | pagerank               | retrieval_score | singleton | 
+|--------|-----|-------------|-------------------------------------------|-------------|------------|--------------------------|----------------------------------------|-----------------|-------------------------------------|------------------------|-----------------|-----------| 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q213854    | Virat Kohli              | Cheeku                                 | fuzzy-augmented | Indian cricket player               | 3.983031232217997e-09  | 36.39384        | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q102354285 | Marie Virat              |                                        | fuzzy-augmented | Ph. D. 2009                         | 5.918546005357847e-09  | 23.48463        | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16027751  | Bernard Virat            |                                        | fuzzy-augmented | French biologist (1921-2003)        | 3.7401912005599e-09    | 23.48463        | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q7907059   | VIRAT                    |                                        | fuzzy-augmented |                                     | 0.0                    | 20.582134       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q2978459   | Virata                   | Virat                                  | fuzzy-augmented | character from the epic Mahabharata | 6.8901323967569805e-09 | 20.520416       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16682735  |                          |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.623405       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q6426050   | Kohli                    |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.601744       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q46251     | Fränzi Mägert-Kohli      | Franziska Kohli\|Fraenzi Maegert-Kohli | fuzzy-augmented | Swiss snowboarder                   | 3.5396131256502836e-09 | 19.233713       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16434086  | Wirat Wachirarattanawong |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.010628       | 0         | 
+
+
 
 $ cat output_file.csv
-column  row  label  ||other_information||  ...  method       retrieval_score retrieval_score_normalized   tf_idf_score
- 0      0  Gambela    ...                       exact-match  8.503553         1.000000                    20.141398
- 0      0  Gambela    ...                       exact-match  3.996364         0.469964                    0.662052
- 0      0  Gambela    ...                       phrase-match 30.137339        0.917484                    0.323122
+| column | row | label       | context                                   | label_clean | kg_id      | kg_labels                | kg_aliases                             | method          | kg_descriptions                     | pagerank               | retrieval_score | singleton | class_count_tf_idf_score | 
+|--------|-----|-------------|-------------------------------------------|-------------|------------|--------------------------|----------------------------------------|-----------------|-------------------------------------|------------------------|-----------------|-----------|--------------------------| 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q213854    | Virat Kohli              | Cheeku                                 | fuzzy-augmented | Indian cricket player               | 3.983031232217997e-09  | 36.39384        | 0         | 1.0000000000000002       | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q102354285 | Marie Virat              |                                        | fuzzy-augmented | Ph. D. 2009                         | 5.918546005357847e-09  | 23.48463        | 0         | 0.5442234316047089       | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16027751  | Bernard Virat            |                                        | fuzzy-augmented | French biologist (1921-2003)        | 3.7401912005599e-09    | 23.48463        | 0         | 0.5442234316047089       | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q7907059   | VIRAT                    |                                        | fuzzy-augmented |                                     | 0.0                    | 20.582134       | 0         | 0.0                      | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q2978459   | Virata                   | Virat                                  | fuzzy-augmented | character from the epic Mahabharata | 6.8901323967569805e-09 | 20.520416       | 0         | 0.031105662154115882     | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16682735  |                          |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.623405       | 0         | 0.20287301482664413      | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q6426050   | Kohli                    |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.601744       | 0         | 0.018154036805015324     | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q46251     | Fränzi Mägert-Kohli      | Franziska Kohli\|Fraenzi Maegert-Kohli | fuzzy-augmented | Swiss snowboarder                   | 3.5396131256502836e-09 | 19.233713       | 0         | 0.6945347101120541       | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16434086  | Wirat Wachirarattanawong |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.010628       | 0         | 0.5442234316047089       | 
+
 ```
 
 #### Implementation
 Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
 Wikipedia part: achieved with the python pacakge `wikipedia-api`
 
+<a name="command_creat-singleton-feature" />
+
+### [`create-singleton-feature`](#command_create-singleton-feature)` [OPTIONS]`
+
+The command takes as input a candidate file and filters out the candidates retrieved by `exact-matches`. The cells having single `exact-match` candidate are given a boolean label of 1. Others are a given a boolean label of 0.
+
+The command takes one command line parameter:
+
+* `-o | --output-column-name`: The user needs to specify the name of the output column for the singleton feature. By default the output column is named as `singleton`.
+
+**Example Command**
+
+```bash
+$ tl create-singleton-feature -o singleton companies_candidates.csv > companies_singletons.csv
+$ cat companies_singletons.csv
+
+|column|row|label          |kg_id     |kg_labels         |method     |singleton|
+|------|---|---------------|----------|------------------|-----------|---------|
+|1     |0  |Citigroup      |Q219508   |Citigroup         |exact-match|1        |
+|1     |1  |Bank of America|Q487907   |Bank of America   |exact-match|0        |
+|1     |1  |Bank of America|Q50316068 |Bank of America   |exact-match|0        |
+|1     |10 |BP             |Q1004647  |bullous pemphigoid|exact-match|0        |
+|1     |10 |BP             |Q100151423|brutal prog       |exact-match|0        |
+|1     |10 |BP             |Q131755   |bipolar disorder  |exact-match|0        |
+|1     |10 |BP             |Q11605804 |BlitzPlus         |exact-match|0        |
+|1     |10 |BP             |Q152057   |BP                |exact-match|0        |
+|1     |10 |BP             |Q27968500 |BP                |exact-match|0        |
+```
+
+<a name="command_creat-singleton-feature" />
+
+### [`generate-reciprocal-rank`](#command_generate-reciprocal-rank)` [OPTIONS]`
+
+The command takes as input a candidate file and a score column that needs to be used for generating the reciprocal rank.
+
+The command takes the following parameters:
+
+* `-c | --column`: Name of the score column that needs to be used for computing the reciprocal.
+* `-o | --output-column-name`: Name of the column where the output feature will be stored.
+
+**Example Command**
+
+```bash
+$ tl generate-reciprocal-rank -c graph-embedding-score -o reciprocal_rank companies.csv > companies_reciprocal_rank.csv
+
+$ cat companies_reciprocal_rank.csv
+|column|row|label          |kg_id     |kg_labels         |method     |graph-embedding-score|reciprocal_rank   |
+|------|---|---------------|----------|------------------|-----------|---------------------|------------------|
+|1     |0  |Citigroup      |Q219508   |Citigroup         |fuzzy-augmented|0.8419203745525644   |1.0               |
+|1     |0  |Citigroup      |Q219508   |Citigroup         |exact-match|0.8419203745525644   |0.5               |
+|1     |0  |Citigroup      |Q857063   |Citibank          |fuzzy-augmented|0.7356934287270128   |0.3333333333333333|
+|1     |0  |Citigroup      |Q1023765  |CIT Group         |fuzzy-augmented|0.7323310965247516   |0.25              |
+|1     |0  |Citigroup      |Q856322   |CITIC Group       |fuzzy-augmented|0.7199133878669514   |0.2               |
+|1     |0  |Citigroup      |Q11307286 |Citigroup Japan Holdings|fuzzy-augmented|0.7126768515646021   |0.1666666666666666|
+
+```
+
+<a name="command_mosaic-features" />
+
+### [`mosaic-features`](#command_mosaic-features)` [OPTIONS]`
+
+The `mosaic-features` command computes general features (number of characters and number of tokens) for a specified column.
+
+The command takes the following parameters:
+
+* `-c | --column`: The name of the column for which these features need to be computed. Default value is `kg-labels`.
+* `--num-char`: It is a boolean parameter. If specified, number of characters would be computed for each cell in the specified column.
+* `--num-tokens`: It is a boolean parameter. If specified, number of tokens would be computed for each cell in the specified column.
+
+**Example Command**
+
+```bash
+$ tl mosaic-features -c kg_labels --num-char --num-tokens companies.csv > companies_mosaic.csv
+$ cat companies_mosaic.csv
+
+|column|row|label          |kg_id     |kg_labels         |method     |num_char|num_tokens        |
+|------|---|---------------|----------|------------------|-----------|--------|------------------|
+|1     |0  |Citigroup      |Q219508   |Citigroup         |fuzzy-augmented|9       |1                 |
+|1     |0  |Citigroup      |Q781961   |One Court Square  |fuzzy-augmented|16      |3                 |
+|1     |0  |Citigroup      |Q867663   |Citigroup Centre  |fuzzy-augmented|16      |2                 |
+|1     |0  |Citigroup      |Q5122510  |Citigroup Global Markets Japan|fuzzy-augmented|30      |4                 |
+|1     |0  |Citigroup      |Q54491    |Citigroup Centre  |fuzzy-augmented|16      |2                 |
+```
 
 <a name="command_string-similarity" />
 
@@ -1009,6 +1107,7 @@ Currently, there are two strategies for ranking:
 - `-c INPUT_COLUMN_NAME`, `--input-column-name INPUT_COLUMN_NAME`: The name of the column containing the Qnodes.
 - `-o OUTPUT_COLUMN_NAME`, `--output-column-name OUTPUT_COLUMN_NAME`: The output scoring column name. If not provided, the name of the embedding model will be used.
 - `--min-vote`: The minimum number of votes a candidate should get in order to be considered as high-confidence candidate. Default value is 0.
+- `--lof-strategy`: The outlier removal strategy to use when using column-vector-strategy: centroid-of-lof.
 
 <a name="#command_feature-voting" />
 
@@ -1084,6 +1183,59 @@ Multiply the values in the input score-columns with their corresponding weights 
 For each candidate `c` and the set of score-columns `S`,
 
 <code> rankingScore(c) := ∑(value(s) * weight(s)) ∀ s ∈ S </code>
+
+<a name="command_predict-using-model" />
+
+### [`predict-using-model`](#command_predict-using-model)` [OPTIONS]`
+
+Uses a trained contrastive loss neural network to give a score to each of the candidates in the input file. The scores given by the model is used for final ranking.
+
+**Options**
+
+* `-o | --output_column`: Name of the column where the final score predicted by the model should be stored. By default, name of the column would be `siamese_pred`
+* `--ranking_model`: Path where the trained model is stored.
+* `--normalization_factor`: Path of the global normalization factor that is computed during data generation for model training.
+
+**Example**
+
+```bash
+$ tl predict-using-model -o siamese_prediction \
+--ranking_model epoch_3_loss_0.09958004206418991_top1_0.8912429378531074.pth \
+--normalization_factor normalization_factor.pkl \
+> model_prediction.csv
+
+$ cat model_prediction.csv | head -n 10
+|column|row|label      |kg_id    |kg_labels       |kg_descriptions                    |pagerank              |retrieval_score   |monge_elkan       |jaro_winkler      |levenshtein       |des_cont_jaccard|num_char          |num_tokens        |singleton|is_lof|lof-graph-embedding-score|lof-reciprocal-rank|lof_class_count_tf_idf_score|lof_property_count_tf_idf_score|siamese_prediction    |
+|------|---|-----------|---------|----------------|-----------------------------------|----------------------|------------------|------------------|------------------|------------------|----------------|------------------|------------------|---------|------|-------------------------|-------------------|----------------------------|-------------------------------|----------------------|
+|0     |0  |Virat Kohli|Q213854  |Virat Kohli     |Indian cricket player              |3.866466298654773e-07 |0.220935099736807 |1.0               |1.0               |1.0               |0.0             |0.0445344129554655|0.0526315789473684|1.0      |0.0   |0.8509996990991101       |0.3306451612903225 |0.9999999999999998          |0.799244652580565              |1.0                   |
+|0     |0  |Virat Kohli|Q4792485 |Armaan Kohli    |Indian actor                       |8.030872767011763e-07 |0.175499656429328 |0.788888888888889 |0.7563131313131314|0.5833333333333333|0.0             |0.048582995951417 |0.0526315789473684|0.0      |0.0   |0.7711897128982282       |0.0872434017595308 |0.5442234316047087          |0.3725338919656602             |0.0007842204649932    |
+|0     |0  |Virat Kohli|Q19843060|Rahul Kohli     |British actor                      |3.9787774655528806e-07|0.175499656429328 |0.8               |0.7348484848484849|0.5454545454545454|0.0             |0.0445344129554655|0.0526315789473684|0.0      |0.0   |0.639493810277712        |0.0173301304049416 |0.5442234316047087          |0.2965526540013362             |3.3086947951233014e-05|
+|0     |0  |Virat Kohli|Q7686953 |Taruwar Kohli   |Indian cricketer                   |3.436024992699295e-07 |0.1771932406714975|0.6976190476190476|0.7997927997927997|0.6153846153846154|0.0             |0.0526315789473684|0.0526315789473684|0.0      |0.0   |0.8969803538708947       |1.0                |0.9999999999999998          |0.326228198225337              |1.56978567247279e-05  |
+|0     |0  |Virat Kohli|Q19899153|Virat Singh     |Indian cricketer                   |3.436024992699295e-07 |0.1936199254596482|0.7333333333333333|0.865909090909091 |0.5454545454545454|0.0             |0.0445344129554655|0.0526315789473684|0.0      |0.0   |0.8317018964479719       |0.1967741935483871 |0.9999999999999998          |0.3708899236436936             |7.526116405642824e-06 |
+|0     |1  |Tendulkar  |Q9488    |Sachin Tendulkar|Indian former cricketer            |1.1610014233298505e-06|0.2886305013881558|0.8564814814814814|0.3912037037037037|0.5625            |0.0             |0.0647773279352226|0.0526315789473684|0.0      |0.0   |0.8200359660591946       |0.4979838709677419 |0.9999999999999998          |0.8192843820684729             |0.9999990463256836    |
+|0     |1  |Tendulkar  |Q22327439|Arjun Tendulkar |cricketer                          |4.474188254297618e-07 |0.2090650830325064|0.8435185185185186|0.2851851851851851|0.6               |0.0             |0.0607287449392712|0.0526315789473684|0.0      |0.0   |0.9052622170519932       |1.0                |0.9999999999999998          |0.2971309514678164             |7.058250776026398e-05 |
+|0     |1  |Tendulkar  |Q7645792 |Suresh Tendulkar|Indian economist                   |4.935716273049558e-07 |0.2172269801922356|0.837962962962963 |0.2824074074074074|0.5625            |0.0             |0.0647773279352226|0.0526315789473684|0.0      |0.0   |0.7507507619140121       |0.2469758064516128 |0.5442234316047087          |0.1367737750251897             |7.929103048809338e-06 |
+|0     |1  |Tendulkar  |Q3630378 |Priya Tendulkar |Marathi actress and social activist|5.024522125756764e-07 |0.2090650830325064|0.75              |0.3925925925925926|0.6               |0.0             |0.0607287449392712|0.0526315789473684|0.0      |0.0   |0.61134836412485         |0.0550284629981024 |0.5442234316047087          |0.1821786700772206             |5.9532030718401074e-06|
+|0     |1  |Tendulkar  |Q55744   |Vijay Tendulkar |Indian writer                      |1.1221833978198972e-06|0.2110825609717666|0.75              |0.3925925925925926|0.6               |0.0             |0.0607287449392712|0.0526315789473684|0.0      |0.0   |0.6894453526957718       |0.0732009925558312 |0.5442234316047087          |0.1846962963661935             |5.565782885241788e-06 |
+
+```
+
+The model is trained on 14 features. So while predicting, the model expects the following 14 features:
+
+* pagerank
+* retrieval_score
+* monge_elkan
+* des_cont_jaccard
+* Jaro_winkler
+* levenshtein
+* singleton
+* is_lof
+* num_char
+* num_tokens
+* lof_class_count_tf_idf_score
+* lof_property_count_tf_idf_score
+* lof-graph-embedding-score
+* lof-reciprocal-rank
 
 
 ## Commands on Ranking Score File
@@ -1217,6 +1369,7 @@ The candidate with the highest score is ranked highest, ties are broken alphabet
 - `-c a`: column name with ranking scores.
 - `-l a`: column name with input cell labels. Default is `label`. These values will be stored in the output column `label` in the output file for this command.
 - `-k {number}`: desired number of output candidates per input cell.Default is `k=1`. Multiple values are represented by a `|` separated string
+- `--k-rows`: It is a `boolean` parameter. If specified , it will output the top k candidates in different rows, rather than concatenated in a single row.
 
 **Examples:**
 ```bash
@@ -1228,6 +1381,7 @@ $ tl get-kg-links -c ranking_score < countries_features_ranked.csv > countries_o
 ```
 
 **File Example:**
+
 ```bash
 # read the ranking score file countries_features_ranked.csv and ouput top 2 candidates, column 'clean_labels' have the cleaned input labels
 $ tl get-kg-links -c ranking_score -l clean_labels -k 2 countries_features_ranked.csv > countries_kg_links.csv
@@ -1239,7 +1393,22 @@ column row label        kg_id           kg_labels         ranking_score
 1      2   London       Q84|Q92561      London|London ON  2.75|1.914823584
 ```
 
+The following example shows the use of `--k-rows` parameter
+
+```bash
+$ tl get-kg-links -c ranking_score -l clean_labels -k 2 --k-rows comapnies_features_ranked.csv > companies_kg_links.csv
+$ cat companies_kg_links.csv
+
+|column|row|label          |kg_id    |kg_labels            |ranking_score      |
+|------|---|---------------|---------|---------------------|-------------------|
+|1     |0  |Citigroup      |Q219508  |Citigroup            |0.9823348588687812 |
+|1     |0  |Citigroup      |Q1023765 |CIT Group            |-0.3970555555555555|
+|1     |1  |Bank of America|Q487907  |Bank of America      |0.9054747474747477 |
+|1     |1  |Bank of America|Q50316068|Bank of America      |0.227679847085417  |
+```
+
 #### Implementation
+
 Group by  column and row indices and pick the top `k` candidates for each input cell to produce an output file in [KG Links](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.ysslih9i88l5) format.
 
 Pick the preferred labels for candidate KG objects from the column `kg_labels`, which is added by the [`get-exact-matches`](#command_get-exact-matches) command.
@@ -1517,4 +1686,37 @@ $ tl clean /
     / tee --output xxx-features.csv \
     / normalize-scores \
     / metrics
+```
+
+<a name="command_vote-by-classifier" />
+
+###  [`vote-by-classifier`](#command_vote-by-classifier)` [OPTIONS]`
+The `vote-by-classifier` command computes the prediction result of specified voting classifier on input tables with the following features:
+- aligned_page_rank
+- smallest_qnode_number
+- monge_elkan
+- des_cont_jaccard_normalized
+
+**Options:**
+- `--model {trained_model_path}`: pkl file path of trained voting classifier.
+- `--prob-threshold {prob_1_threshold}`: the probability threshold used in binary classifier prediction. 
+
+**Examples:**
+```bash
+# After performing the expensive operations to get candidates and compute embeddings, save the file to disk and continue the pipeline.
+$ tl vote-by-classifier candidates.csv \
+--prob-threshold 0.995 \
+--model weighted_lr.pkl \
+> voted_candidates.csv
+```
+
+**File Examples:**
+```
+|column|row|label          |kg_id     |...|method            |aligned_pagerank|vote_by_classifier|
+|------|---|---------------|----------|---|------------------|----------------|------------------|
+|1     |0  |Citigroup      |Q219508   |...|exact-match       |3.988134e-09    |0                 |
+|1     |1  |Bank of America|Q487907   |...|exact-match       |5.115590e-09    |1                 |
+|1     |1  |Bank of America|Q50316068 |...|exact-match       |5.235995e-09    |1                 |
+|1     |10 |BP             |Q100151423|...|fuzzy-augmented   |0.000000e+00    |0                 |
+|1     |10 |BP             |Q131755   |...|fuzzy-augmented   |0.000000e+00    |1                 |
 ```

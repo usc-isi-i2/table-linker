@@ -13,3 +13,4 @@ strsim
 pyecharts
 git+https://github.com/usc-isi-i2/rltk.git@dev#egg=rltk
 git+https://github.com/usc-isi-i2/kgtk.git@master#egg=kgtk
+Unidecode

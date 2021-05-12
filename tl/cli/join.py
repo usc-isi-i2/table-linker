@@ -44,6 +44,6 @@ def run(**kwargs):
         odf = j.join(df, i_df, kwargs['ranking_score_column'], extra_info=kwargs['extra_info'])
         odf.to_csv(sys.stdout, index=False)
     except:
-        message = 'Command: canonicalize\n'
+        message = 'Command: join\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)

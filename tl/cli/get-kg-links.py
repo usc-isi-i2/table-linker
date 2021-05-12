@@ -29,6 +29,11 @@ def add_arguments(parser):
                         default=5,
                         help='desired number of output candidates per input cell.')
 
+    parser.add_argument('--k-rows', action='store_true', dest='k_rows', required=False,
+                        default=False,
+                        help='if specified, output top k candidates in different rows, rather than concatenated in a'
+                             'single row')
+
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
@@ -40,7 +45,8 @@ def run(**kwargs):
         odf = get_kg_links.get_kg_links(kwargs['score_column'],
                                         df=df,
                                         top_k=kwargs['top_k'],
-                                        label_column=kwargs['label_column'])
+                                        label_column=kwargs['label_column'],
+                                        k_rows=kwargs['k_rows'])
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-kg-links\n'
