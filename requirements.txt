@@ -14,4 +14,4 @@ pyecharts
 kgtk==0.7.1
 Unidecode
 #rltk==2.0.0a17
-git+https://github.com/usc-isi-i2/rltk.git@b31e3c5b3a715048fd0a7037e2a91f3c2d1bc26d#egg=rltk
+git+https://github.com/usc-isi-i2/rltk.git@fix-tokenizer#egg=rltk
