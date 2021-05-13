@@ -13,7 +13,5 @@ strsim
 pyecharts
 kgtk==0.7.1
 Unidecode
-rltk==2.0.0a17
-#git+https://github.com/usc-isi-i2/rltk.git@master#egg=rltk
-
-
+#rltk==2.0.0a17
+git+https://github.com/usc-isi-i2/rltk.git@master#egg=rltk
