@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install jupyter
 RUN pip install jupyterlab
 
-RUN git clone https://github.com/usc-isi-i2/table-linker/
+RUN git clone https://github.com/usc-isi-i2/table-linker
 
 RUN pip install -e table-linker
 
