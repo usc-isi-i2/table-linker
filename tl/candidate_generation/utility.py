@@ -168,4 +168,5 @@ class Utility(object):
 
             for key in _:
                 df = pd.DataFrame(_[key])
-                df.to_csv(f"{auxiliary_folder}/{prefix}{key}.tsv", sep='\t', index=False)
+                if len(df) > 0:
+                    df.to_csv(f"{auxiliary_folder}/{prefix}{key}.tsv", sep='\t', index=False)
