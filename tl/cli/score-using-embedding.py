@@ -28,7 +28,8 @@ def add_arguments(parser):
         For graph embedding use: "http://kg2018a.isi.edu:9200/wikidataos-graph-embedding-01/".''')
 
     parser.add_argument('--column-vector-strategy', action='store', dest='column_vector_strategy',
-                        default="centroid-of-singletons", choices=["centroid-of-singletons", 'centroid-of-voting', 'centroid-of-lof'],
+                        default="centroid-of-singletons",
+                        choices=["centroid-of-singletons", 'centroid-of-voting', 'centroid-of-lof'],
                         help="the name of the strategy to use to create the vector for the column.")
 
     # distance function
