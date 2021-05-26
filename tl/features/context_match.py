@@ -2,7 +2,6 @@ import pandas as pd
 import re
 import sys
 import os
-import rltk
 
 class match(object):
     def __init__(self, input_path, context_path, args):
@@ -21,26 +20,28 @@ class match(object):
         sent = sent.lower()
         new_sent = self.remove_punctuation(sent)
         new_sent = self.tokenize(new_sent)
-
-
         return new_sent
+
     def tokenize(self, sent):
         sent = sent.split(" ")
         return sent
+
     def remove_punctuation(self, sent):
         res = re.sub(r'[^\w\s]', '', sent)
         return res
+
     def quantity_matching(self, context_target, context_try):
         if context_target == 0.0 and context_try == 0.0:
             return 1
         max_val = max(abs(context_target), abs(context_try))
         abs_diff = abs(context_target - context_try)
         final_val = 1 - (abs_diff/max_val)
-
         return final_val
+
     def remove_comma(self, string):
         string = string.replace(',', '')
         return string
+
     def matching_with_quantity(self, context_to_do, all_props, check = "q"):
         res = [idx for idx in all_props if idx.lower().startswith(check.lower())]
         prop_val = "NaN"
@@ -61,7 +62,6 @@ class match(object):
         sim = round(sim, 4)
         return prop_val, sim
 
-
     def matching_with_date(self, context_to_do, all_props, check = "d"):
         res = [idx for idx in all_props if idx.lower().startswith(check.lower())]
         prop_val = "NaN"
@@ -70,11 +70,11 @@ class match(object):
             x = x.split(":")
             n = x[0]
             check_with = self.remove_punctuation(n[1:])
-            
             if self.remove_punctuation(context_to_do) == check_with:
                 prop_val = x[1] 
                 sim = 1.0
         return prop_val, sim
+
     def same_elements(self, lst):
         ele = lst[0]
         chk = True
@@ -100,9 +100,11 @@ class match(object):
                     prop_val = x[1]
                     max = sim
         return prop_val, max
+
     def Convert(string):
         li = list(string.split(" "))
         return li
+
     def for_a_string(self, context_to_do, all_props):
         if "," in context_to_do:
             #All the items separated by , should have same property. Finding properties for each item and appending the property to temp
@@ -124,14 +126,7 @@ class match(object):
             p_val, sim = self.matching_with_item(context_to_do, all_props)
         sim = round(sim, 4)
         return p_val, sim
-    def sym_monge_alken(self, l1, l2):
-        val = rltk.similarity.hybrid.symmetric_monge_elkan_similarity(l1, l2, function=jaccard_index_similarity)
-        return val
-    def jaccard_index_similarity(self, l1, l2):
-        set_l1 = set(l1)
-        set_l2 = set(l2)
-        val = rltk.jaccard_index_similarity(self, set_l1, set_l2)
-        return val
+
     def jaccard_index_similarity(self, list1, list2):
         set_l1 = set(list1)
         set_l2 = set(list2)
@@ -140,10 +135,10 @@ class match(object):
         intersection = len(set_l1 & set_l2)
         union = (len(set_l1) + len(set_l2) - intersection)
         return float(intersection) / (union)
+
     def monge_elkan_similarity(self, list1, list2):
         if len(list1) == 0:
             return 0.0
-
         final_score = 0
         for i in list1:
             max_val =  float('-inf')
@@ -163,6 +158,7 @@ class match(object):
         intersection = len(list(set(list1).intersection(list2)))
         union = (len(list1) + len(list2)) - intersection
         return float(intersection) / union
+
     def calc_score(self):
         #Starting the score calculations
         #Part 1: Calculating Property values for each of the property that appear in the data file
@@ -188,8 +184,6 @@ class match(object):
                         properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j], str(position), list_of_sims[j]]
                         counter = counter + 1
                         #print("counter", counter)
-
-
                     else : 
                         #Increment the count if same position, else add another row with the new position
                         ind = properties_set[(properties_set['property']==list_of_properties[j]) & (properties_set['row']==value_of_row) & (properties_set['position']==str(position))].index.values
@@ -201,7 +195,6 @@ class match(object):
                         else:
                             properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j], str(position), list_of_sims[j]]
                             counter = counter + 1    
-                            
         #Part 1 - b - Calculating each individual property's value (also considers position)                
         properties_set = properties_set.reindex(columns = properties_set.columns.tolist() 
                                           + ['prop_val'])
@@ -234,6 +227,7 @@ class match(object):
                     f_prop_cal = round(property_cal/len(c_row_list), 4)
                     properties_with_score_metric.loc[counter] = [prop, pos, str(f_prop_cal)]
                     counter = counter + 1
+
         #Part 2 - Sum up the individual property values for a row (update:mutiply with the similarity)
         for l in range(len(self.data.index)):
             properties_str = self.data['context_properties'].values[l]
@@ -261,7 +255,6 @@ class match(object):
                 unique.append(number)
         return unique
 
-
     def divide_by_column(self):
         #print(self.final_data.head())
         to_check = self.final_data['column'].values.tolist()
@@ -287,7 +280,6 @@ class match(object):
             q_node = self.data['kg_id'].values[i] 
             #if there is empty context in the data file
             try:
-                
                 val_list = val.split("|")
             except:
                 val_list = "NaN"
