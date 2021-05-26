@@ -200,7 +200,7 @@ class EmbeddingVector:
                     ids.remove(np.nan)
                 if len(ids) == 1:
                     singleton_ids.append(ids[0])
-                    
+
             if not singleton_ids:
                 return False
 
@@ -214,8 +214,8 @@ class EmbeddingVector:
 
             if len(missing_embedding_ids):
                 print(f'_centroid_of_singletons: Missing {len(missing_embedding_ids)} of {len(singleton_ids)}',
-                     file=sys.stderr)
-                     
+                      file=sys.stderr)
+
             # centroid of singletons
             self.centroid[column] = np.mean(np.array(vectors), axis=0)
 
@@ -273,7 +273,8 @@ class EmbeddingVector:
                 tmp_df = pd.DataFrame()
                 for ((col, row), group) in data.groupby(['column', 'row']):
                     group['singleton'] = 0
-                    if len(group[group['method'] == 'exact-match']) == 1 and pd.notna(group[group['method'] == 'exact-match'].iloc[0]['kg_id']):
+                    if len(group[group['method'] == 'exact-match']) == 1 and pd.notna(
+                            group[group['method'] == 'exact-match'].iloc[0]['kg_id']):
                         # exact match is singleton, non-nan candidate set
                         group.loc[group['method'] == 'exact-match', 'singleton'] = 1
                     tmp_df = tmp_df.append(group)
@@ -318,11 +319,13 @@ class EmbeddingVector:
 
             vectors = np.array([v for v in vectors if len(v) > 1])
 
-            assert data['is_lof'].equals(data['retrieved_embedding_vector']), "Not all lof candidates have retrieved embedding!"
+            assert data['is_lof'].equals(
+                data['retrieved_embedding_vector']), "Not all lof candidates have retrieved embedding!"
             data.drop(['retrieved_embedding_vector'], axis=1, inplace=True)
 
             # run outlier removal algorithm
             n_neigh = min(10, len(vectors) // 3)
+
             clf = LocalOutlierFactor(n_neighbors=n_neigh, contamination=0.4, metric='cosine')
             lof_pred = clf.fit_predict(vectors)
             assert len(lof_pred) == len(vectors)
