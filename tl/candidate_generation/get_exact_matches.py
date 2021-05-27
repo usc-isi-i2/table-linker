@@ -10,7 +10,7 @@ class ExactMatches(object):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
         self.utility = Utility(self.es, output_column_name)
 
-    def get_exact_matches(self, column, lower_case=False, size=50, file_path=None,
+    def get_exact_matches(self, column, lower_case=True, size=50, file_path=None,
                           df=None, auxiliary_fields: List[str] = None, auxiliary_folder: str = None, isa: str = None):
         """
         retrieves the identifiers of KG entities whose label or aliases match the input values exactly.
