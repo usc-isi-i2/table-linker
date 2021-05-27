@@ -1,4 +1,6 @@
 import copy
+
+import json
 import requests
 import typing
 from typing import List
@@ -50,7 +52,7 @@ class Search(object):
             query_part = {
                 "term": {
                     "{}.keyword_lower".format(property): {
-                        "value": search_term
+                        "value": search_term.lower()
                     }
                 }
             } if lower_case else \
@@ -176,7 +178,7 @@ class Search(object):
         return hits
 
     def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
-                               lower_case: bool = False, auxiliary_fields: List[str] = None, ignore_cache=True,
+                               lower_case: bool = True, auxiliary_fields: List[str] = None, ignore_cache=True,
                                extra_musts: dict = None):
         candidate_dict = {}
         candidate_aux_dict = {}
