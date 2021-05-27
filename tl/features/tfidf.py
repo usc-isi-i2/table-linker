@@ -18,7 +18,7 @@ class TFIDF(object):
                 'One of the input parameters is required: {} or {}'.format("input_file", "df"))
 
         if input_file is not None:
-            self.input_df = pd.read_csv(input_file, dtype=object)
+            self.input_df = pd.read_csv(input_file)
         elif df is not None:
             self.input_df = df
         self.input_df = self.input_df.sort_values(['column', 'row'])
@@ -56,7 +56,7 @@ class TFIDF(object):
         hc_classes_count = defaultdict(dict)
         hc_classes_idf = defaultdict(dict)
         for column, col_candidates_df in grouped_obj:
-            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column] == "1"][
+            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column] == 1][
                 'kg_id'].unique().tolist()
             for candidate in hc_candidates:
                 if candidate in self.feature_dict:
