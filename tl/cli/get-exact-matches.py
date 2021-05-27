@@ -21,8 +21,8 @@ def add_arguments(parser):
     parser.add_argument('-c', '--column', action='store', type=str, dest='column', required=True,
                         help='the column used for retrieving candidates.')
 
-    parser.add_argument('-i', action='store_true', dest='case_sensitive',
-                        help='case insensitive retrieval, default is case sensitive')
+    parser.add_argument('-i', action='store_false', dest='case_sensitive',
+                        help='case insensitive retrieval, default is case insensitive')
 
     parser.add_argument('-n', action='store', type=int, dest='size', default=50,
                         help='maximum number of candidates to retrieve')
