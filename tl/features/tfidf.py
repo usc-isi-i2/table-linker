@@ -56,7 +56,8 @@ class TFIDF(object):
         hc_classes_count = defaultdict(dict)
         hc_classes_idf = defaultdict(dict)
         for column, col_candidates_df in grouped_obj:
-            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column] == "1"]['kg_id'].unique().tolist()
+            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column] == "1"][
+                'kg_id'].unique().tolist()
             for candidate in hc_candidates:
                 if candidate in self.feature_dict:
                     classes = self.feature_dict[candidate]
@@ -74,7 +75,7 @@ class TFIDF(object):
         hc_classes_idf_sum = {}
         for column, col_idf in hc_classes_idf.items():
             hc_classes_idf_sum[column] = sum([col_idf[x] for x in col_idf])
-        #hc_classes_idf_sum = sum([hc_classes_idf[x] for x in hc_classes_idf])
+        # hc_classes_idf_sum = sum([hc_classes_idf[x] for x in hc_classes_idf])
         for column, col_idf in hc_classes_idf.items():
             for c in col_idf:
                 hc_classes_idf[column][c] = hc_classes_idf[column][c] / hc_classes_idf_sum[column]
