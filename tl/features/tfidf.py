@@ -39,15 +39,24 @@ class TFIDF(object):
     def build_qnode_feature_dict(features_file: str, feature_name: str) -> (dict, dict):
         feature_dict = {}
         feature_count_dict = {}
-        _df = pd.read_csv(features_file, sep='\t')
-        for _, row in _df.iterrows():
-            _features = row[feature_name].split("|")  # [Q103838820:3247, Q103940464:9346440, Q10800557:73492,...]
-            feature_val = []
-            for x in _features:
-                vals = x.split(":")
-                feature_val.append(vals[0])
-                feature_count_dict[vals[0]] = float(vals[1])
-            feature_dict[row['qnode']] = feature_val
+
+        f = open(features_file)
+        feature_idx = -1
+        node_idx = -1
+
+        for line in f:
+            row = line.strip().split('\t')
+            if feature_name in row:  # first line
+                feature_idx = row.index(feature_name)
+                node_idx = row.index('qnode')
+            else:
+                _features = row[feature_idx].split("|")  # [Q103838820:3247, Q103940464:9346440, Q10800557:73492,...]
+                feature_val = []
+                for x in _features:
+                    vals = x.split(":")
+                    feature_val.append(vals[0])
+                    feature_count_dict[vals[0]] = float(vals[1])
+                feature_dict[row[node_idx]] = feature_val
         return feature_dict, feature_count_dict
 
     def normalize_idf_high_confidence_classes(self):
@@ -75,7 +84,6 @@ class TFIDF(object):
         hc_classes_idf_sum = {}
         for column, col_idf in hc_classes_idf.items():
             hc_classes_idf_sum[column] = sum([col_idf[x] for x in col_idf])
-        # hc_classes_idf_sum = sum([hc_classes_idf[x] for x in hc_classes_idf])
         for column, col_idf in hc_classes_idf.items():
             for c in col_idf:
                 hc_classes_idf[column][c] = hc_classes_idf[column][c] / hc_classes_idf_sum[column]
