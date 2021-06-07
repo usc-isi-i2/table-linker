@@ -2,6 +2,7 @@ import pandas as pd
 import sys
 from tl.file_formats_validator import FFV
 from tl.exceptions import UnsupportTypeError
+import concurrent
 
 
 class Utility(object):
@@ -36,10 +37,14 @@ class Utility(object):
             relevant_columns = [c for c in df_columns if
                                 c not in ['kg_id', 'kg_labels', 'method', 'kg_descriptions',
                                           self.previous_match_column_name]]
+            tuples = list()
             for key_tuple, gdf in grouped:
                 gdf.reset_index(inplace=True)
-                tuple = ((c, gdf.at[0, c]) for c in relevant_columns)
-
+                tuples.append(((c, gdf.at[0, c]) for c in relevant_columns))
+            
+            def create_cf_candidates_threaded(tuple):
+                nonlocal all_candidates_aux_dict
+                nonlocal candidates_format
                 _candidates_format, candidates_aux_dict = self.create_cfd_candidates(tuple, column, size,
                                                                                      properties, method, lower_case,
                                                                                      auxiliary_fields=auxiliary_fields,
@@ -47,6 +52,12 @@ class Utility(object):
                 all_candidates_aux_dict = {**all_candidates_aux_dict, **candidates_aux_dict}
 
                 candidates_format.extend(_candidates_format)
+            
+            max_threads = 50
+            # print(f'Max thread used: {max_threads}', file=sys.stderr)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+                executor.map(create_cf_candidates_threaded, tuples)
             self.write_auxiliary_files(auxiliary_folder,
                                        all_candidates_aux_dict,
                                        auxiliary_fields, prefix=auxiliary_file_prefix)
@@ -60,7 +71,9 @@ class Utility(object):
         candidates_format = list()
         all_candidates_aux_dict = {}
 
-        for i, row in df.iterrows():
+        def call_es(row):
+            nonlocal all_candidates_aux_dict
+            nonlocal candidates_format
             candidate_dict, candidate_aux_dict = self.es.search_term_candidates(row[column],
                                                                                 size,
                                                                                 properties,
@@ -68,7 +81,6 @@ class Utility(object):
                                                                                 lower_case=lower_case,
                                                                                 auxiliary_fields=auxiliary_fields,
                                                                                 extra_musts=extra_musts)
-
             all_candidates_aux_dict = {**all_candidates_aux_dict, **candidate_aux_dict}
 
             if not candidate_dict:
@@ -100,6 +112,13 @@ class Utility(object):
                     cf_dict['pagerank'] = candidate_dict[kg_id]['pagerank_float']
                     cf_dict[self.score_column_name] = candidate_dict[kg_id]['score']
                     candidates_format.append(cf_dict)
+        
+        max_threads = 50
+        # print(f'Max thread used: {max_threads}', file=sys.stderr)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+            executor.map(call_es, df.to_dict("records"))
+            
         return candidates_format, all_candidates_aux_dict
 
     def create_cfd_candidates(self, key_tuple, column, size, properties, method, lower_case, auxiliary_fields=None,
