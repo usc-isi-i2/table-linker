@@ -11,8 +11,8 @@ class Match(object):
         self.result_data = pd.DataFrame()
         self.context = pd.read_csv(context_path)
         self.output_column_name = args.get("output_column")
-        self.threshold_1 = args.pop("sim-string-threshold")
-        self.threshold_2 = args.pop("sim-quantity-threshold")
+        self.threshold_1 = args.pop("similarity-string-threshold")
+        self.threshold_2 = args.pop("similarity-quantity-threshold")
         self.debug = args.pop("debug")
         self.final_data = self.final_data.reindex(columns = self.final_data.columns.tolist() 
                                   + ['context_properties', 'monge_elkan_sim', self.output_column_name])
@@ -48,7 +48,7 @@ class Match(object):
             prop = prop.split(":")
             p_value = prop[0]
             check_with_temp = p_value[1:] #Removing the check portion
-            check_with = float(check_with_t.replace('"', ''))
+            check_with = float(check_with_temp.replace('"', ''))
             value = self.quantity_score(check_with, check_for)
             if value >= self.threshold_2 and value >= max_sim:
                 prop_val = prop[1] 
@@ -132,7 +132,7 @@ class Match(object):
             #If all elements in temp have same value for property return that property
             if len(set(temp))==1:
                 p_val = temp[0]
-                sim = sum(sim_l)/len(sim_l)
+                sim = sum(sim_list)/len(sim_list)
             else:
                 p_val = ""
                 sim = 0.0
