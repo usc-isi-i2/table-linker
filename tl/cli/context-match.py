@@ -16,9 +16,9 @@ def add_arguments(parser):
     parser.add_argument('input-file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
     parser.add_argument('--context-file', type=str, dest='context-file', required=True, help = "The file is used to look up context values for matching.")
     parser.add_argument('--debug', action='store_true', help="if set, an kgtk debug logger will be saved at home directory. Debug adds two new columns to the output denoting the properties matched and the respective similarities.")
-    parser.add_argument('--sim-string-threshold', action='store', type=float, dest='sim-string-threshold', default=0.75,
+    parser.add_argument('--similarity-string-threshold', action='store', type=float, dest='sim-string-threshold', default=0.75,
                         help='The minimum threshold for similarity with input context for string matching.')
-    parser.add_argument('--sim-quantity-threshold', action='store', type=float, dest='sim-quantity-threshold', default=0.85,
+    parser.add_argument('--similarity-quantity-threshold', action='store', type=float, dest='sim-quantity-threshold', default=0.85,
                         help='The minimum threshold for similarity with input context for quantity matching.')
 
     # output
