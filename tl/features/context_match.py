@@ -2,22 +2,20 @@ import pandas as pd
 import re
 import sys
 import os
-import rltk.similarity as sim
+import rltk.similarity as similarity
 
-class Match(object):
+class Match_context(object):
     def __init__(self, input_path, context_path, args):
         self.final_data = pd.read_csv(input_path)
         self.data = pd.DataFrame()
         self.result_data = pd.DataFrame()
         self.context = pd.read_csv(context_path)
         self.output_column_name = args.get("output_column")
-        self.threshold_1 = args.pop("similarity-string-threshold")
-        self.threshold_2 = args.pop("similarity-quantity-threshold")
+        self.similarity_string_threshold = args.pop("similarity_string_threshold")
+        self.similarity_quantity_threshold = args.pop("similarity_quantity_threshold")
         self.debug = args.pop("debug")
-        self.final_data = self.final_data.reindex(columns = self.final_data.columns.tolist() 
-                                  + ['context_properties', 'monge_elkan_sim', self.output_column_name])
 
-    def quantity_score(self, quantity_1, quantity_2):
+    def quantity_score(self, quantity_1: float, quantity_2: float) -> (float):
         '''
         Purpose: Calculates the score between two quantities by taking the absolute difference between them and dividing by the max of both. 
         It is then subtracted from 1. 
@@ -30,89 +28,68 @@ class Match(object):
         final_val = 1 - (abs_diff/max_val)
         return final_val
 
-    def match_quantity(self, q_context, all_property_list, check = "q"):
+    def match_context_with_type(self, context: str, all_property_list: list, context_data_type: str) -> (str, float):
         '''
         Purpose: Matching the given context (of type numerical/quantity) to the property with highest similarity
         Args:
-            s_context: Passed piece of context that needs to be matched. 
+            context: Passed piece of context that needs to be matched. 
             all_property_list: Contains the list of properties and their values for the given q_node.
-            check = "i" represents that the property value is of type quantity.
+            context_data_type = "q", "i", "d" represents that the property value is of type quantity, item and date year respectively.
         Returns: The Property matched and the similarity by which the property matched to the passed context.
         '''
-        property_list = [prop for prop in all_property_list if prop.lower().startswith(check.lower())]
+        property_list = [prop for prop in all_property_list if prop.lower().startswith(context_data_type.lower())]
         prop_val = ""
         max_sim = 0.0
-        #We need to check if the quantity present in the check_for is also present in the properties result.
-        check_for = float(q_context.replace('"', ''))
-        for prop in property_list:
-            prop = prop.split(":")
-            p_value = prop[0]
-            check_with_temp = p_value[1:] #Removing the check portion
-            check_with = float(check_with_temp.replace('"', ''))
-            value = self.quantity_score(check_with, check_for)
-            if value >= self.threshold_2 and value >= max_sim:
-                prop_val = prop[1] 
-                max_sim = value
+        #We need to check if the quantity present in the check_for is also present in the properties result
+
+        if context_data_type == 'q':
+            check_for = float(context.replace('"', ''))
+            for prop in property_list:
+                prop = prop.split(":")
+                p_value = prop[0]
+                check_with_temp = p_value[1:] #Removing the check portion
+                check_with = float(check_with_temp.replace('"', ''))
+                value = self.quantity_score(check_with, check_for)
+                if value >= self.similarity_quantity_threshold and value >= max_sim:
+                    prop_val = prop[1] 
+                    max_sim = value
+
+        elif context_data_type == 'd':
+            check_for = self.remove_punctuation(context)
+            for prop in property_list:
+                prop = prop.split(":")
+                p_value = prop[0]
+                check_with = self.remove_punctuation(p_value[1:])
+                if check_for == check_with:
+                    prop_val = prop[1] 
+                    max_sim = 1.0
+
+        elif context_data_type == "i":
+            check_for = self.preprocess(context)
+            for prop in property_list:
+                prop = prop.split(":")
+                p_value = prop[0]
+                check_with_temp = self.remove_punctuation(p_value[1:])
+                check_with = self.preprocess(check_with_temp)
+                sim = similarity.hybrid.symmetric_monge_elkan_similarity(check_with, check_for)
+                if sim >= self.similarity_string_threshold and sim >= max_sim:
+                    if len(prop) > 1:#Resolves error if the context does not have a property
+                        prop_val = prop[1]
+                        max_sim = sim
         max_sim = round(max_sim, 4)
         return prop_val, max_sim
 
-    def match_dates(self, d_context, all_property_list, check = "d"):
-        '''
-        Purpose: Matching the given context (of type date_year) to the property with highest similarity
-        Args:
-            s_context: Passed piece of context that needs to be matched. 
-            all_property_list: Contains the list of properties and their values for the given q_node.
-            check = "d" represents that the property value is of type date.
-        Returns: The Property matched and the similarity by which the property matched to the passed context.
-        '''
-        property_list = [prop for prop in all_property_list if prop.lower().startswith(check.lower())]
-        prop_val = ""
-        max_sim = 0.0
-        for prop in property_list:
-            prop = prop.split(":")
-            p_value = prop[0]
-            check_with = self.remove_punctuation(p_value[1:])
-            if self.remove_punctuation(d_context) == check_with:
-                prop_val = prop[1] 
-                max_sim = 1.0
-        return prop_val, max_sim
-
-    def preprocess(self, word):
+    def preprocess(self, word: str) -> (list):
         word = word.lower()
         preprocessed_word = self.remove_punctuation(word)
         preprocessed_word = preprocessed_word.split(" ")
         return preprocessed_word
 
-    def remove_punctuation(self, input_string):
+    def remove_punctuation(self, input_string: str) -> (str):
         result = re.sub(r'[^\w\s]', '', input_string)
         return result
 
-    def match_string_item(self, s_context, all_property_list, check = "i"): 
-        '''
-        Purpose: Matching the given context (of type string) to the property with highest similarity
-        Args:
-            s_context: Passed piece of context that needs to be matched. 
-            all_property_list: Contains the list of properties and their values for the given q_node.
-            check = "i" represents that the property value is of type item.
-        Returns: The Property matched and the similarity by which the property matched to the passed context.
-        '''
-        check_for = self.preprocess(s_context)
-        property_list = [prop for prop in all_property_list if prop.lower().startswith(check.lower())]
-        prop_val = ""
-        max_sim = 0.0
-        for prop in property_list:
-            prop = prop.split(":")
-            p_value = prop[0]
-            check_with_temp = self.remove_punctuation(p_value[1:])
-            check_with = self.preprocess(check_with_temp)
-            sim = self.sym_monge_alken(check_with, check_for)
-            if sim >= self.threshold_1 and sim >= max_sim:
-                if len(prop) > 1:#Resolves error if the context does not have a property
-                    prop_val = prop[1]
-                    max_sim = sim
-        return prop_val, max_sim
-
-    def process_context_string(self, s_context, all_property_list):
+    def process_context_string(self, s_context: str, all_property_list: list) -> (str, float):
         '''
         Purpose: Before matching with the properties, necessary processing to handle cases where the comma-separated values match to the same properties.
         Args:
@@ -121,7 +98,7 @@ class Match(object):
         Returns: The Property matched and the similarity by which the property matched to the passed context.
         '''
         if "," in s_context:
-            #All the items separated by , should have same property. Finding properties for each item and appending the property to temp
+            #All the items separated by, should have same property. Finding properties for each item and appending the property to temp
             temp = []
             sim_list = []
             sub_context_list = s_context.split(", ")
@@ -137,37 +114,28 @@ class Match(object):
                 p_val = ""
                 sim = 0.0
         else:
-            p_val, sim = self.match_string_item(s_context, all_property_list)
+            p_val, sim = self.match_context_with_type(s_context, all_property_list, context_data_type = "i")
         max_sim = round(sim, 4)
         return p_val, max_sim
 
-    def sym_monge_alken(self,l1, l2):
-        val = sim.hybrid.symmetric_monge_elkan_similarity(l1, l2, function=self.jaccard_index_similarity)
-        return val
-    
-    def jaccard_index_similarity(self, l1, l2):
-        set_l1 = set(l1)
-        set_l2 = set(l2)
-        val = sim.jaccard.jaccard_index_similarity(set_l1, set_l2)
-        return val
 
-    def calc_score(self):
+    def calculate_score(self):
         '''
         Purpose: Calculates the score by using the properties and the similarity with which they matched. 
         '''
         #Starting the score calculations
         #Part 1: Calculating Property values for each of the property that appear in the data file
-        #Part 1 - a: Calaculating the number of occurences in each cell.
+        #Part 1 - a: Calculating the number of occurences in each cell.
         columns = ["column", "row", "property", "position", "number_of_occurences"]
         properties_set = pd.DataFrame(columns = columns)
         #counter is the index for the properties_set
         counter = 0
-        for i in range(len(self.data.index)):
-            value_of_row = self.data['row'].values[i]
-            value_of_column = self.data['column'].values[i]
-            value_of_property = self.data['context_properties'].values[i]
+        for i, row in self.data.iterrows():
+            value_of_row = row['row']
+            value_of_column = row['column']
+            value_of_property = row['context_properties']
             list_of_properties = value_of_property.split("|")
-            value_of_sims = self.data['monge_elkan_sim'].values[i]
+            value_of_sims = row['context_similarity']
             list_of_sims = value_of_sims.split("|")
             #The positions will be denoted by the index. (Alternative: using dictionary instead - extra overhead)
             for j in range(len(list_of_properties)):
@@ -175,7 +143,7 @@ class Match(object):
                 if list_of_properties[j] != "":
                     if list_of_properties[j] not in properties_set.property.values:
                         #Add a new row
-                        properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j], str(position), list_of_sims[j]]
+                        properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j], str(position), "1"]
                         counter = counter + 1
                     else : 
                         #Increment the count if same position, else add another row with the new position
@@ -183,22 +151,24 @@ class Match(object):
                         if len(ind)!=0: 
                             other_row = properties_set['row'].values[ind]
                             old_count = properties_set['number_of_occurences'].values[ind]
-                            new_count = float(old_count[0]) + float(list_of_sims[j])
+                            #new_count = float(old_count[0]) + float(list_of_sims[j])
+                            new_count = float(old_count[0]) + 1
                             properties_set.iloc[ind, properties_set.columns.get_loc('number_of_occurences')] = str(new_count)
                         else:
-                            properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j], str(position), list_of_sims[j]]
+                            properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j], str(position), "1"]
                             counter = counter + 1    
         #Part 1 - b - Calculating each individual property's value (also considers position)                
-        properties_set = properties_set.reindex(columns = properties_set.columns.tolist() 
-                                          + ['prop_val'])
-        for i in range(len(properties_set.index)):
-            occ = properties_set['number_of_occurences'].values[i]
-            if float(occ) > 0:
-                value = round(1/float(occ), 4)
+        property_value_list = []
+        for i, row in properties_set.iterrows():
+            #Record the occurences of a particular property.
+            occurences = row['number_of_occurences']
+            if float(occurences) > 0:
+                value = round(1/float(occurences), 4)
             else:
                 value = 0
-            properties_set.iloc[i, properties_set.columns.get_loc('prop_val')] = str(value)
-            
+            property_value_list.append(value)
+        properties_set['prop_val'] = property_value_list  
+
         properties_l_df = properties_set['property']
         properties_list = properties_l_df.values.tolist()
         c_prop_list = list(set(properties_list))
@@ -223,10 +193,11 @@ class Match(object):
                     counter = counter + 1
 
         #Part 2 - Sum up the individual property values for a row (update:mutiply with the similarity)
-        for l in range(len(self.data.index)):
-            properties_str = self.data['context_properties'].values[l]
+        final_scores_list = []
+        for l, row in self.data.iterrows():
+            properties_str = row['context_properties']
             properties_list = properties_str.split("|")
-            sim_str = self.data['monge_elkan_sim'].values[l]
+            sim_str = row['context_similarity']
             sim_list = sim_str.split("|")
             sum_prop = 0
             for i in range(len(properties_list)):
@@ -235,9 +206,10 @@ class Match(object):
                     value = properties_with_score_metric['value'].values[ind]
                     
                     sum_prop = round(sum_prop + (float(value)*float(sim_list[i])), 4)
-                if sum_prop > 1:
-                    sum_prop = 1
-                self.data.iloc[l, self.data.columns.get_loc(self.output_column_name)] = sum_prop
+            if sum_prop > 1:
+                sum_prop = 1
+            final_scores_list.append(sum_prop)
+        self.data[self.output_column_name] = final_scores_list
 
     def process_data_by_column(self):
         '''
@@ -249,21 +221,24 @@ class Match(object):
             self.data = group.reset_index(drop=True)
             self.process_data_context()
             self.result_data = pd.concat([self.result_data, self.data])
-            self.result_data = self.result_data.drop_duplicates()            
+
         self.result_data = self.result_data.reset_index(drop=True)
-        if self.debug==False:
-            self.result_data = self.result_data.drop(columns=['context_properties', 'monge_elkan_sim'])
-        self.result_data.to_csv(sys.stdout, index=False)
+
+        if self.debug == False:
+            self.result_data = self.result_data.drop(columns=['context_properties', 'context_similarity'])
+        return self.result_data
 
     def process_data_context(self):
         '''
         Purpose: Processes the dataframe, reads each context_value separated by "|" and tries to match them to either date, string or quantity depending upon the structure of the context.
         '''
-        for i in range(len(self.data.index)):
+        final_property_list = []
+        final_similarity_list = []
+        for i, row in self.data.iterrows():
             prop_list = []
             sim_list = []
-            val = self.data['context'].values[i]
-            q_node = self.data['kg_id'].values[i] 
+            val = row['context']
+            q_node = row['kg_id']
             #if there is empty context in the data file
             try:
                 val_list = val.split("|")
@@ -273,20 +248,16 @@ class Match(object):
             context_value_index = self.context[self.context['qnode']==q_node].index.values
             if isinstance(q_node, float) and str(q_node) == 'nan':
                 #No q_node in the file
-                sim_str = "0.0"
-                prop_str = ""
-                self.data.iloc[i, self.data.columns.get_loc('monge_elkan_sim')] = sim_str
-                self.data.iloc[i, self.data.columns.get_loc('context_properties')] = prop_str
+                final_property_list.append("")
+                final_similarity_list.append("0.0")
                 continue
             #In some of the files, there is no context for a particular q-node. Removed during context file generation.
             if len(context_value_index) != 0:
                 context_value = self.context['context'].values[context_value_index[0]]
                 all_property_list = context_value.split("|")
             else:
-                sim_str = "0.0"
-                prop_str = ""
-                self.data.iloc[i, self.data.columns.get_loc('monge_elkan_sim')] = sim_str
-                self.data.iloc[i, self.data.columns.get_loc('context_properties')] = prop_str
+                final_property_list.append("")
+                final_similarity_list.append("0.0")
                 continue
             for v in val_list:
                 #For quantity matching, we will give multiple tries to handle cases where numbers are separated with , or are in decimals
@@ -300,19 +271,26 @@ class Match(object):
                         new_s = s.replace(".", "0")
                         if new_s.isnumeric():
                             num_v = s
+
                 if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
-                    property_v, sim = self.match_dates(to_match_1, all_property_list)
+                    property_v, sim = self.match_context_with_type(to_match_1, all_property_list, context_data_type = "d")
                     if property_v == "":
                         if to_match_1.isnumeric() or to_match_2.isnumeric():
-                            property_v, sim = self.match_quantity(to_match_1, all_property_list)
+                            property_v, sim = self.match_context_with_type(to_match_1, all_property_list, context_data_type = "q")
                         elif num_v is not None:
-                            property_v, sim = self.match_quantity(num_v, all_property_list)
+                            property_v, sim = self.match_context_with_type(num_v, all_property_list, context_data_type = "q")
+
                 else:
                     property_v, sim = self.process_context_string(v, all_property_list)  
+
                 prop_list.append(property_v)
                 sim_list.append(str(sim))
+
             prop_str = "|".join(prop_list)
             sim_str = "|".join(sim_list)
-            self.data.iloc[i, self.data.columns.get_loc('context_properties')] = prop_str
-            self.data.iloc[i, self.data.columns.get_loc('monge_elkan_sim')] = sim_str
-        self.calc_score()
+            final_property_list.append(prop_str)
+            final_similarity_list.append(sim_str)
+
+        self.data['context_properties'] = final_property_list
+        self.data['context_similarity'] = final_similarity_list
+        self.calculate_score()
