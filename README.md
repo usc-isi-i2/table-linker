@@ -843,7 +843,6 @@ $ tl context-match movies.csv \
      --context-file movies_context.csv \
      --similarity-quantity-threshold 0.7 \
      --similarity-string-threshold 0.5 \
-     --debug \
      -o match_score
 ```
 
