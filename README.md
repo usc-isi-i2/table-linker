@@ -797,7 +797,21 @@ This commands follows the following procedure:
 
 Step 1: For every candidate in the input file, the context is present in the context column and separated by "|". Each individual context-value could represent a string, quantity or a date. 
 
+Following is a snippet of the input file.
+
+|column|row|label             |context                            |
+|------|---|------------------|-----------------------------------|
+|1     |0  |The Social Network|1&#124;2010&#124;David Fincher&#124;8.3&#124;45993     |
+|1     |1  |Inception         |2&#124;2010&#124;Christopher Nolan&#124;8.9&#124;333261|
+
 The context file contains properties and their values for each candidate. Match the context values to these property values.
+
+Following is a snippet of the context file.
+
+|qnode  |context                                                                |
+|-------|-----------------------------------------------------------------------|
+|Q185888|d"2010":P577&#124;i"(en)":P364:Q1860&#124;i"\'merica":P495:Q30&#124;...|
+
 
 Try to match to date, quantity and then string in the order depending upon the similarity thresholds given (Dates are matched with thresholds of 1.).
 
@@ -811,20 +825,39 @@ Step 4: Calculate the score for each candidate by multiplying the property value
 
 **Options:**
 - `-o / --output-column-name {string}`: The output scoring column name. If not provided, the column name will be `context_score`.
-- `--sim-string-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for string matching.
-- `--sim-quantity-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for quantity matching.
+- `--similarity-string-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for string matching.
+- `--similarity-quantity-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for quantity matching.
 - `--debug`: Adds properties matched and the similarity columns to the result.
 
 **Examples:**
 ```bash
-$ tl context-match cricketers.csv \
-     --context-file cricketers_context.csv \
-     --sim-quantity-threshold 0.8 \
-     --sim-string-threshold 0.8 \
+$ tl context-match movies.csv \
+     --context-file movies_context.csv \
+     --similarity-quantity-threshold 0.7 \
+     --similarity-string-threshold 0.5 \
+     -o match_score
+```
+**File Example:**
+```bash
+$ tl context-match movies.csv \
+     --context-file movies_context.csv \
+     --similarity-quantity-threshold 0.7 \
+     --similarity-string-threshold 0.5 \
+     --debug \
      -o match_score
 ```
 
-<a name="command_creat-singleton-feature" />
+|column|row|label             |context                            |kg_id    |match_score|
+|------|---|------------------|-----------------------------------|---------|-----------|
+|1     |0  |The Social Network|1&#124;2010&#124;David Fincher&#124;8.3&#124;45993     |Q185888  |0.6337     |
+|1     |0  |The Social Network|1&#124;2010&#124;David Fincher&#124;8.3&#124;45993     |Q1952928 |0.5324     |
+|1     |1  |Inception         |2&#124;2010&#124;Christopher Nolan&#124;8.9&#124;333261|Q42341440|0.6894     |
+|1     |1  |Inception         |2&#124;2010&#124;Christopher Nolan&#124;8.9&#124;333261|Q25188   |0.6769     |
+|1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q1587838 |0.6337     |
+|1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q219315  |0.6337     |
+
+
+<a name="command_create-singleton-feature" />
 
 ### [`create-singleton-feature`](#command_create-singleton-feature)` [OPTIONS]`
 
