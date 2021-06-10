@@ -1,8 +1,6 @@
 import pandas as pd
-import sys
 from tl.file_formats_validator import FFV
 from tl.exceptions import UnsupportTypeError
-import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 from itertools import repeat
 
@@ -23,23 +21,18 @@ class Utility(object):
         candidates_format = list()
         df_columns = df.columns
         all_candidates_aux_dict = {}
-        rows = list()
-        relevant_columns = list()
         max_threads = min(df.shape[0], max_threads)
 
         if self.ffv.is_canonical_file(df):
             rows = df.to_dict("records")
             with ThreadPoolExecutor(max_workers=max_threads) as executor:
                 for _candidates_format, candidates_aux_dict in executor.map(
-                            self.create_candidates, rows,
-                            repeat(df_columns), repeat(column),
-                            repeat(size), repeat(properties), repeat(method),
-                            repeat(lower_case),
+                            self.create_candidates, rows, repeat(df_columns),
+                            repeat(column), repeat(size), repeat(properties),
+                            repeat(method), repeat(lower_case),
                             repeat(auxiliary_fields), repeat(extra_musts)):
-                    all_candidates_aux_dict = {
-                        **all_candidates_aux_dict,
-                        **candidates_aux_dict
-                        }
+                    all_candidates_aux_dict = {**all_candidates_aux_dict,
+                                               **candidates_aux_dict}
                     candidates_format.extend(_candidates_format)
             self.write_auxiliary_files(auxiliary_folder,
                                        all_candidates_aux_dict,
@@ -61,12 +54,10 @@ class Utility(object):
                             self.create_candidates, rows,
                             repeat(relevant_columns), repeat(column),
                             repeat(size), repeat(properties), repeat(method),
-                            repeat(lower_case),
-                            repeat(auxiliary_fields), repeat(extra_musts)):
-                    all_candidates_aux_dict = {
-                        **all_candidates_aux_dict,
-                        **candidates_aux_dict
-                        }
+                            repeat(lower_case), repeat(auxiliary_fields),
+                            repeat(extra_musts)):
+                    all_candidates_aux_dict = {**all_candidates_aux_dict,
+                                               **candidates_aux_dict}
                     candidates_format.extend(_candidates_format)
             self.write_auxiliary_files(auxiliary_folder,
                                        all_candidates_aux_dict,
@@ -81,8 +72,7 @@ class Utility(object):
 
     def create_candidates(self, row, relevant_columns, column, size,
                           properties, method, lower_case,
-                          auxiliary_fields=None,
-                          extra_musts=None):
+                          auxiliary_fields=None, extra_musts=None):
         candidates_format = list()
 
         _ = {}
@@ -90,11 +80,8 @@ class Utility(object):
             _[k] = row[k]
 
         candidate_dict, candidate_aux_dict = self.es.search_term_candidates(
-                                            _[column],
-                                            size,
-                                            properties,
-                                            method,
-                                            lower_case=lower_case,
+                                            _[column], size, properties,
+                                            method, lower_case=lower_case,
                                             auxiliary_fields=auxiliary_fields,
                                             extra_musts=extra_musts)
 
