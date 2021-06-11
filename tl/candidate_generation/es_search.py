@@ -1,16 +1,15 @@
 import copy
 
-import json
-import requests
-import typing
-from typing import List
 import hashlib
 import logging
 import re
+import requests
+import typing
+from requests.auth import HTTPBasicAuth
+from typing import List
 
 from tl.candidate_generation.phrase_query_json import query
 from tl.utility.singleton import singleton
-from requests.auth import HTTPBasicAuth
 
 
 @singleton
@@ -211,13 +210,16 @@ class Search(object):
                             _source = hit['_source']
                             _id = hit['_id']
                             all_labels = []
-                            all_aliases = []
                             description = ""
                             pagerank = 0.0
+                            all_aliases = self.get_all_labels_aliases(_source.get('labels', {}),
+                                                                      _source.get('aliases', {}),
+                                                                      _source.get('ascii_labels', []),
+                                                                      _source.get('abbreviated_name', {}))
+
                             if 'en' in _source['labels']:
                                 all_labels.extend(_source['labels']['en'])
-                            if 'en' in _source['aliases']:
-                                all_aliases.extend(_source['aliases']['en'])
+
                             if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
                                 description = "|".join(_source['descriptions']['en'])
                             if 'pagerank' in _source:
@@ -280,3 +282,29 @@ class Search(object):
         hash_search_result = hash_generator.hexdigest()
         hash_key = str(hash_search_result)
         return hash_key
+
+    @staticmethod
+    def get_all_labels_aliases(labels: dict,
+                               aliases: dict,
+                               ascii_labels: List[str],
+                               abbreviated_name: dict) -> List[str]:
+        all_labels_aliases = set()
+        if labels:
+            for lang in labels:
+                if lang in {'de', 'es', 'fr', 'it', 'pt'}:
+                    all_labels_aliases.update(x for x in labels[lang] if x.strip())
+
+        if aliases:
+            for lang in aliases:
+                if lang in {'en', 'de', 'es', 'fr', 'it', 'pt'}:
+                    all_labels_aliases.update(x for x in aliases[lang] if x.strip())
+
+        if ascii_labels:
+            all_labels_aliases.update(x for x in ascii_labels if x.strip())
+
+        if abbreviated_name:
+            for lang in abbreviated_name:
+                if lang in {'en', 'de', 'es', 'fr', 'it', 'pt'}:
+                    all_labels_aliases.update(x for x in abbreviated_name[lang] if x.strip())
+
+        return list(all_labels_aliases)
