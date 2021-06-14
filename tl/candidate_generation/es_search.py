@@ -11,6 +11,8 @@ from typing import List
 from tl.candidate_generation.phrase_query_json import query
 from tl.utility.singleton import singleton
 
+romance_languages = {'en', 'de', 'es', 'fr', 'it', 'pt'}
+
 
 @singleton
 class Search(object):
@@ -209,16 +211,12 @@ class Search(object):
                         if re.match(r'Q\d+', hit['_id']):
                             _source = hit['_source']
                             _id = hit['_id']
-                            all_labels = []
                             description = ""
                             pagerank = 0.0
-                            all_aliases = self.get_all_labels_aliases(_source.get('labels', {}),
-                                                                      _source.get('aliases', {}),
-                                                                      _source.get('ascii_labels', []),
-                                                                      _source.get('abbreviated_name', {}))
-
-                            if 'en' in _source['labels']:
-                                all_labels.extend(_source['labels']['en'])
+                            all_labels, all_aliases = self.get_all_labels_aliases(_source.get('labels', {}),
+                                                                                  _source.get('aliases', {}),
+                                                                                  _source.get('ascii_labels', []),
+                                                                                  _source.get('abbreviated_name', {}))
 
                             if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
                                 description = "|".join(_source['descriptions']['en'])
@@ -287,24 +285,26 @@ class Search(object):
     def get_all_labels_aliases(labels: dict,
                                aliases: dict,
                                ascii_labels: List[str],
-                               abbreviated_name: dict) -> List[str]:
-        all_labels_aliases = set()
+                               abbreviated_name: dict) -> (List[str], List[str]):
+        all_labels = set()
+        all_aliases = set()
+
         if labels:
             for lang in labels:
-                if lang in {'de', 'es', 'fr', 'it', 'pt'}:
-                    all_labels_aliases.update(x for x in labels[lang] if x.strip())
+                if lang in romance_languages:
+                    all_labels.update(x for x in labels[lang] if x.strip())
 
         if aliases:
             for lang in aliases:
-                if lang in {'en', 'de', 'es', 'fr', 'it', 'pt'}:
-                    all_labels_aliases.update(x for x in aliases[lang] if x.strip())
+                if lang in romance_languages:
+                    all_aliases.update(x for x in aliases[lang] if x.strip())
 
         if ascii_labels:
-            all_labels_aliases.update(x for x in ascii_labels if x.strip())
+            all_aliases.update(x for x in ascii_labels if x.strip())
 
         if abbreviated_name:
             for lang in abbreviated_name:
-                if lang in {'en', 'de', 'es', 'fr', 'it', 'pt'}:
-                    all_labels_aliases.update(x for x in abbreviated_name[lang] if x.strip())
+                if lang in romance_languages:
+                    all_aliases.update(x for x in abbreviated_name[lang] if x.strip())
 
-        return list(all_labels_aliases)
+        return list(all_labels), list(all_aliases)
