@@ -8,7 +8,7 @@ class MatchContext(object):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.result_data = pd.DataFrame()
-        self.context = pd.read_csv(context_path)
+        self.context = pd.read_csv(context_path, sep='\t')
         self.output_column_name = args.get("output_column")
         self.similarity_string_threshold = args.pop("similarity_string_threshold")
         self.similarity_quantity_threshold = args.pop("similarity_quantity_threshold")
