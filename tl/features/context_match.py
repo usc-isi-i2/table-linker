@@ -8,11 +8,27 @@ class MatchContext(object):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.result_data = pd.DataFrame()
-        self.context = pd.read_csv(context_path, sep='\t')
+        self.context = self.read_context_file(context_path)
         self.output_column_name = args.get("output_column")
         self.similarity_string_threshold = args.pop("similarity_string_threshold")
         self.similarity_quantity_threshold = args.pop("similarity_quantity_threshold")
         self.debug = args.pop("debug")
+
+    def read_context_file(self, context_path: str) -> dict:
+        context_dict = {}
+
+        f = open(context_path)
+        feature_idx = -1
+        node_idx = -1
+
+        for line in f:
+            row = line.strip().split('\t')
+            if 'context' in row and 'qnode' in row:  # first line
+                feature_idx = row.index('context')
+                node_idx = row.index('qnode')
+            else:
+                context_dict[row[node_idx]] = row[feature_idx]
+        return context_dict
 
     @staticmethod
     def quantity_score(quantity_1: float, quantity_2: float) -> float:
@@ -255,11 +271,10 @@ class MatchContext(object):
                 val_list = val.split("|")
             except AttributeError:
                 val_list = ""
-            # Get the context associated with the q_node from the context file
-            context_value_index = self.context[self.context['qnode'] == q_node].index.values
+
             # In some of the files, there is no context for a particular q-node. Removed during context file generation.
-            if len(context_value_index) != 0:
-                context_value = self.context['context'].values[context_value_index[0]]
+            context_value = self.context.get(q_node, None)
+            if context_value:
                 all_property_list = context_value.split("|")
             else:
                 final_property_list.append("")
