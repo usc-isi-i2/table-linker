@@ -2,6 +2,7 @@ import math
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException
 from collections import defaultdict
+from time import time
 
 
 class TFIDF(object):
@@ -94,17 +95,17 @@ class TFIDF(object):
         Compute TF/IDF for all candidates.
 
         """
-
         hc_classes_idf = self.normalize_idf_high_confidence_classes()
-        output = []
-        for i, row in self.input_df.iterrows():
-            _column = row['column']
-            _score = 0.0
-            _feature_classes = self.feature_dict.get(row['kg_id'], None)
-            if _feature_classes:
-                for _class in _feature_classes:
-                    _score += hc_classes_idf[_column].get(_class, 0.0)
-            row[self.output_col_name] = _score
-            output.append(row)
 
-        return pd.DataFrame(output)
+        self.input_df[self.output_col_name] = self.input_df.apply(
+            lambda x: self.compute_tfidf_score(x.kg_id, x.column, hc_classes_idf), axis=1)
+
+        return self.input_df
+
+    def compute_tfidf_score(self, kg_id: str, column: str, hc_classes_idf: dict) -> float:
+        _score = 0.0
+        _feature_classes = self.feature_dict.get(kg_id, None)
+        if _feature_classes:
+            for _class in _feature_classes:
+                _score += hc_classes_idf[column].get(_class, 0.0)
+        return _score
