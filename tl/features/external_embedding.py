@@ -169,20 +169,18 @@ class EmbeddingVector:
                 i += 1
                 score_column_name = "score_{}_{}".format(self.kwargs["column_vector_strategy"], i)
 
-        scores = []
-        for i, each_row in self.loaded_file.iterrows():
-            # the nan value can also be float
-            if ((isinstance(each_row[self.input_column_name], float) and math.isnan(each_row[self.input_column_name]))
-                    or each_row[self.input_column_name] is np.nan
-                    or each_row[self.input_column_name] not in self.vectors_map):
-                each_score = 0.0
-            else:
-                column = each_row['column']
-                each_score = self.compute_distance(self.centroid[column],
-                                                   self.vectors_map[each_row[self.input_column_name]])
+        self.loaded_file[score_column_name] = self.loaded_file.apply(
+            lambda x: self.compute_cosine_distance(x[self.input_column_name], x.column), axis=1)
 
-            scores.append(each_score)
-        self.loaded_file[score_column_name] = scores
+    def compute_cosine_distance(self, qnode: str, column_num: str) -> float:
+        if ((isinstance(qnode, float) and math.isnan(qnode))
+                or qnode is np.nan
+                or qnode not in self.vectors_map):
+            _score = 0.0
+        else:
+            _score = self.compute_distance(self.centroid[column_num],
+                                           self.vectors_map[qnode])
+        return _score
 
     def print_output(self):
         self.loaded_file.to_csv(sys.stdout, index=False)
