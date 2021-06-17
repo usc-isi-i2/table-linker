@@ -14,7 +14,8 @@ class MatchContext(object):
         self.similarity_quantity_threshold = args.pop("similarity_quantity_threshold")
         self.debug = args.pop("debug")
 
-    def read_context_file(self, context_path: str) -> dict:
+    @staticmethod
+    def read_context_file(context_path: str) -> dict:
         context_dict = {}
 
         f = open(context_path)
@@ -150,10 +151,8 @@ class MatchContext(object):
         properties_set = pd.DataFrame(columns=columns)
         # counter is the index for the properties_set
         counter = 0
-        for i, row in self.data.iterrows():
-            value_of_row = row['row']
-            value_of_column = row['column']
-            value_of_property = row['context_properties']
+        for value_of_row, value_of_column, value_of_property in zip(self.data['row'], self.data['column'],
+                                                                    self.data['context_properties']):
             list_of_properties = value_of_property.split("|")
             # The positions will be denoted by the index. (Alternative: using dictionary instead - extra overhead)
             for j in range(len(list_of_properties)):
@@ -180,11 +179,10 @@ class MatchContext(object):
                             counter = counter + 1
                             # Part 1 - b - Calculating each individual property's value (also considers position)
         property_value_list = []
-        for i, row in properties_set.iterrows():
+        for occurrences in zip(properties_set['number_of_occurrences']):
             # Record the occurrences of a particular property.
-            occurrences = row['number_of_occurrences']
-            if float(occurrences) > 0:
-                value = round(1 / float(occurrences), 4)
+            if float(occurrences[0]) > 0:
+                value = round(1 / float(occurrences[0]), 4)
             else:
                 value = 0
             property_value_list.append(value)
@@ -216,11 +214,9 @@ class MatchContext(object):
 
         # Part 2 - Sum up the individual property values for a row (update:multiply with the similarity)
         final_scores_list = []
-        for l_index, row in self.data.iterrows():
-            properties_str = row['context_properties']
-            properties_list = properties_str.split("|")
-            sim_str = row['context_similarity']
+        for properties_str, sim_str in zip(self.data['context_properties'], self.data['context_similarity']):
             sim_list = sim_str.split("|")
+            properties_list = properties_str.split("|")
             sum_prop = 0
             for i in range(len(properties_list)):
                 if properties_list[i] != "":
@@ -261,11 +257,10 @@ class MatchContext(object):
         """
         final_property_list = []
         final_similarity_list = []
-        for i, row in self.data.iterrows():
+
+        for q_node, val in zip(self.data['kg_id'], self.data['context']):
             prop_list = []
             sim_list = []
-            val = row['context']
-            q_node = row['kg_id']
             # if there is empty context in the data file
             try:
                 val_list = val.split("|")
@@ -276,16 +271,18 @@ class MatchContext(object):
             context_value = self.context.get(q_node, None)
             if context_value:
                 all_property_list = context_value.split("|")
+                all_property_list[0] = all_property_list[0][1:]
+                all_property_list[-1] = all_property_list[-1][:-1]
             else:
                 final_property_list.append("")
                 final_similarity_list.append("0.0")
                 continue
             for v in val_list:
                 # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
-                # or are in decimals
                 new_v = v.replace('"', '')
                 to_match_1 = new_v.replace(",", "")
                 to_match_2 = to_match_1.replace(".", "0")
+
                 num_v = None
                 if " " in to_match_2:
                     split_v = to_match_1.split(" ")
