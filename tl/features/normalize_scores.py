@@ -7,14 +7,18 @@ from tl.exceptions import RequiredInputParameterMissingException
 from tl.exceptions import RequiredColumnMissingException
 
 
-def normalize_scores(column='retrieval_score', output_column=None, weights=None, file_path=None, df=None, norm_type=None):
+def normalize_scores(column='retrieval_score', output_column=None, weights=None, file_path=None, df=None,
+                     norm_type=None):
     """
-    normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all input cells in a column
+    normalizes the retrieval scores for all the candidate knowledge graph objects for each retrieval method for all
+    input cells in a column
 
     Args:
         column: column name which has the retrieval scores. Default is retrieval_score
-        output_column: the output column name where the normalized scores will be stored. Default is input column name appended with the suffix _normalized
-        weights: a comma separated string of the format <retrieval_method_1:<weight_1>, <retrieval_method_2:<weight_2>,...> specifying the weights for each retrieval method. By default, all retrieval method weights are set to 1.0
+        output_column: the output column name where the normalized scores will be stored. Default is input column name
+        appended with the suffix _normalized
+        weights: a comma separated string of the format <retrieval_method_1:<weight_1>, <retrieval_method_2:<weight_2>
+        ,...> specifying the weights for each retrieval method. By default, all retrieval method weights are set to 1.0
         file_path: input file path
         df: or input dataframe
 
@@ -57,7 +61,8 @@ def normalize_scores(column='retrieval_score', output_column=None, weights=None,
             std_score = gdf[column].std()
             # TODO find a better way to do this without having to make a copy
             fdf = gdf.copy(deep=True)
-            fdf[output_column] = gdf[column].map(lambda x: zscore_normalization(x, mean_score, std_score) * method_weights.get(i[1], 1.0))
+            fdf[output_column] = gdf[column].map(
+                lambda x: zscore_normalization(x, mean_score, std_score) * method_weights.get(i[1], 1.0))
             o_df.append(fdf)
 
     out_df = Utility.sort_by_col_and_row(pd.concat(o_df))
@@ -66,7 +71,8 @@ def normalize_scores(column='retrieval_score', output_column=None, weights=None,
 
 def drop_by_score(column, file_path=None, df=None, k=20):
     """
-    group the dataframe by column, row and then drop the candidates out of given amount k from highest score to lowest score
+    group the dataframe by column, row and then drop the candidates out of given amount k from highest score to lowest
+    score
 
     Args:
         column: column with ranking score
@@ -157,6 +163,7 @@ def divide_a_by_b(a, b):
         return 0.0
     return a / b
 
+
 def zscore_normalization(val, mean_val, std_val):
-    normalized_score = (val - mean_val)/std_val
+    normalized_score = (val - mean_val) / std_val
     return normalized_score

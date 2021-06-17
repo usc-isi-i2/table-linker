@@ -18,7 +18,7 @@ class TFIDF(object):
                 'One of the input parameters is required: {} or {}'.format("input_file", "df"))
 
         if input_file is not None:
-            self.input_df = pd.read_csv(input_file, dtype=object)
+            self.input_df = pd.read_csv(input_file)
         elif df is not None:
             self.input_df = df
         self.input_df = self.input_df.sort_values(['column', 'row'])
@@ -39,15 +39,24 @@ class TFIDF(object):
     def build_qnode_feature_dict(features_file: str, feature_name: str) -> (dict, dict):
         feature_dict = {}
         feature_count_dict = {}
-        _df = pd.read_csv(features_file, sep='\t')
-        for _, row in _df.iterrows():
-            _features = row[feature_name].split("|")  # [Q103838820:3247, Q103940464:9346440, Q10800557:73492,...]
-            feature_val = []
-            for x in _features:
-                vals = x.split(":")
-                feature_val.append(vals[0])
-                feature_count_dict[vals[0]] = float(vals[1])
-            feature_dict[row['qnode']] = feature_val
+
+        f = open(features_file)
+        feature_idx = -1
+        node_idx = -1
+
+        for line in f:
+            row = line.strip().split('\t')
+            if feature_name in row:  # first line
+                feature_idx = row.index(feature_name)
+                node_idx = row.index('qnode')
+            else:
+                _features = row[feature_idx].split("|")  # [Q103838820:3247, Q103940464:9346440, Q10800557:73492,...]
+                feature_val = []
+                for x in _features:
+                    vals = x.split(":")
+                    feature_val.append(vals[0])
+                    feature_count_dict[vals[0]] = float(vals[1])
+                feature_dict[row[node_idx]] = feature_val
         return feature_dict, feature_count_dict
 
     def normalize_idf_high_confidence_classes(self):
@@ -56,7 +65,8 @@ class TFIDF(object):
         hc_classes_count = defaultdict(dict)
         hc_classes_idf = defaultdict(dict)
         for column, col_candidates_df in grouped_obj:
-            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column] == "1"]['kg_id'].unique().tolist()
+            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column] == 1][
+                'kg_id'].unique().tolist()
             for candidate in hc_candidates:
                 if candidate in self.feature_dict:
                     classes = self.feature_dict[candidate]
@@ -74,7 +84,6 @@ class TFIDF(object):
         hc_classes_idf_sum = {}
         for column, col_idf in hc_classes_idf.items():
             hc_classes_idf_sum[column] = sum([col_idf[x] for x in col_idf])
-        #hc_classes_idf_sum = sum([hc_classes_idf[x] for x in hc_classes_idf])
         for column, col_idf in hc_classes_idf.items():
             for c in col_idf:
                 hc_classes_idf[column][c] = hc_classes_idf[column][c] / hc_classes_idf_sum[column]
@@ -85,17 +94,25 @@ class TFIDF(object):
         Compute TF/IDF for all candidates.
 
         """
-
         hc_classes_idf = self.normalize_idf_high_confidence_classes()
-        output = []
-        for i, row in self.input_df.iterrows():
-            _column = row['column']
+
+        scores = []
+        for kg_id, column in zip(self.input_df['kg_id'], self.input_df['column']):
             _score = 0.0
-            _feature_classes = self.feature_dict.get(row['kg_id'], None)
+            _feature_classes = self.feature_dict.get(kg_id, None)
             if _feature_classes:
                 for _class in _feature_classes:
-                    _score += hc_classes_idf[_column].get(_class, 0.0)
-            row[self.output_col_name] = _score
-            output.append(row)
+                    _score += hc_classes_idf[column].get(_class, 0.0)
+            scores.append(_score)
 
-        return pd.DataFrame(output)
+        self.input_df[self.output_col_name] = scores
+
+        return self.input_df
+
+    def compute_tfidf_score(self, kg_id: str, column: str, hc_classes_idf: dict) -> float:
+        _score = 0.0
+        _feature_classes = self.feature_dict.get(kg_id, None)
+        if _feature_classes:
+            for _class in _feature_classes:
+                _score += hc_classes_idf[column].get(_class, 0.0)
+        return _score

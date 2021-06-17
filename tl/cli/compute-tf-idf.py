@@ -31,12 +31,6 @@ def add_arguments(parser):
     parser.add_argument('--N', action='store', dest='total_docs', required=False, default=42123553,
                         help="total number of documents in ES index, used to compute IDF")
 
-    # TODO: add support to use different high precision candidates method
-    # parser.add_argument('--high-precision-candidates-method', action='store', nargs='?',
-    #                     dest='high_precision_candidates_method',
-    #                     required=False, default="from_exact_match",
-    #                     help="The method to choose the high precision candidates)
-
 
 def run(**kwargs):
     from tl.features import tfidf
@@ -47,9 +41,10 @@ def run(**kwargs):
                                  kwargs['total_docs'],
                                  kwargs['singleton_column'],
                                  input_file=kwargs['input_file'])
+
         odf = tfidf_unit.compute_tfidf()
         odf.to_csv(sys.stdout, index=False)
-    except:
+    except Exception as e:
         message = 'Command: compute-tf-idf\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)

@@ -1,14 +1,17 @@
 import copy
-import requests
-import typing
-from typing import List
+
 import hashlib
 import logging
 import re
+import requests
+import typing
+from requests.auth import HTTPBasicAuth
+from typing import List
 
 from tl.candidate_generation.phrase_query_json import query
 from tl.utility.singleton import singleton
-from requests.auth import HTTPBasicAuth
+
+romance_languages = {'en', 'de', 'es', 'fr', 'it', 'pt'}
 
 
 @singleton
@@ -50,7 +53,7 @@ class Search(object):
             query_part = {
                 "term": {
                     "{}.keyword_lower".format(property): {
-                        "value": search_term
+                        "value": search_term.lower()
                     }
                 }
             } if lower_case else \
@@ -176,7 +179,7 @@ class Search(object):
         return hits
 
     def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
-                               lower_case: bool = False, auxiliary_fields: List[str] = None, ignore_cache=True,
+                               lower_case: bool = True, auxiliary_fields: List[str] = None, ignore_cache=True,
                                extra_musts: dict = None):
         candidate_dict = {}
         candidate_aux_dict = {}
@@ -208,14 +211,13 @@ class Search(object):
                         if re.match(r'Q\d+', hit['_id']):
                             _source = hit['_source']
                             _id = hit['_id']
-                            all_labels = []
-                            all_aliases = []
                             description = ""
                             pagerank = 0.0
-                            if 'en' in _source['labels']:
-                                all_labels.extend(_source['labels']['en'])
-                            if 'en' in _source['aliases']:
-                                all_aliases.extend(_source['aliases']['en'])
+                            all_labels, all_aliases = self.get_all_labels_aliases(_source.get('labels', {}),
+                                                                                  _source.get('aliases', {}),
+                                                                                  _source.get('ascii_labels', []),
+                                                                                  _source.get('abbreviated_name', {}))
+
                             if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
                                 description = "|".join(_source['descriptions']['en'])
                             if 'pagerank' in _source:
@@ -278,3 +280,31 @@ class Search(object):
         hash_search_result = hash_generator.hexdigest()
         hash_key = str(hash_search_result)
         return hash_key
+
+    @staticmethod
+    def get_all_labels_aliases(labels: dict,
+                               aliases: dict,
+                               ascii_labels: List[str],
+                               abbreviated_name: dict) -> (List[str], List[str]):
+        all_labels = set()
+        all_aliases = set()
+
+        if labels:
+            for lang in labels:
+                if lang in romance_languages:
+                    all_labels.update(x for x in labels[lang] if x.strip())
+
+        if aliases:
+            for lang in aliases:
+                if lang in romance_languages:
+                    all_aliases.update(x for x in aliases[lang] if x.strip())
+
+        if ascii_labels:
+            all_aliases.update(x for x in ascii_labels if x.strip())
+
+        if abbreviated_name:
+            for lang in abbreviated_name:
+                if lang in romance_languages:
+                    all_aliases.update(x for x in abbreviated_name[lang] if x.strip())
+
+        return list(all_labels), list(all_aliases)

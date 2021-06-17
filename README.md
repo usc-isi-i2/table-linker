@@ -53,6 +53,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG.
 - [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value.
 - [`compute-tf-idf`](#command_compute-tf-idf)<sup>*</sup>: compute the "tf-idf" like score base on the candidates. It is not the real tf-idf score algorithm but using a algorithm similar to tf-idf score.
+- [`context-match`](#command_context-match)<sup>*</sup>: matches the values present as the context to the properties of the candidate and calculates the score based on the properties matched for each candidate.
 - [`create-singleton-feature`](#command_create-singleton-feature)<sup>*</sup>: generates a boolean feature for exact match singletons
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
@@ -805,7 +806,76 @@ $ cat output_file.csv
 Wikidata part: achieved with the wikidata sparql query to get all properties of the Q nodes.
 Wikipedia part: achieved with the python pacakge `wikipedia-api`
 
-<a name="command_creat-singleton-feature" />
+<a name="command_context-match" />
+
+### [`context-match`](#command_context-match)` [OPTIONS]`
+
+The `context-match` function adds a feature column by matching the context values of each candidate to its properties and calculating the score based on the match.
+
+This commands follows the following procedure:
+
+Step 1: For every candidate in the input file, the context is present in the context column and separated by "|". Each individual context-value could represent a string, quantity or a date. 
+
+Following is a snippet of the input file.
+
+|column|row|label             |context                            |
+|------|---|------------------|-----------------------------------|
+|1     |0  |The Social Network|1&#124;2010&#124;David Fincher&#124;8.3&#124;45993     |
+|1     |1  |Inception         |2&#124;2010&#124;Christopher Nolan&#124;8.9&#124;333261|
+
+The context file contains properties and their values for each candidate. Match the context values to these property values.
+
+Following is a snippet of the context file.
+
+|qnode  |context                                                                |
+|-------|-----------------------------------------------------------------------|
+|Q185888|d"2010":P577&#124;i"(en)":P364:Q1860&#124;i"\'merica":P495:Q30&#124;...|
+
+
+Try to match to date, quantity and then string in the order depending upon the similarity thresholds given (Dates are matched with thresholds of 1.).
+
+Step 2: The result of matching is a property value and the similarity of matching. For each  row, calculate the number of occurences for each of the properties that appear taking position in to account. Position differentiates between the context values separated by "|". 
+
+Next, calculate the cell property value by dividing the actual number of occurences (1) by the total number of occurences.
+
+Step 3: Calculate the property value of each property by dividing the earlier calculated property value by the total number of rows in the cell.
+
+Step 4: Calculate the score for each candidate by multiplying the property value by the corresponding similarity and summing for all the properties.
+
+**Options:**
+- `-o / --output-column-name {string}`: The output scoring column name. If not provided, the column name will be `context_score`.
+- `--similarity-string-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for string matching.
+- `--similarity-quantity-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for quantity matching.
+- `--debug`: Adds properties matched and the similarity columns to the result.
+
+**Examples:**
+```bash
+$ tl context-match movies.csv \
+     --context-file movies_context.csv \
+     --similarity-quantity-threshold 0.7 \
+     --similarity-string-threshold 0.5 \
+     -o match_score
+```
+**File Example:**
+```bash
+$ tl context-match movies.csv \
+     --context-file movies_context.csv \
+     --similarity-quantity-threshold 0.7 \
+     --similarity-string-threshold 0.5 \
+     -o match_score
+```
+
+|column|row|label             |context                            |kg_id    |match_score|
+|------|---|------------------|-----------------------------------|---------|-----------|
+|1     |0  |The Social Network|1&#124;2010&#124;David Fincher&#124;8.3&#124;45993     |Q185888  |0.6337     |
+|1     |0  |The Social Network|1&#124;2010&#124;David Fincher&#124;8.3&#124;45993     |Q1952928 |0.5324     |
+|1     |1  |Inception         |2&#124;2010&#124;Christopher Nolan&#124;8.9&#124;333261|Q42341440|0.6894     |
+|1     |1  |Inception         |2&#124;2010&#124;Christopher Nolan&#124;8.9&#124;333261|Q25188   |0.6769     |
+|1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q1587838 |0.6337     |
+|1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q219315  |0.6337     |
+
+
+<a name="command_create-singleton-feature" />
 
 ### [`create-singleton-feature`](#command_create-singleton-feature)` [OPTIONS]`
 

@@ -169,20 +169,18 @@ class EmbeddingVector:
                 i += 1
                 score_column_name = "score_{}_{}".format(self.kwargs["column_vector_strategy"], i)
 
-        scores = []
-        for i, each_row in self.loaded_file.iterrows():
-            # the nan value can also be float
-            if ((isinstance(each_row[self.input_column_name], float) and math.isnan(each_row[self.input_column_name]))
-                    or each_row[self.input_column_name] is np.nan
-                    or each_row[self.input_column_name] not in self.vectors_map):
-                each_score = 0.0
-            else:
-                column = each_row['column']
-                each_score = self.compute_distance(self.centroid[column],
-                                                   self.vectors_map[each_row[self.input_column_name]])
+        self.loaded_file[score_column_name] = self.loaded_file.apply(
+            lambda x: self.compute_cosine_distance(x[self.input_column_name], x.column), axis=1)
 
-            scores.append(each_score)
-        self.loaded_file[score_column_name] = scores
+    def compute_cosine_distance(self, qnode: str, column_num: str) -> float:
+        if ((isinstance(qnode, float) and math.isnan(qnode))
+                or qnode is np.nan
+                or qnode not in self.vectors_map):
+            _score = 0.0
+        else:
+            _score = self.compute_distance(self.centroid[column_num],
+                                           self.vectors_map[qnode])
+        return _score
 
     def print_output(self):
         self.loaded_file.to_csv(sys.stdout, index=False)
@@ -200,7 +198,7 @@ class EmbeddingVector:
                     ids.remove(np.nan)
                 if len(ids) == 1:
                     singleton_ids.append(ids[0])
-                    
+
             if not singleton_ids:
                 return False
 
@@ -214,8 +212,8 @@ class EmbeddingVector:
 
             if len(missing_embedding_ids):
                 print(f'_centroid_of_singletons: Missing {len(missing_embedding_ids)} of {len(singleton_ids)}',
-                     file=sys.stderr)
-                     
+                      file=sys.stderr)
+
             # centroid of singletons
             self.centroid[column] = np.mean(np.array(vectors), axis=0)
 
@@ -273,7 +271,8 @@ class EmbeddingVector:
                 tmp_df = pd.DataFrame()
                 for ((col, row), group) in data.groupby(['column', 'row']):
                     group['singleton'] = 0
-                    if len(group[group['method'] == 'exact-match']) == 1 and pd.notna(group[group['method'] == 'exact-match'].iloc[0]['kg_id']):
+                    if len(group[group['method'] == 'exact-match']) == 1 and pd.notna(
+                            group[group['method'] == 'exact-match'].iloc[0]['kg_id']):
                         # exact match is singleton, non-nan candidate set
                         group.loc[group['method'] == 'exact-match', 'singleton'] = 1
                     tmp_df = tmp_df.append(group)
@@ -318,11 +317,13 @@ class EmbeddingVector:
 
             vectors = np.array([v for v in vectors if len(v) > 1])
 
-            assert data['is_lof'].equals(data['retrieved_embedding_vector']), "Not all lof candidates have retrieved embedding!"
+            assert data['is_lof'].equals(
+                data['retrieved_embedding_vector']), "Not all lof candidates have retrieved embedding!"
             data.drop(['retrieved_embedding_vector'], axis=1, inplace=True)
 
             # run outlier removal algorithm
             n_neigh = min(10, len(vectors) // 3)
+
             clf = LocalOutlierFactor(n_neighbors=n_neigh, contamination=0.4, metric='cosine')
             lof_pred = clf.fit_predict(vectors)
             assert len(lof_pred) == len(vectors)

@@ -13,6 +13,7 @@ def read_csv(file_path, dtype=object):
         df = pd.read_csv(file_path, dtype=dtype, encoding='latin_1')
     return df
 
+
 def ground_truth_labeler(gt_file_path, file_path=None, df=None):
     """
     compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label.
@@ -38,7 +39,8 @@ def ground_truth_labeler(gt_file_path, file_path=None, df=None):
     df.fillna('', inplace=True)
 
     # kyao: Use only columns defined ground truth file format
-    evaluation_df = pd.merge(df, gt_df.loc[:, ['column', 'row', 'GT_kg_id', 'GT_kg_label']], on=['column', 'row'], how='left')
+    evaluation_df = pd.merge(df, gt_df.loc[:, ['column', 'row', 'GT_kg_id', 'GT_kg_label']], on=['column', 'row'],
+                             how='left')
 
     evaluation_df['GT_kg_id'].fillna(value="", inplace=True)
     evaluation_df['GT_kg_label'].fillna(value="", inplace=True)
