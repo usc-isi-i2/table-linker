@@ -28,11 +28,12 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
         df = pd.read_csv(file_path, sep=',' if file_type == 'csv' else '\t', dtype=object)
 
     columns = columns.split(',')
+    for column in columns:
+        if column not in df.columns:
+            raise RequiredColumnMissingException("The input column {} does not exist in given data.".format(column))
     out = list()
     for i, v in df.iterrows():
         for column in columns:
-            if column not in df.columns:
-                raise RequiredColumnMissingException("The input column {} does not exist in given data.".format(column))
             if add_context:
                 remaining_columns = v.keys().tolist()
                 remaining_columns.remove(column)
@@ -96,12 +97,15 @@ def clean(column, output_column=None, file_path=None, df=None, symbols='!@#$%^&*
 
     Args:
         column: the column to be cleaned.
-        output_column: the name of the column where cleaned column values are stored. If not provided, the name of the new column is the name of the input column with the suffix _clean.
+        output_column: the name of the column where cleaned column values are stored. If not provided, the name of the
+        new column is the name of the input column with the suffix _clean.
         file_path: input file path
         df: or input dataframe
         symbols: a string containing the set of characters to be removed: default is “!@#$%^&*()+={}[]:;’\”/<>”
-        replace_by_space: when True (default) all instances of the symbols are replaced by a space. In case of removal of multiple consecutive characters, they’ll be replaced by a single space. The value False causes the symbols to be deleted.
-        keep_original: when True, the output column will contain the original value and the clean value will be appended, separated by |. Default is False
+        replace_by_space: when True (default) all instances of the symbols are replaced by a space. In case of removal
+        of multiple consecutive characters, they’ll be replaced by a single space. The value False causes the symbols to be deleted.
+        keep_original: when True, the output column will contain the original value and the clean value will be
+        appended, separated by |. Default is False
 
     Returns: a dataframe with the new output clean containing clean values
 
