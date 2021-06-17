@@ -2,7 +2,6 @@ import math
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException
 from collections import defaultdict
-from time import time
 
 
 class TFIDF(object):
@@ -97,8 +96,16 @@ class TFIDF(object):
         """
         hc_classes_idf = self.normalize_idf_high_confidence_classes()
 
-        self.input_df[self.output_col_name] = self.input_df.apply(
-            lambda x: self.compute_tfidf_score(x.kg_id, x.column, hc_classes_idf), axis=1)
+        scores = []
+        for kg_id, column in zip(self.input_df['kg_id'], self.input_df['column']):
+            _score = 0.0
+            _feature_classes = self.feature_dict.get(kg_id, None)
+            if _feature_classes:
+                for _class in _feature_classes:
+                    _score += hc_classes_idf[column].get(_class, 0.0)
+            scores.append(_score)
+
+        self.input_df[self.output_col_name] = scores
 
         return self.input_df
 
