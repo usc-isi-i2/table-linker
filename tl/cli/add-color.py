@@ -17,7 +17,7 @@ def add_arguments(parser):
         parser: (argparse.ArgumentParser)
 
     """
-    parser.add_argument('-c', '--column', action='store', type=str, nargs='+', dest='column',
+    parser.add_argument('-c', '--column', action='store', type=str, dest='column',
                         help='column name need to be colored, can have multiple columns.')
 
     parser.add_argument('-k', action='store', type=int, dest='k', default=5,
@@ -49,8 +49,9 @@ def run(**kwargs):
 
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        columns = kwargs['column'].strip().split(",")
         color_render = ColorRenderUnit(df, kwargs["sort_by_gt"], kwargs["gt_score_column"], kwargs["output_uri"])
-        color_render.add_color_by_score(kwargs['column'], k=kwargs['k'], use_all_columns=kwargs["use_all_columns"])
+        color_render.add_color_by_score(columns, k=kwargs['k'], use_all_columns=kwargs["use_all_columns"])
         color_render.add_border()
         color_render.save_to_file()
 
