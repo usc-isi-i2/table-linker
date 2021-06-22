@@ -1,11 +1,9 @@
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException, UnsupportTypeError
 from tl.file_formats_validator import FFV
-import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from sklearn.preprocessing import MinMaxScaler
 import pickle
 
 
@@ -58,11 +56,12 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
         raise RequiredInputParameterMissingException(
             'One of the input parameters is required: {} or {}'.format("ranking_model", "normalization_factor"))
 
-    model = PairwiseNetwork(14)
+    normalize_features = features.split(",")
+
+    model = PairwiseNetwork(len(normalize_features))
     model.load_state_dict(torch.load(ranking_model))
     scaler = pickle.load(open(min_max_scaler_path, 'rb'))
 
-    normalize_features = features.split(",")
     df[normalize_features] = df[normalize_features].astype('float64')
     grouped_obj = df.groupby(['column', 'row'])
     new_df_list = []
