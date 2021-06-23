@@ -287,10 +287,10 @@ class EmbeddingVector:
                 assert 'vote_by_classifier' in data, f"Missing column 'vote_by_classifier' to use lof-strategy: ems-mv"
                 assert 'singleton' in data, f"Missing column 'singleton' to use lof-strategy: ems-mv"
                 data.loc[data['vote_by_classifier'].astype(int) == 1, 'is_lof'] = 1
-                data.loc[data['singleton'] == 1, 'is_lof'] = 1
+                data.loc[data['singleton'].astype(int) == 1, 'is_lof'] = 1
             elif lof_strategy == 'ems-only':
                 assert 'singleton' in data, f"Missing column 'singleton' to use lof-strategy: ems-only"
-                data.loc[data['singleton'] == 1, 'is_lof'] = 1
+                data.loc[data['singleton'].astype(int) == 1, 'is_lof'] = 1
             else:
                 raise ValueError(f"No such lof strategy available! {lof_strategy}")
             lof_candidate_ids = list(data[data['is_lof'] == 1]['kg_id'])

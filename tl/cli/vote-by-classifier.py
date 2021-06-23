@@ -29,6 +29,9 @@ def add_arguments(parser):
         help='classifier voting threshold of prob_1'
     )
 
+    parser.add_argument('--features', action='store', type=str, dest='features', required=True,
+                        help='A comma separated list of features used to train the --model')
+
 
 def run(**kwargs):
     import pandas as pd
@@ -39,7 +42,8 @@ def run(**kwargs):
         # check input file
         df = pd.read_csv(kwargs['input_file'], dtype=object)
         start = time.time()
-        odf = vote_by_classifier(kwargs.get('model'),
+        odf = vote_by_classifier(kwargs.get('features'),
+                                 kwargs.get('model'),
                                  df=df,
                                  prob_threshold=kwargs.get('prob_threshold', '0'))
         end = time.time()
@@ -51,7 +55,7 @@ def run(**kwargs):
             print(f'vote-by-classifier Time: {str(end-start)}s'
                   f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
-    except:
+    except Exception as e:
         message = 'Command: vote-by-classifier\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)
