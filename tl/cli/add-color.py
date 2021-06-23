@@ -46,13 +46,23 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features.add_color import ColorRenderUnit
     import pandas as pd
+    import time
 
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         columns = kwargs['column'].strip().split(",")
         color_render = ColorRenderUnit(df, kwargs["sort_by_gt"], kwargs["gt_score_column"], kwargs["output_uri"])
         color_render.add_color_by_score(columns, k=kwargs['k'], use_all_columns=kwargs["use_all_columns"])
         color_render.add_border()
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'add-color Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'add-color Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         color_render.save_to_file()
 
     except:

@@ -35,10 +35,19 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.candidate_ranking import combine_linearly
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-
+        start = time.time()
         odf = combine_linearly.combine_linearly(weights=kwargs['weights'], output_column=kwargs['output_column'], df=df)
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'combine-linearly Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'combine-linearly Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: combine-linearly\n'

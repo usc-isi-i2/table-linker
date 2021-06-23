@@ -31,11 +31,23 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features import generate_reciprocal_rank
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         odf = generate_reciprocal_rank.generate_reciprocal_rank(kwargs['score_column'], 
                                                                kwargs['output_column_name'],
                                                                df=df)
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'generate-reciprocal-rank-{kwargs["score_column"]}'
+                      f' Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'generate-reciprocal-rank-{kwargs["score_column"]}'
+                  f' Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: generate-reciprocal-rank\n'

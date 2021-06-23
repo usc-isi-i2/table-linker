@@ -20,8 +20,18 @@ def add_arguments(parser):
 def run(**kwargs):
     try:
         from tl.utility.tee import Tee
+        import time
+        start = time.time()
         tee = Tee(kwargs.get("output_file_path"))
         input_content = kwargs.get("input")
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'tee Time: {str(end-start)}s'
+                      f' Input: {kwargs["input"]}',file=f)
+        else:
+            print(f'tee Time: {str(end-start)}s'
+                  f' Input: {kwargs["input"]}',file=sys.stderr)
         tee.writeln(input_content)
     except:
         message = 'Command: tee\n'

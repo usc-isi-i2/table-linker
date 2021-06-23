@@ -42,15 +42,27 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features import normalize_scores
     import pandas as pd
+    import time
 
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         if kwargs['normalization_type'] != 'max_norm' and kwargs['normalization_type'] != 'zscore':
             raise Exception('Entered normalization type is not supported '
                             'Select from "max_norm" or "zscore"') 
 
         odf = normalize_scores.normalize_scores(column=kwargs['column'], output_column=kwargs['output_column'], df=df,
                                                 weights=kwargs['weights'], norm_type=kwargs['normalization_type'])
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'normalize-scores-{kwargs["column"]}'
+                      f' Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'normalize-scores-{kwargs["column"]}'
+                  f' Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: normalize-scores\n'

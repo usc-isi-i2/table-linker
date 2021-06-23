@@ -73,6 +73,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - `-U {user id}`: the user id for authenticating to the ElasticSearch index
 - `-P {password}`: the password for authenticating to the ElasticSearch index
 - `--tee {directory}`: directory path for saving outputs of all pipeline stages
+- `--log-file {path_to_file}`: file path for saving additional info about execution of command
 
 ## Common Options
 These are options that can appear in different commands. We list them here so that options with the same meaning use the same character.
@@ -855,6 +856,57 @@ $ tl context-match movies.csv \
 |1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q1587838 |0.6337     |
 |1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q219315  |0.6337     |
 
+<a name="command_check-candidates" />
+
+### [`check-candidates`](#command_check-candidates)` [OPTIONS]`
+
+The `check-candidates` command takes a candidates file and a ground-truth file and returns those rows for which the ground-truth was never retrieved as a candidate.
+
+This commands follows the following procedure:
+
+Step 1: Group the candidates dataframe by column and row. 
+
+Following is a snippet of the input file.
+
+
+| column | row | label   | context                       | label_clean | kg_id     | kg_labels        | kg_aliases                                                                                                                                                                                                                   | method          | kg_descriptions                                               | pagerank               | retrieval_score | GT_kg_id  | GT_kg_label | evaluation_label | 
+|--------|-----|---------|-------------------------------|-------------|-----------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|---------------------------------------------------------------|------------------------|-----------------|-----------|-------------|------------------| 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q197728   | Santiago Salcedo | "Santiago Gabriel Salcedo\|Santiago Gabriel Salcedo Gonzalez\|S. Salcedo\|S. G. S. González\|Santiago G. Salcedo González\|González, S. G. S.\|Santiago Gabriel Salcedo González\|Santiago Gabriel S. González\|Salcedo, S." | fuzzy-augmented | Paraguayan association football player                        | 3.976872442613597e-09  | 16.31549        | Q52797639 | Saliceto    | -1               | 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q19681762 | Saúl Salcedo     | "Saul salcedo\|Saul Salcedo\|Saúl Savín Salcedo Zárate\|S. Salcedo\|Saul Savin Salcedo Zarate\|Salcedo, S."                                                                                                                  | fuzzy-augmented | Paraguayan footballer                                         | 3.5396131256502836e-09 | 16.12341        | Q52797639 | Saliceto    | -1               | 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q12856    | Salcedo          | Baugen                                                                                                                                                                                                                       | fuzzy-augmented | municipality of the Philippines in the province of Ilocos Sur | 1.7080570334293118e-08 | 15.950816       | Q52797639 | Saliceto    | -1               | 
+
+
+The ground-truth file contains the correct Q-node and the Label of the corresponding Q-node.
+
+Following is a snippet of the ground-truth file.
+
+| column | row | GT_kg_id  | GT_kg_label | 
+|--------|-----|-----------|-------------| 
+| 0      | 4   | Q52797639 | Saliceto    | 
+
+Step 2: Compare the column and row values to the ground-truth file and get the Q-node and label. 
+
+Step 3: Check if the correct Q-node appears in the kg_id column of the grouped dataframe.
+
+Step 4: If not, add the column, row, label, context, GT_kg_id, GT_kg_label to the output.
+
+**Options:**
+- `--gt-file`: Path to where the ground truth file is stored.
+
+**Examples:**
+```bash
+$ tl check-candidates input.csv \
+     --gt-file ground-truth.csv
+```
+**File Example:**
+```bash
+$ tl check-candidates input.csv \
+     --gt-file ground-truth.csv
+```
+
+| column | row | label   | context                       | GT_kg_id  | GT_kg_label | 
+|--------|-----|---------|-------------------------------|-----------|-------------| 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Q52797639 | Saliceto    | 
 
 <a name="command_create-singleton-feature" />
 

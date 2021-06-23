@@ -31,12 +31,22 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.preprocess import preprocess
     import pandas as pd
+    import time
 
     file_type = 'tsv' if kwargs['tsv'] else 'csv'
     try:
         df = pd.read_csv(kwargs['input_file'], sep=',' if file_type == 'csv' else '\t', dtype=object)
+        start = time.time()
         odf = preprocess.extract_ground_truth(kwargs['target'], kwargs['kg_id'], kwargs['kg_label'],
                                               df=df, file_type=file_type)
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'extract-ground-truth Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'extract-ground-truth Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: extract-ground-truth\n'

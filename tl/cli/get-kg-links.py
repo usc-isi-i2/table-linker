@@ -40,13 +40,25 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features import get_kg_links
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         odf = get_kg_links.get_kg_links(kwargs['score_column'],
                                         df=df,
                                         top_k=kwargs['top_k'],
                                         label_column=kwargs['label_column'],
                                         k_rows=kwargs['k_rows'])
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'get-kg-links-{kwargs["score_column"]}'
+                      f' Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'get-kg-links-{kwargs["score_column"]}'
+                  f' Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-kg-links\n'

@@ -33,13 +33,22 @@ def run(**kwargs):
     try:
         import pandas as pd
         from tl.features.feature_voting import feature_voting
+        import time
         input_file_path = kwargs.pop("input_file")
         input_column_names = kwargs.pop("input_column_names")
         df = pd.read_csv(input_file_path)
+        start = time.time()
         feature_col_names = input_column_names.split(',')
 
         odf = feature_voting(feature_col_names, df)
-
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'feature-voting Time: {str(end-start)}s'
+                      f' Input: {input_file_path}',file=f)
+        else:
+            print(f'feature-voting Time: {str(end-start)}s'
+                  f' Input: {input_file_path}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
 
     except:

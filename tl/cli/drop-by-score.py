@@ -29,10 +29,20 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features import normalize_scores
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-
+        start = time.time()
         odf = normalize_scores.drop_by_score(kwargs['column'], k=kwargs['k'], df=df)
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'drop-by-score-{kwargs["column"]}'
+                      f' Time: {str(end-start)}s Input: {kwargs["input_file"]}'
+                      ,file=f)
+        else:
+            print(f'drop-by-score-{kwargs["column"]} Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: drop-by-score\n'

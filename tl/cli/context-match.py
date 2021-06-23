@@ -39,10 +39,20 @@ def add_arguments(parser):
 def run(**kwargs):
     try:
         from tl.features.context_match import MatchContext
+        import time
         input_file_path = kwargs.pop("input_file")
         context_file_path = kwargs.pop("context_file")
         obj = MatchContext(input_file_path, context_file_path, kwargs)
+        start = time.time()
         result_df = obj.process_data_by_column()
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'context-match Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'context-match Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         result_df.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: context-match\n'

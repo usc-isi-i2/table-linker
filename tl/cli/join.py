@@ -35,13 +35,25 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.evaluation.join import Join
     import pandas as pd
+    import time
 
     file_type = 'tsv' if kwargs['tsv'] else 'csv'
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
         i_df = pd.read_csv(kwargs['original_input_file'], sep=',' if file_type == 'csv' else '\t', dtype=object)
+        start = time.time()
         j = Join()
         odf = j.join(df, i_df, kwargs['ranking_score_column'], extra_info=kwargs['extra_info'])
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'join-{kwargs["original_input_file"]}'
+                      f' Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'join-{kwargs["original_input_file"]}'
+                  f' Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: join\n'

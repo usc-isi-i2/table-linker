@@ -37,13 +37,23 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.candidate_ranking import predict_using_model
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         odf = predict_using_model.predict(features=kwargs['features'],
                                           output_column=kwargs['output_column'],
                                           ranking_model=kwargs['ranking_model'],
                                           min_max_scaler_path=kwargs['min_max_scaler_path'],
                                           df=df)
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'predict-using-model Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'predict-using-model Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: predict-using-model\n'

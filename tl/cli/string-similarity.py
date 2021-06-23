@@ -39,12 +39,23 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features.string_similarity import StringSimilarity
     import pandas as pd
+    import time
 
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
+        method = kwargs["similarity_method"]
         kwargs["df"] = df
         similarity_calculation_unit = StringSimilarity(similarity_method=kwargs.pop("similarity_method"), **kwargs)
         odf = similarity_calculation_unit.get_similarity_score()
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'string-similarity-{method} Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'string-similarity-{method} Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
 
     except:

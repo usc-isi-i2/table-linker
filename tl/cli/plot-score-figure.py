@@ -47,9 +47,19 @@ def add_arguments(parser):
 
 def run(**kwargs):
     from tl.features.plot_figure import FigurePlotterUnit
+    import time
     try:
+        start = time.time()
         plot_unit = FigurePlotterUnit(**kwargs)
         plot_unit.plot_bar_figure(kwargs["output_score_table"])
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'plot-score-figure Time: {str(end-start)}s'
+                      f' Score Table: {kwargs["output_score_table"]}',file=f)
+        else:
+            print(f'plot-score-figure Time: {str(end-start)}s'
+                  f' Score Table: {kwargs["output_score_table"]}',file=sys.stderr)
 
     except:
         message = 'Command: plot-score-figure\n'

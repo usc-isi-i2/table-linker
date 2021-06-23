@@ -36,12 +36,22 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.candidate_generation import get_fuzzy_matches
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         em = get_fuzzy_matches.FuzzyMatches(es_url=kwargs['url'], es_index=kwargs['index'], es_user=kwargs['user'],
                                             es_pass=kwargs['password'], output_column_name=kwargs['output_column_name'])
         odf = em.get_exact_matches(kwargs['column'], properties=kwargs['properties'],
                                    size=kwargs['size'], df=df)
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'get-fuzzy-matches Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'get-fuzzy-matches Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-fuzzy-matches\n'

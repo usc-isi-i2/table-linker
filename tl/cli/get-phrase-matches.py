@@ -44,9 +44,10 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.candidate_generation import phrase_query_candidates
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-
+        start = time.time()
         em = phrase_query_candidates.PhraseQueryMatches(es_url=kwargs['url'], es_index=kwargs['index'],
                                                         es_user=kwargs['user'],
                                                         es_pass=kwargs['password'],
@@ -55,7 +56,14 @@ def run(**kwargs):
 
         odf = em.get_phrase_matches(kwargs['column'], properties=kwargs['properties'], size=kwargs['size'],
                                     df=df, filter_condition=kwargs['filter_condition'])
-
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'get-phrase-matches Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'get-phrase-matches Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-phrase-matches\n'

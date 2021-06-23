@@ -40,17 +40,26 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.preprocess import preprocess
     import pandas as pd
+    import time
 
     keep_original = kwargs['keep_original'].lower().strip() != 'no'
     replace_by_space = kwargs['replace_by_space'].lower().strip() == 'yes'
 
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-
+        start = time.time()
         odf = preprocess.clean(kwargs['column'], output_column=kwargs['output_column'], df=df,
                                symbols=kwargs['symbols'],
                                keep_original=keep_original,
                                replace_by_space=replace_by_space)
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'clean Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'clean Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: clean\n'

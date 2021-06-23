@@ -101,12 +101,22 @@ def add_arguments(parser):
 def run(**kwargs):
     try:
         from tl.features.text_embedding import EmbeddingVector
+        import time
         input_file_path = kwargs.pop("input_file")
         vector_transformer = EmbeddingVector(kwargs)
         vector_transformer.load_input_file(input_file_path)
+        start = time.time()
         vector_transformer.get_vectors()
         vector_transformer.process_vectors()
         vector_transformer.add_score_column()
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'add-text-embedding-feature Time: {str(end-start)}s'
+                      f' Input: {input_file_path}',file=f)
+        else:
+            print(f'add-text-embedding-feature Time: {str(end-start)}s'
+                  f' Input: {input_file_path}',file=sys.stderr)
         vector_transformer.print_output()
     except:
         message = 'Command: add-text-embedding-feature\n'

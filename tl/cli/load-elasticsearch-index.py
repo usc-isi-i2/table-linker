@@ -42,12 +42,22 @@ def add_arguments(parser):
 
 def run(**kwargs):
     from tl.utility.utility import Utility
+    import time
     try:
+        start = time.time()
         Utility.load_elasticsearch_index(kwargs['kgtk_jl_path'], kwargs['es_url'], kwargs['es_index'],
                                          es_version=kwargs['es_version'],
                                          mapping_file_path=kwargs['mapping_file_path'],
                                          es_user=kwargs['es_user'],
                                          es_pass=kwargs['es_pass'])
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'load-elasticsearch-index Time: {str(end-start)}s'
+                      f' KGTK JL: {kwargs["kgtk_jl_path"]}',file=f)
+        else:
+            print(f'load-elasticsearch-index Time: {str(end-start)}s'
+                  f' KGTK JL: {kwargs["kgtk_jl_path"]}',file=sys.stderr)
     
     except:
         message = 'Command: load-elasticsearch-index\n'

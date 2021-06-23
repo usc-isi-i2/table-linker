@@ -69,10 +69,19 @@ def add_arguments(parser):
 def run(**kwargs):
     try:
         from tl.features.external_embedding import EmbeddingVector
+        import time
+        start = time.time()
         vector_transformer = EmbeddingVector(kwargs)
         vector_transformer.get_vectors()
         vector_transformer.process_vectors()
         vector_transformer.add_score_column()
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'score-using-embedding Time: {str(end-start)}s', file=f)
+        else:
+            print(f'score-using-embedding Time: {str(end-start)}s',
+                  file=sys.stderr)
         vector_transformer.print_output()
     except:
         message = 'Command: score-using-embedding\n'

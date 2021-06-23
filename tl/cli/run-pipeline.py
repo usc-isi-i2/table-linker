@@ -44,6 +44,8 @@ def add_arguments(parser):
 
 
 def run(**kwargs):
+    import time
+    start = time.time()
     if len(kwargs.get("pipeline")) == 0:
         raise TLException("pipeline command must be given.")
 
@@ -105,6 +107,12 @@ def run(**kwargs):
 
         PipelineUtility.print_pipeline_running_results(results, omit_header=kwargs['omit_headers'],
                                                        input_files=input_files, tag=kwargs.get('tag'))
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'run-pipeline Time: {str(end-start)}s', file=f)
+        else:
+            print(f'run-pipeline Time: {str(end-start)}s', file=sys.stderr)
     except:
         message = 'Command: run-pipeline\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())

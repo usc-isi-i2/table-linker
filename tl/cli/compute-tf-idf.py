@@ -34,7 +34,9 @@ def add_arguments(parser):
 
 def run(**kwargs):
     from tl.features import tfidf
+    import time
     try:
+        start = time.time()
         tfidf_unit = tfidf.TFIDF(kwargs['output_column_name'],
                                  kwargs['feature_file'],
                                  kwargs['feature_name'],
@@ -43,6 +45,16 @@ def run(**kwargs):
                                  input_file=kwargs['input_file'])
 
         odf = tfidf_unit.compute_tfidf()
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'compute-tf-idf-{kwargs["feature_name"]}'
+                      f' Time: {str(end-start)}s Input: {kwargs["input_file"]}'
+                      ,file=f)
+        else:
+            print(f'compute-tf-idf-{kwargs["feature_name"]}'
+                  f' Time: {str(end-start)}s Input: {kwargs["input_file"]}'
+                  ,file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except Exception as e:
         message = 'Command: compute-tf-idf\n'

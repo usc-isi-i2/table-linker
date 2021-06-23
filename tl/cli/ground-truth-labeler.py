@@ -28,10 +28,19 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.evaluation import evaluation
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-
+        start = time.time()
         odf = evaluation.ground_truth_labeler(kwargs['gt_file'], df=df)
+        end = time.time()
+        if kwargs["logfile"]:
+            with open(kwargs["logfile"],"a") as f:
+                print(f'ground-truth-labeler Time: {str(end-start)}s'
+                      f' Input: {kwargs["input_file"]}',file=f)
+        else:
+            print(f'ground-truth-labeler Time: {str(end-start)}s'
+                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: ground-truth-labeler\n'
