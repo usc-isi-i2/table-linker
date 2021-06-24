@@ -15,7 +15,7 @@ def generate_reciprocal_rank(score_column, output_column, file_path=None, df=Non
 
     if file_path:
         df = pd.read_csv(file_path, dtype=object)
-        
+
     df.fillna("", inplace=True)
     df = df.astype(dtype={score_column: "float64"})
     ffv = FFV()
@@ -25,9 +25,9 @@ def generate_reciprocal_rank(score_column, output_column, file_path=None, df=Non
     final_list = []
     grouped_obj = df.groupby(['row', 'column'])
     for cell in grouped_obj:
-        reciprocal_rank = list(1/cell[1][score_column].rank(method='first',ascending=False))
+        reciprocal_rank = list(1 / cell[1][score_column].rank(method='first', ascending=False))
         cell[1][output_column] = reciprocal_rank
         final_list.extend(cell[1].to_dict(orient='records'))
-    
+
     odf = pd.DataFrame(final_list)
     return odf
