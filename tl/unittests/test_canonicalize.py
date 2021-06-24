@@ -32,3 +32,11 @@ class TestCanonicalize(unittest.TestCase):
         odf = preprocess.canonicalize('col0,col3', file_path=self.input_tsv_path, file_type='tsv')
         self.assertEqual(len(odf), 274)
         self.assertTrue(self.ffv.is_canonical_file(odf))
+
+    def test_canonicalize_with_context(self):
+        odf = preprocess.canonicalize('col0,col3', df=self.input_csv, add_context=True)
+        self.assertEqual(len(odf), 274)
+        self.assertTrue(self.ffv.is_canonical_file(odf))
+        self.assertTrue('context' in odf.columns)
+        self.assertEqual(odf.iloc[116, 3], "B. Robison|George Strait|How 'bout Them Cowgirls")
+        self.assertEqual(odf.iloc[91, 3], "B. Nowell|Paul Leary|Doin' Time")
