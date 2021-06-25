@@ -8,7 +8,8 @@ from tl.exceptions import RequiredInputParameterMissingException
 
 
 class ColorRenderUnit:
-    def __init__(self, df: pd.DataFrame, sort_by_gt: bool = False, gt_score_column: str = None, output_path: str = None):
+    def __init__(self, df: pd.DataFrame, sort_by_gt: bool = False, gt_score_column: str = None,
+                 output_path: str = None):
         if not output_path:
             raise RequiredInputParameterMissingException("output path must be given.")
 
@@ -86,7 +87,7 @@ class ColorRenderUnit:
                                                  'https://www.wikidata.org/wiki/{}'.format(each_cell),
                                                  string=each_cell)
             else:
-                self.worksheet.write_column(1, col_pos, self.df[each_column].fillna(0).tolist())
+                self.worksheet.write_column(1, col_pos, self.df[each_column].fillna("").tolist())
 
     def _preprocess(self):
         # sort the index by column and row for better view
@@ -121,7 +122,8 @@ class ColorRenderUnit:
 
     def add_border(self):
         border_format = self.workbook.add_format({'bottom': 2})
-        for each_part in self.parts:
+        sorted_parts = sorted(self.parts, key=lambda x: x[0])
+        for each_part in sorted_parts:
             self.worksheet.set_row(each_part[1], cell_format=border_format)
 
     def save_to_file(self):

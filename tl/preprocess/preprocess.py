@@ -10,7 +10,8 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
     translate an input CSV or TSV file to canonical form
 
     Args:
-        columns: the columns in the input file to be linked to KG entities. Multiple columns are specified as a comma separated string.
+        columns: the columns in the input file to be linked to KG entities. Multiple columns are specified as a comma
+        separated string.
         output_column: specifies the name of a new column to be added. Default output column name is label
         file_path: input file path
         df: or input dataframe
@@ -28,28 +29,25 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
         df = pd.read_csv(file_path, sep=',' if file_type == 'csv' else '\t', dtype=object)
 
     columns = columns.split(',')
+    remaining_columns = df.columns.tolist()
     for column in columns:
         if column not in df.columns:
             raise RequiredColumnMissingException("The input column {} does not exist in given data.".format(column))
+        remaining_columns.remove(column)
+
     out = list()
     for i, v in df.iterrows():
         for column in columns:
+            new_row = {
+                'column': df.columns.get_loc(column),
+                'row': i,
+                output_column: v[column]
+            }
             if add_context:
-                remaining_columns = v.keys().tolist()
-                remaining_columns.remove(column)
                 remaining_values = "|".join(v[remaining_columns].dropna().values.tolist())
-                out.append({
-                    'column': df.columns.get_loc(column),
-                    'row': i,
-                    output_column: v[column],
-                    context_column_name: remaining_values
-                })
-            else:
-                out.append({
-                    'column': df.columns.get_loc(column),
-                    'row': i,
-                    output_column: v[column]
-                })
+                new_row[context_column_name] = remaining_values
+
+            out.append(new_row)
     return pd.DataFrame(out).sort_values(by=['column', 'row'])
 
 
@@ -86,7 +84,7 @@ def extract_ground_truth(target_column, kg_id_column, kg_label_column, file_path
             'row': i,
             'kg_id': v[kg_id_column],
             'kg_label': v[kg_label_column]
-            })
+        })
     return pd.DataFrame(out).sort_values(by=['column', 'row'])
 
 
