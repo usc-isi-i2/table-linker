@@ -2,6 +2,7 @@ import argparse
 import sys
 import traceback
 from tl.exceptions import TLException
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -108,11 +109,11 @@ def run(**kwargs):
         PipelineUtility.print_pipeline_running_results(results, omit_header=kwargs['omit_headers'],
                                                        input_files=input_files, tag=kwargs.get('tag'))
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'run-pipeline Time: {str(end-start)}s', file=f)
-        else:
-            print(f'run-pipeline Time: {str(end-start)}s', file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "run-pipeline",
+            "time": end-start
+        })
     except:
         message = 'Command: run-pipeline\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())

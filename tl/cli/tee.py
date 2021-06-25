@@ -2,6 +2,7 @@ import argparse
 import sys
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -25,13 +26,13 @@ def run(**kwargs):
         tee = Tee(kwargs.get("output_file_path"))
         input_content = kwargs.get("input")
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'tee Time: {str(end-start)}s'
-                      f' Input: {kwargs["input"]}',file=f)
-        else:
-            print(f'tee Time: {str(end-start)}s'
-                  f' Input: {kwargs["input"]}',file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "tee",
+            "time": end-start,
+            "input": kwargs["input"]
+        })
         tee.writeln(input_content)
     except:
         message = 'Command: tee\n'

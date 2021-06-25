@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -50,15 +51,13 @@ def run(**kwargs):
                                         label_column=kwargs['label_column'],
                                         k_rows=kwargs['k_rows'])
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'get-kg-links-{kwargs["score_column"]}'
-                      f' Time: {str(end-start)}s'
-                      f' Input: {kwargs["input_file"]}',file=f)
-        else:
-            print(f'get-kg-links-{kwargs["score_column"]}'
-                  f' Time: {str(end-start)}s'
-                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "get-kg-links",
+            "score_column": kwargs["score_column"],
+            "time": end-start,
+            "input_file": kwargs["input_file"]
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-kg-links\n'

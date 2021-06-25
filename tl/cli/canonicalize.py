@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -44,13 +45,12 @@ def run(**kwargs):
         odf = preprocess.canonicalize(kwargs['columns'], output_column=kwargs['output_column'], df=df,
                                       file_type=file_type, add_context=kwargs['add_context'])
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'canonicalize Time: {str(end-start)}s'
-                      f' Input: {kwargs["input_file"]}',file=f)
-        else:
-            print(f'canonicalize Time: {str(end-start)}s'
-                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "canonicalize",
+            "time": end-start,
+            "input_file": kwargs["input_file"]
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: canonicalize\n'

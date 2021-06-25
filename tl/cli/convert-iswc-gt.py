@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -32,13 +33,12 @@ def run(**kwargs):
         convert_iswc_obj = ConvertISWC()
         convert_iswc_obj.convert_iswc_gt(kwargs['output_directory'])
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'convert-iswc-gt Time: {str(end-start)}s'
-                      f' Output: {kwargs["output_directory"]}',file=f)
-        else:
-            print(f'convert-iswc-gt Time: {str(end-start)}s'
-                  f' Output: {kwargs["output_directory"]}',file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "convert-iswc-gt",
+            "time": end-start,
+            "output_directory": kwargs["output_directory"]
+        })
     except:
         message = 'Command: convert-iswc-gt\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())

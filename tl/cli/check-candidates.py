@@ -3,6 +3,7 @@ import argparse
 import sys
 import tl.exceptions
 from tl.exceptions import UnsupportTypeError
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -31,6 +32,9 @@ def run(**kwargs):
 
         df = pd.read_csv(kwargs["input_file"])
         gtdf = pd.read_csv(kwargs["gt_file"])
+        required_cols = ["column", "row", "GT_kg_id", "GT_kg_label"]
+        if not pd.Series(required_cols).isin(gtdf.columns).all():
+            raise UnsupportTypeError("GT file does not have required columns")
 
         if ffv.is_candidates_file(df):
             start = time.time()
@@ -50,13 +54,12 @@ def run(**kwargs):
                 output, columns=["column", "row", "label", "context",
                                  "GT_kg_id", "GT_kg_label"])
             end = time.time()
-            if kwargs["logfile"]:
-                with open(kwargs["logfile"],"a") as f:
-                    print(f'check-candidates Time: {str(end-start)}s'
-                          f' Input: {kwargs["input_file"]}', file=f)
-            else:
-                print(f'check-candidates Time: {str(end-start)}s'
-                      f' Input: {kwargs["input_file"]}', file=sys.stderr)
+            logger = Logger(kwargs["logfile"])
+            logger.write_to_file(args={
+                "command": "check-candidates",
+                "time": end-start,
+                "input_file": kwargs["input_file"]
+            })
             result_df.to_csv(sys.stdout, index=False)
         else:
             raise UnsupportTypeError(

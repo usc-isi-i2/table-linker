@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -54,15 +55,13 @@ def run(**kwargs):
         odf = normalize_scores.normalize_scores(column=kwargs['column'], output_column=kwargs['output_column'], df=df,
                                                 weights=kwargs['weights'], norm_type=kwargs['normalization_type'])
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'normalize-scores-{kwargs["column"]}'
-                      f' Time: {str(end-start)}s'
-                      f' Input: {kwargs["input_file"]}',file=f)
-        else:
-            print(f'normalize-scores-{kwargs["column"]}'
-                  f' Time: {str(end-start)}s'
-                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "normalize-scores",
+            "column": kwargs["column"],
+            "time": end-start,
+            "input_file": kwargs["input_file"]
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: normalize-scores\n'

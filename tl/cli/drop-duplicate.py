@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -43,14 +44,13 @@ def run(**kwargs):
         start = time.time()
         odf = normalize_scores.drop_duplicate(kwargs['column'], kwargs["score_columns"], kwargs["keep_method"], df=df)
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'drop-duplicate-{kwargs["column"]}'
-                      f' Time: {str(end-start)}s'
-                      f' Input: {kwargs["input_file"]}',file=f)
-        else:
-            print(f'drop-duplicate-{kwargs["column"]} Time: {str(end-start)}s'
-                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "drop-duplicate",
+            "column": kwargs["column"],
+            "time": end-start,
+            "input_file": kwargs["input_file"]
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: drop-duplicate\n'

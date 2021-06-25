@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -78,13 +79,12 @@ def run(**kwargs):
                                          property_datatype_file=kwargs['property_datatype_file']
                                          )
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'build-elasticsearch-input Time: {str(end-start)}s'
-                      f' Input: {kwargs["input_file_path"]}',file=f)
-        else:
-            print(f'build-elasticsearch-input Time: {str(end-start)}s'
-                  f' Input: {kwargs["input_file_path"]}',file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "build-elasticsearch-input",
+            "time": end-start,
+            "input_file": kwargs["input_file"]
+        })
     except:
         message = 'Command: build-elasticsearch-input\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())

@@ -4,6 +4,7 @@ import typing
 import argparse
 
 from tl.exceptions import TLException
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -76,12 +77,11 @@ def run(**kwargs):
         vector_transformer.process_vectors()
         vector_transformer.add_score_column()
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'score-using-embedding Time: {str(end-start)}s', file=f)
-        else:
-            print(f'score-using-embedding Time: {str(end-start)}s',
-                  file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "score-using-embedding",
+            "time": end-start
+        })
         vector_transformer.print_output()
     except:
         message = 'Command: score-using-embedding\n'

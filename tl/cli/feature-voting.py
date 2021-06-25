@@ -3,6 +3,7 @@ import traceback
 import argparse
 
 from tl.exceptions import TLException
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -42,13 +43,12 @@ def run(**kwargs):
 
         odf = feature_voting(feature_col_names, df)
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'feature-voting Time: {str(end-start)}s'
-                      f' Input: {input_file_path}',file=f)
-        else:
-            print(f'feature-voting Time: {str(end-start)}s'
-                  f' Input: {input_file_path}',file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "feature-voting",
+            "time": end-start,
+            "input_file": kwargs["input_file"]
+        })
         odf.to_csv(sys.stdout, index=False)
 
     except:

@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -45,15 +46,13 @@ def run(**kwargs):
         j = Join()
         odf = j.join(df, i_df, kwargs['ranking_score_column'], extra_info=kwargs['extra_info'])
         end = time.time()
-        if kwargs["logfile"]:
-            with open(kwargs["logfile"],"a") as f:
-                print(f'join-{kwargs["original_input_file"]}'
-                      f' Time: {str(end-start)}s'
-                      f' Input: {kwargs["input_file"]}',file=f)
-        else:
-            print(f'join-{kwargs["original_input_file"]}'
-                  f' Time: {str(end-start)}s'
-                  f' Input: {kwargs["input_file"]}',file=sys.stderr)
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "join",
+            "original_input_file": kwargs["original_input_file"],
+            "time": end-start,
+            "input_file": kwargs["input_file"]
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: join\n'
