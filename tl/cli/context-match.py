@@ -51,7 +51,7 @@ def run(**kwargs):
         logger.write_to_file(args={
             "command": "context-match",
             "time": end-start,
-            "input_file": kwargs["input_file"]
+            "input_file": input_file_path
         })
         result_df.to_csv(sys.stdout, index=False)
     except:

@@ -47,7 +47,7 @@ def run(**kwargs):
         logger.write_to_file(args={
             "command": "feature-voting",
             "time": end-start,
-            "input_file": kwargs["input_file"]
+            "input_file": input_file_path
         })
         odf.to_csv(sys.stdout, index=False)
 
