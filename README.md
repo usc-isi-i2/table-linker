@@ -36,6 +36,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`compute-tf-idf`](#command_compute-tf-idf)<sup>*</sup>: compute the "tf-idf" like score base on the candidates. It is not the real tf-idf score algorithm but using a algorithm similar to tf-idf score.
 - [`context-match`](#command_context-match)<sup>*</sup>: matches the values present as the context to the properties of the candidate and calculates the score based on the properties matched for each candidate.
 - [`check-candidates`](#command_check-candidates)<sup>*</sup>: displays those rows for which the ground truth was never retrieved as a candidate.
+- [`create-pseudo-gt`](#command_create-pseudo-gt)<sup>*</sup>: generates a boolean feature indicating if candidate is part of the pseudo ground truth or not.
 - [`create-singleton-feature`](#command_create-singleton-feature)<sup>*</sup>: generates a boolean feature for exact match singletons
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
@@ -908,6 +909,57 @@ $ tl check-candidates input.csv \
 | column | row | label   | context                       | GT_kg_id  | GT_kg_label | 
 |--------|-----|---------|-------------------------------|-----------|-------------| 
 | 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Q52797639 | Saliceto    | 
+
+<a name="command_create-pseudo-gt" />
+
+### [`create-pseudo-gt`](#command_create-pseudo-gt)` [OPTIONS]`
+
+The `create-pseudo-gt` command takes a candidates file with the singleton feature and the context score feature computed and creates a new feature indicating if the candidate is part of the pseudo ground truth (indicated with 1) or not (indicated with a 0).
+
+This commands follows the following procedure:
+
+Step 1: Read the input file and check for validity.
+
+Following is a snippet of the input file:
+
+| column | row | label                       | context      | label_clean                 | kg_id     | kg_labels                   | kg_aliases | method          | kg_descriptions                                 | pagerank               | retrieval_score | GT_kg_id  | GT_kg_label                 | evaluation_label | aligned_pagerank       | monge_elkan        | monge_elkan_aliases | jaro_winkler       | levenshtein | des_cont_jaccard | des_cont_jaccard_normalized | smallest_qnode_number | num_char | num_tokens | singleton | context_score | 
+|--------|-----|-----------------------------|--------------|-----------------------------|-----------|-----------------------------|------------|-----------------|-------------------------------------------------|------------------------|-----------------|-----------|-----------------------------|------------------|------------------------|--------------------|---------------------|--------------------|-------------|------------------|-----------------------------|-----------------------|----------|------------|-----------|---------------| 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346968 | "Sekhmatia Union, Nazirpur" |            | exact-match     | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 21.686          | Q22346968 | "Sekhmatia Union, Nazirpur" | 1                | 3.5396131256502836e-09 | 1.0                | 0.0                 | 1.0                | 1.0         | 0.0              | 0.0                         | 0                     | 25       | 3          | 1         | 0.89          | 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346968 | "Sekhmatia Union, Nazirpur" |            | fuzzy-augmented | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 36.477844       | Q22346968 | "Sekhmatia Union, Nazirpur" | 1                | 0.0                    | 1.0                | 0.0                 | 1.0                | 1.0         | 0.0              | 0.0                         | 0                     | 25       | 3          | 0         | 0.89          | 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346967 | "Nazirpur Union, Nazirpur"  |            | fuzzy-augmented | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 25.24847        | Q22346968 | "Sekhmatia Union, Nazirpur" | -1               | 0.0                    | 0.9151234567901234 | 0.0                 | 0.7677777777777778 | 0.64        | 0.0              | 0.0                         | 0                     | 24       | 3          | 0         | 0.0           | 
+
+Step 2: Set the output column name to 1 if the singleton feature is 1 or if the context score is greater than or equal to the threshold set by the user (default = 0.7).
+
+
+**Options:**
+- `--singleton-column {string}`: Column name indicating the singleton feature (default = singleton).
+- `--context-score-column {string}`: Column name indicating the context score feature (default = context_score).
+- `--context-score-threshold {float}`: Float value indicating the context score threshold (default = 0.7).
+- `-o / --output-column-name {string}`: Column name indicating the output.
+
+**Examples:**
+```bash
+$ tl create-pseudo-gt input.csv\
+--singleton-column singleton\
+--context-score-column context_score\
+--context-score-threshold 0.7\
+-o pseudo_gt
+```
+**File Example:**
+```bash
+$ tl create-pseudo-gt input.csv\
+--singleton-column singleton\
+--context-score-column context_score\
+--context-score-threshold 0.7\
+-o pseudo_gt
+```
+
+| column | row | label                       | context      | label_clean                 | kg_id     | kg_labels                   | kg_aliases | method          | kg_descriptions                                 | pagerank               | retrieval_score | GT_kg_id  | GT_kg_label                 | evaluation_label | aligned_pagerank       | monge_elkan        | monge_elkan_aliases | jaro_winkler       | levenshtein | des_cont_jaccard | des_cont_jaccard_normalized | smallest_qnode_number | num_char | num_tokens | singleton | context_score | pseudo_gt | 
+|--------|-----|-----------------------------|--------------|-----------------------------|-----------|-----------------------------|------------|-----------------|-------------------------------------------------|------------------------|-----------------|-----------|-----------------------------|------------------|------------------------|--------------------|---------------------|--------------------|-------------|------------------|-----------------------------|-----------------------|----------|------------|-----------|---------------|-----------| 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346968 | "Sekhmatia Union, Nazirpur" |            | exact-match     | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 21.686          | Q22346968 | "Sekhmatia Union, Nazirpur" | 1                | 3.5396131256502836e-09 | 1.0                | 0.0                 | 1.0                | 1.0         | 0.0              | 0.0                         | 0                     | 25       | 3          | 1         | 0.89          | 1.0       | 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346968 | "Sekhmatia Union, Nazirpur" |            | fuzzy-augmented | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 36.477844       | Q22346968 | "Sekhmatia Union, Nazirpur" | 1                | 0.0                    | 1.0                | 0.0                 | 1.0                | 1.0         | 0.0              | 0.0                         | 0                     | 25       | 3          | 0         | 0.89          | 1.0       | 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346967 | "Nazirpur Union, Nazirpur"  |            | fuzzy-augmented | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 25.24847        | Q22346968 | "Sekhmatia Union, Nazirpur" | -1               | 0.0                    | 0.9151234567901234 | 0.0                 | 0.7677777777777778 | 0.64        | 0.0              | 0.0                         | 0                     | 24       | 3          | 0         | 0.0           | 0.0       | 
+
 
 <a name="command_create-singleton-feature" />
 
