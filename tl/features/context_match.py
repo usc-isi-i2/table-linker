@@ -1,32 +1,51 @@
 import pandas as pd
 import re
 import rltk.similarity as similarity
+from tl.exceptions import RequiredInputParameterMissingException
+from statistics import mode
+import gzip
 
 
 class MatchContext(object):
-    def __init__(self, input_path, context_path, args):
+    def __init__(self, input_path, args, context_path=None, custom_context_path=None):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.result_data = pd.DataFrame()
-        self.context = self.read_context_file(context_path)
+        self.isCustom = False
+        if context_path is None and custom_context_path is None:
+            raise RequiredInputParameterMissingException(
+                'One of the input parameters is required: {} or {}'.format("context_path", "custom_context_path"))
+        elif custom_context_path:
+            self.isCustom = True
+            self.context = self.read_context_file(custom_context_path)
+        else:
+            self.context = self.read_context_file(context_path)
         self.output_column_name = args.get("output_column")
         self.similarity_string_threshold = args.pop("similarity_string_threshold")
         self.similarity_quantity_threshold = args.pop("similarity_quantity_threshold")
+        self.string_separator = args.pop("string_separator")
+        self.string_separator = self.string_separator.replace('"', '')
+        self.properties_with_score_metric = pd.DataFrame(columns=['property', 'position', 'value', 'min_sim'])
         self.debug = args.pop("debug")
 
-    @staticmethod
-    def read_context_file(context_path: str) -> dict:
+    def read_context_file(self, context_path: str) -> dict:
         context_dict = {}
-
-        f = open(context_path)
+        if self.isCustom:
+            f = gzip.open("coauthors.context.tsv.gz", 'rt')
+            column_1 = "node1"
+            column_2 = "node2"
+        else:
+            f = open(context_path)
+            column_1 = "qnode"
+            column_2 = "context"
         feature_idx = -1
         node_idx = -1
 
         for line in f:
             row = line.strip().split('\t')
-            if 'context' in row and 'qnode' in row:  # first line
-                feature_idx = row.index('context')
-                node_idx = row.index('qnode')
+            if column_2 in row and column_1 in row:  # first line
+                feature_idx = row.index(column_2)
+                node_idx = row.index(column_1)
             else:
                 context_dict[row[node_idx]] = row[feature_idx]
         return context_dict
@@ -68,7 +87,8 @@ class MatchContext(object):
         if context_data_type == 'q':
             check_for = float(context.replace('"', ''))
         elif context_data_type == 'd':
-            check_for = self.remove_punctuation(context)
+            check_for = context.split(".")[0]
+            check_for = self.remove_punctuation(check_for)
         else:
             check_for = self.preprocess(context)
 
@@ -118,42 +138,63 @@ class MatchContext(object):
             all_property_list: Contains the list of properties and their values for the given q_node.
         Returns: The Property matched and the similarity by which the property matched to the passed context.
         """
-        if "," in s_context:
+
+        if self.string_separator in s_context:
             # All the items separated by, should have same property. Finding properties for each item and
             # appending the property to temp
             temp = []
             sim_list = []
-            sub_context_list = s_context.split(", ")
+            sub_context_list = s_context.split(self.string_separator)
             for sub_s_context in sub_context_list:
                 p, s = self.match_context_with_type(sub_s_context, all_property_list, context_data_type="i")
-                temp.append(p)
-                sim_list.append(s)
+                if p != "":
+                    temp.append(p)
+                    sim_list.append(s)
             # If all elements in temp have same value for property return that property
+            # Update: If there are multiple properties, we take the property that has maximum occurrences.
             if len(set(temp)) == 1:
                 p_val = temp[0]
-                sim = sum(sim_list) / len(sim_list)
+                sim = max(sim_list)
+            elif len(temp) > 1:
+                if len(set(temp)) == len(temp):
+                    # If all the properties are matched are different
+                    sim = max(sim_list)
+                    sim_ind = sim_list.index(sim)
+                    p_val = temp[sim_ind]
+                else:
+                    most_common_property = mode(temp)
+                    # indices_for_prop = temp.index(most_common_property)`
+                    new_sim_list = []
+                    for k in range(len(temp)):
+                        if temp[k] == most_common_property:
+                            new_sim_list.append(sim_list[k])
+                    p_val = most_common_property
+                    sim = sum(new_sim_list) / len(new_sim_list)
             else:
                 p_val = ""
                 sim = 0.0
+
         else:
             p_val, sim = self.match_context_with_type(s_context, all_property_list, context_data_type="i")
         max_sim = round(sim, 4)
         return p_val, max_sim
 
-    def calculate_score(self):
+    def calculate_property_value(self):
         """
         Purpose: Calculates the score by using the properties and the similarity with which they matched.
         """
         # Starting the score calculations
         # Part 1: Calculating Property values for each of the property that appear in the data file
         # Part 1 - a: Calculating the number of occurrences in each cell.
-        columns = ["column", "row", "property", "position", "number_of_occurrences"]
+        columns = ["column", "row", "property", "position", "number_of_occurrences", 'min_sim']
         properties_set = pd.DataFrame(columns=columns)
         # counter is the index for the properties_set
         counter = 0
-        for value_of_row, value_of_column, value_of_property in zip(self.data['row'], self.data['column'],
-                                                                    self.data['context_properties']):
+        for value_of_row, value_of_column, value_of_property, value_of_sim in zip(self.data['row'], self.data['column'],
+                                                                                  self.data['context_property'],
+                                                                                  self.data['context_similarity']):
             list_of_properties = value_of_property.split("|")
+            list_of_sim = value_of_sim.split("|")
             # The positions will be denoted by the index. (Alternative: using dictionary instead - extra overhead)
             for j in range(len(list_of_properties)):
                 position = j + 1
@@ -161,7 +202,7 @@ class MatchContext(object):
                     if list_of_properties[j] not in properties_set.property.values:
                         # Add a new row
                         properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j],
-                                                       str(position), "1"]
+                                                       str(position), "1", list_of_sim[j]]
                         counter = counter + 1
                     else:
                         # Increment the count if same position, else add another row with the new position
@@ -171,11 +212,14 @@ class MatchContext(object):
                         if len(ind) != 0:
                             old_count = properties_set['number_of_occurrences'].values[ind]
                             new_count = float(old_count[0]) + 1
+                            old_sim = properties_set['min_sim'].values[ind]
+                            new_sim = str(max(float(old_sim), float(list_of_sim[j])))
                             properties_set.iloc[ind, properties_set.columns.get_loc('number_of_occurrences')] = str(
                                 new_count)
+                            properties_set.iloc[ind, properties_set.columns.get_loc('min_sim')] = new_sim
                         else:
                             properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j],
-                                                           str(position), "1"]
+                                                           str(position), "1", list_of_sim[j]]
                             counter = counter + 1
                             # Part 1 - b - Calculating each individual property's value (also considers position)
         property_value_list = []
@@ -197,35 +241,41 @@ class MatchContext(object):
         row_list = properties_set['row']
         row_l = row_list.values.tolist()
         c_row_list = list(set(row_l))
-        properties_with_score_metric = pd.DataFrame(columns=['property', 'position', 'value'])
         counter = 0
         for prop in c_prop_list:
             for pos in c_pos_list:
+                # Update : Added the minimum similarity values for each property
                 ind = properties_set[
                     (properties_set['property'] == prop) & (properties_set['position'] == pos)].index.values
                 if len(ind) != 0:
+                    min_values_list = []
                     property_cal = 0
                     for i in ind:
                         prop_val = properties_set['prop_val'].values[i]
                         property_cal = round((property_cal + float(prop_val)), 4)
+                        min_values_list.append(properties_set['min_sim'].values[i])
+                    min_sim_value = min(min_values_list)
                     f_prop_cal = round(property_cal / len(c_row_list), 4)
-                    properties_with_score_metric.loc[counter] = [prop, pos, str(f_prop_cal)]
+                    self.properties_with_score_metric.loc[counter] = [prop, pos, str(f_prop_cal), min_sim_value]
                     counter = counter + 1
+        self.properties_with_score_metric = self.properties_with_score_metric.sort_values(['value'], ascending=False)
+        self.properties_with_score_metric.to_csv('properties_sign.csv', index=False)
 
-        # Part 2 - Sum up the individual property values for a row (update:multiply with the similarity)
+    def calculate_score(self):
+        # Sum up the individual property values for a row (update:multiply with the similarity)
         final_scores_list = []
-        for properties_str, sim_str in zip(self.data['context_properties'], self.data['context_similarity']):
+        for properties_str, sim_str in zip(self.data['context_property'], self.data['context_similarity']):
             sim_list = sim_str.split("|")
             properties_list = properties_str.split("|")
             sum_prop = 0
             for i in range(len(properties_list)):
                 if properties_list[i] != "":
-                    ind = properties_with_score_metric[
-                        (properties_with_score_metric['property'] == properties_list[i]) & (
-                                properties_with_score_metric['position'] == str(i + 1))].index.values
-                    value = properties_with_score_metric['value'].values[ind]
-
-                    sum_prop = round(sum_prop + (float(value) * float(sim_list[i])), 4)
+                    sim_value = sim_list[i].split("$$")[0]
+                    ind_df = self.properties_with_score_metric[
+                        (self.properties_with_score_metric['property'] == properties_list[i]) & (
+                                self.properties_with_score_metric['position'] == str(i + 1))]
+                    value = ind_df['value'].tolist()
+                    sum_prop = round(sum_prop + (float(value[0]) * float(sim_value)), 4)
             if sum_prop > 1:
                 sum_prop = 1
             final_scores_list.append(sum_prop)
@@ -245,9 +295,6 @@ class MatchContext(object):
             self.result_data = pd.concat([self.result_data, self.data])
 
         self.result_data = self.result_data.reset_index(drop=True)
-
-        if not self.debug:
-            self.result_data = self.result_data.drop(columns=['context_properties', 'context_similarity'])
         return self.result_data
 
     def process_data_context(self):
@@ -269,10 +316,12 @@ class MatchContext(object):
 
             # In some of the files, there is no context for a particular q-node. Removed during context file generation.
             context_value = self.context.get(q_node, None)
+
             if context_value:
                 all_property_list = context_value.split("|")
-                all_property_list[0] = all_property_list[0][1:]
-                all_property_list[-1] = all_property_list[-1][:-1]
+                if not self.isCustom:
+                    all_property_list[0] = all_property_list[0][1:]
+                    all_property_list[-1] = all_property_list[-1][:-1]
             else:
                 final_property_list.append("")
                 final_similarity_list.append("0.0")
@@ -284,6 +333,7 @@ class MatchContext(object):
                 to_match_2 = to_match_1.replace(".", "0")
 
                 num_v = None
+
                 if " " in to_match_2:
                     split_v = to_match_1.split(" ")
                     for s in split_v:
@@ -312,6 +362,66 @@ class MatchContext(object):
             final_property_list.append(prop_str)
             final_similarity_list.append(sim_str)
 
-        self.data['context_properties'] = final_property_list
+        self.data['context_property'] = final_property_list
         self.data['context_similarity'] = final_similarity_list
+        self.calculate_property_value()
+        # Recalculate for the most important property for each q_node's that don't have that property.
+        unique_positions = self.properties_with_score_metric['position'].unique().tolist()
+        important_properties = []
+        important_property_value = []
+        min_sim_value = []
+        for pos in unique_positions:
+            temp_row = self.properties_with_score_metric[
+                self.properties_with_score_metric['position'] == pos].sort_values(
+                ['value'], ascending=False).head(1)
+            important_properties.append(temp_row['property'].values.tolist()[0])
+            important_property_value.append(temp_row['value'].values.tolist()[0])
+            min_sim_value.append(temp_row['min_sim'].values.tolist()[0])
+        for df_ind, q_node, properties_str, similarity_str in zip(
+                self.data.index, self.data['kg_id'],
+                self.data['context_property'], self.data['context_similarity']):
+            property_list = properties_str.split("|")
+            similarity_list = similarity_str.split("|")
+            is_change = False
+            for p_l in range(len(property_list)):
+                # If we have any property for that position
+                if str(p_l + 1) in unique_positions:
+                    ind = unique_positions.index(str(p_l + 1))
+                    imp_prop = important_properties[ind]
+                    if property_list[p_l] == imp_prop:
+                        continue
+                    elif property_list[p_l] == "":
+                        # Need to check if this property is present for the particular q_node
+                        context_value = self.context.get(q_node, None)
+                        # Create a list of this values. In some cases the kg_id may not be present in the context_file.
+                        if context_value:
+                            # Initial Structuring
+                            all_property_list = context_value.split("|")
+                            if not self.isCustom:
+                                all_property_list[0] = all_property_list[0][1:]
+                                all_property_list[-1] = all_property_list[-1][:-1]
+                            # Separate list of only properties.
+                            is_present = False
+                            for prop in all_property_list:
+                                prop = prop.split(":")
+                                if len(prop) > 1:
+                                    if prop[1] == imp_prop:
+                                        # Early Stop - The property is present but has not matched to the context
+                                        is_present = True
+                                        break
+                            # The property is not present at the location
+                            if not is_present:
+                                weight_factor = 0.5
+                                new_sim_val = round(weight_factor * float(min_sim_value[ind]), 4)
+                                # Update with new_property
+                                is_change = True
+                                similarity_list[p_l] = str(new_sim_val) + "$$"
+                                property_list[p_l] = imp_prop
+
+                    else:
+                        # Another property is present at this location instead.
+                        pass
+            if is_change:
+                self.data.loc[df_ind, 'context_property'] = "|".join(property_list)
+                self.data.loc[df_ind, 'context_similarity'] = "|".join(similarity_list)
         self.calculate_score()
