@@ -827,6 +827,9 @@ Step 4: Calculate the score for each candidate by multiplying the property value
 - `-o / --output-column-name {string}`: The output scoring column name. If not provided, the column name will be `context_score`.
 - `--similarity-string-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for string matching.
 - `--similarity-quantity-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for quantity matching.
+- `--context-file {tab separated file}` : A context file that will be used for matching the properties. 
+- `--custom-context-file {tab separated file}` : A custom context file for matching the properties.
+- `--string-separator`: To break down the values in the context string, this additional parametere can be used.
 - `--debug`: Adds properties matched and the similarity columns to the result.
 
 **Examples:**
