@@ -4,6 +4,7 @@ import hashlib
 import logging
 import re
 import requests
+import sys
 import typing
 from requests.auth import HTTPBasicAuth
 from typing import List
@@ -49,6 +50,7 @@ class Search(object):
     def create_exact_match_query(self, search_term: str, lower_case: bool, size: int, properties: List[str],
                                  extra_musts: dict = None):
         must = list()
+        search_term = search_term.strip()
         for property in properties:
             query_part = {
                 "term": {
@@ -193,6 +195,11 @@ class Search(object):
                 if query_type == 'exact-match':
                     hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties,
                                                                         extra_musts=extra_musts))
+                    if not hits:
+                        hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size,
+                                                                            ['all_labels_aliases'],
+                                                                            extra_musts=extra_musts))
+
                 elif query_type == 'phrase-match':
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
                 elif query_type == 'fuzzy-match':
