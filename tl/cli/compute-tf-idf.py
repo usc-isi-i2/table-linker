@@ -49,10 +49,8 @@ def run(**kwargs):
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
-            "command": "compute-tf-idf",
-            "feature_name": kwargs["feature_name"],
-            "time": end-start,
-            "input_file": kwargs["input_file"]
+            "command": "compute-tf-idf-"+kwargs["feature_name"],
+            "time": end-start
         })
         odf.to_csv(sys.stdout, index=False)
     except Exception as e:

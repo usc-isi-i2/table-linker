@@ -52,10 +52,8 @@ def run(**kwargs):
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
-            "command": "string-similarity",
-            "method": method,
-            "time": end-start,
-            "input_file": kwargs["input_file"]
+            "command": "string-similarity-"+method,
+            "time": end-start
         })
         odf.to_csv(sys.stdout, index=False)
 

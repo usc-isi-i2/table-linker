@@ -114,8 +114,7 @@ def run(**kwargs):
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
             "command": "add-text-embedding-feature",
-            "time": end-start,
-            "input_file": input_file_path
+            "time": end-start
         })
         vector_transformer.print_output()
     except:

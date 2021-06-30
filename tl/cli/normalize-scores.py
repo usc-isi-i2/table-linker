@@ -57,10 +57,8 @@ def run(**kwargs):
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
-            "command": "normalize-scores",
-            "column": kwargs["column"],
-            "time": end-start,
-            "input_file": kwargs["input_file"]
+            "command": "normalize-scores-"+kwargs["column"],
+            "time": end-start
         })
         odf.to_csv(sys.stdout, index=False)
     except:

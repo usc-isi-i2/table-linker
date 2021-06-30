@@ -36,8 +36,7 @@ def run(**kwargs):
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
             "command": "convert-iswc-gt",
-            "time": end-start,
-            "output_directory": kwargs["output_directory"]
+            "time": end-start
         })
     except:
         message = 'Command: convert-iswc-gt\n'

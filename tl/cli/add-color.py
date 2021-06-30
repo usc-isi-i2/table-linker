@@ -64,7 +64,6 @@ def run(**kwargs):
         logger.write_to_file(args={
             "command": "add-color",
             "time": end-start,
-            "input_file": kwargs["input_file"]
         })
         color_render.save_to_file()
 

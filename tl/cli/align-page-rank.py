@@ -33,8 +33,7 @@ def run(**kwargs):
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
             "command": "align-page-rank",
-            "time": end-start,
-            "input_file": kwargs["input_file"]
+            "time": end-start
         })
         odf.to_csv(sys.stdout, index=False)
     except:

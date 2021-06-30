@@ -30,12 +30,12 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`add-text-embedding-feature`](#command_add-text-embedding-feature)<sup>*</sup>: computes text embedding vectors of the candidates and similarity to rank candidates.
 - [`align-page-rank`](#command_align-page-rank)<sup>*</sup>: computes aligned page rank (exact-match candidates retain its pagerank as is, fuzzy-match candidates receive 0 for page rank).
 - [`canonicalize`](#command_canonicalize)<sup>*</sup>: translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
+- [`check-candidates`](#command_check-candidates)<sup>*</sup>: displays those rows for which the ground truth was never retrieved as a candidate.
 - [`check-extra-information`](#command_check-extra-information)<sup>*</sup> : Check if the given extra information exists in the given kg node and corresponding wikipedia page (if exists).
 - [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG.
 - [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value.
 - [`compute-tf-idf`](#command_compute-tf-idf)<sup>*</sup>: compute the "tf-idf" like score base on the candidates. It is not the real tf-idf score algorithm but using a algorithm similar to tf-idf score.
 - [`context-match`](#command_context-match)<sup>*</sup>: matches the values present as the context to the properties of the candidate and calculates the score based on the properties matched for each candidate.
-- [`check-candidates`](#command_check-candidates)<sup>*</sup>: displays those rows for which the ground truth was never retrieved as a candidate.
 - [`create-pseudo-gt`](#command_create-pseudo-gt)<sup>*</sup>: generates a boolean feature indicating if candidate is part of the pseudo ground truth or not.
 - [`create-singleton-feature`](#command_create-singleton-feature)<sup>*</sup>: generates a boolean feature for exact match singletons
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
@@ -651,6 +651,57 @@ tl align-page-rank candidates.csv > aligned_candidates.csv
 |1     |10 |BP             |Q131755   |5.235995e-09 	 |fuzzy-augmented|0.000000e+00    |
 ```
 
+<a name="command_check-candidates" />
+
+### [`check-candidates`](#command_check-candidates)` [OPTIONS]`
+
+The `check-candidates` command takes a candidates/features file and a ground-truth file and returns those rows for which the ground-truth was never retrieved as a candidate.
+
+This commands follows the following procedure:
+
+Step 1: Group the candidates dataframe by column and row. 
+
+Following is a snippet of the input file.
+
+
+| column | row | label   | context                       | label_clean | kg_id     | kg_labels        | kg_aliases                                                                                                                                                                                                                   | method          | kg_descriptions                                               | pagerank               | retrieval_score | GT_kg_id  | GT_kg_label | evaluation_label | 
+|--------|-----|---------|-------------------------------|-------------|-----------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|---------------------------------------------------------------|------------------------|-----------------|-----------|-------------|------------------| 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q197728   | Santiago Salcedo | "Santiago Gabriel Salcedo\|Santiago Gabriel Salcedo Gonzalez\|S. Salcedo\|S. G. S. González\|Santiago G. Salcedo González\|González, S. G. S.\|Santiago Gabriel Salcedo González\|Santiago Gabriel S. González\|Salcedo, S." | fuzzy-augmented | Paraguayan association football player                        | 3.976872442613597e-09  | 16.31549        | Q52797639 | Saliceto    | -1               | 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q19681762 | Saúl Salcedo     | "Saul salcedo\|Saul Salcedo\|Saúl Savín Salcedo Zárate\|S. Salcedo\|Saul Savin Salcedo Zarate\|Salcedo, S."                                                                                                                  | fuzzy-augmented | Paraguayan footballer                                         | 3.5396131256502836e-09 | 16.12341        | Q52797639 | Saliceto    | -1               | 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q12856    | Salcedo          | Baugen                                                                                                                                                                                                                       | fuzzy-augmented | municipality of the Philippines in the province of Ilocos Sur | 1.7080570334293118e-08 | 15.950816       | Q52797639 | Saliceto    | -1               | 
+
+
+The ground-truth file contains the correct Q-node and the Label of the corresponding Q-node.
+
+Following is a snippet of the ground-truth file.
+
+| column | row | GT_kg_id  | GT_kg_label | 
+|--------|-----|-----------|-------------| 
+| 0      | 4   | Q52797639 | Saliceto    | 
+
+Step 2: Compare the column and row values to the ground-truth file and get the Q-node and label. 
+
+Step 3: Check if the correct Q-node appears in the kg_id column of the grouped dataframe.
+
+Step 4: If not, add the column, row, label, context, GT_kg_id, GT_kg_label to the output.
+
+**Options:**
+- `--gt-file`: Path to where the ground truth file is stored.
+
+**Examples:**
+```bash
+$ tl check-candidates input.csv \
+     --gt-file ground-truth.csv
+```
+**File Example:**
+```bash
+$ tl check-candidates input.csv \
+     --gt-file ground-truth.csv
+```
+
+| column | row | label   | context                       | GT_kg_id  | GT_kg_label | 
+|--------|-----|---------|-------------------------------|-----------|-------------| 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Q52797639 | Saliceto    | 
 
 <a name="command_check-extra-information" />
 
@@ -858,63 +909,11 @@ $ tl context-match movies.csv \
 |1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q1587838 |0.6337     |
 |1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q219315  |0.6337     |
 
-<a name="command_check-candidates" />
-
-### [`check-candidates`](#command_check-candidates)` [OPTIONS]`
-
-The `check-candidates` command takes a candidates file and a ground-truth file and returns those rows for which the ground-truth was never retrieved as a candidate.
-
-This commands follows the following procedure:
-
-Step 1: Group the candidates dataframe by column and row. 
-
-Following is a snippet of the input file.
-
-
-| column | row | label   | context                       | label_clean | kg_id     | kg_labels        | kg_aliases                                                                                                                                                                                                                   | method          | kg_descriptions                                               | pagerank               | retrieval_score | GT_kg_id  | GT_kg_label | evaluation_label | 
-|--------|-----|---------|-------------------------------|-------------|-----------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|---------------------------------------------------------------|------------------------|-----------------|-----------|-------------|------------------| 
-| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q197728   | Santiago Salcedo | "Santiago Gabriel Salcedo\|Santiago Gabriel Salcedo Gonzalez\|S. Salcedo\|S. G. S. González\|Santiago G. Salcedo González\|González, S. G. S.\|Santiago Gabriel Salcedo González\|Santiago Gabriel S. González\|Salcedo, S." | fuzzy-augmented | Paraguayan association football player                        | 3.976872442613597e-09  | 16.31549        | Q52797639 | Saliceto    | -1               | 
-| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q19681762 | Saúl Salcedo     | "Saul salcedo\|Saul Salcedo\|Saúl Savín Salcedo Zárate\|S. Salcedo\|Saul Savin Salcedo Zarate\|Salcedo, S."                                                                                                                  | fuzzy-augmented | Paraguayan footballer                                         | 3.5396131256502836e-09 | 16.12341        | Q52797639 | Saliceto    | -1               | 
-| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q12856    | Salcedo          | Baugen                                                                                                                                                                                                                       | fuzzy-augmented | municipality of the Philippines in the province of Ilocos Sur | 1.7080570334293118e-08 | 15.950816       | Q52797639 | Saliceto    | -1               | 
-
-
-The ground-truth file contains the correct Q-node and the Label of the corresponding Q-node.
-
-Following is a snippet of the ground-truth file.
-
-| column | row | GT_kg_id  | GT_kg_label | 
-|--------|-----|-----------|-------------| 
-| 0      | 4   | Q52797639 | Saliceto    | 
-
-Step 2: Compare the column and row values to the ground-truth file and get the Q-node and label. 
-
-Step 3: Check if the correct Q-node appears in the kg_id column of the grouped dataframe.
-
-Step 4: If not, add the column, row, label, context, GT_kg_id, GT_kg_label to the output.
-
-**Options:**
-- `--gt-file`: Path to where the ground truth file is stored.
-
-**Examples:**
-```bash
-$ tl check-candidates input.csv \
-     --gt-file ground-truth.csv
-```
-**File Example:**
-```bash
-$ tl check-candidates input.csv \
-     --gt-file ground-truth.csv
-```
-
-| column | row | label   | context                       | GT_kg_id  | GT_kg_label | 
-|--------|-----|---------|-------------------------------|-----------|-------------| 
-| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Q52797639 | Saliceto    | 
-
 <a name="command_create-pseudo-gt" />
 
 ### [`create-pseudo-gt`](#command_create-pseudo-gt)` [OPTIONS]`
 
-The `create-pseudo-gt` command takes a candidates file with the singleton feature and the context score feature computed and creates a new feature indicating if the candidate is part of the pseudo ground truth (indicated with 1) or not (indicated with a 0).
+The `create-pseudo-gt` command takes a features file and a string indicating the features and the corresponding thresholds by which pseudo ground truth needs to be computed, and creates a new feature indicating if the candidate is part of the pseudo ground truth (indicated with 1) or not (indicated with a 0).
 
 This commands follows the following procedure:
 
@@ -932,25 +931,19 @@ Step 2: Set the output column name to 1 if the singleton feature is 1 or if the 
 
 
 **Options:**
-- `--singleton-column {string}`: Column name indicating the singleton feature (default = singleton).
-- `--context-score-column {string}`: Column name indicating the context score feature (default = context_score).
-- `--context-score-threshold {float}`: Float value indicating the context score threshold (default = 0.7).
+- `--column-thresholds {string}`: String indicating which column need to be considered along with the corresponding threshold; for instance, `singleton`:1. Multiple columns and thresholds can be separated by a comma; for instance, `singleton`:1,`context_score`:0.7.
 - `-o / --output-column-name {string}`: Column name indicating the output.
 
 **Examples:**
 ```bash
 $ tl create-pseudo-gt input.csv\
---singleton-column singleton\
---context-score-column context_score\
---context-score-threshold 0.7\
+--column-thresholds singleton:1,context_score:0.7\
 -o pseudo_gt
 ```
 **File Example:**
 ```bash
 $ tl create-pseudo-gt input.csv\
---singleton-column singleton\
---context-score-column context_score\
---context-score-threshold 0.7\
+--column-thresholds singleton:1,context_score:0.7\
 -o pseudo_gt
 ```
 

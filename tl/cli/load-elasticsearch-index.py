@@ -55,8 +55,7 @@ def run(**kwargs):
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
             "command": "load-elasticsearch-index",
-            "time": end-start,
-            "kgtk_jl_path": kwargs["kgtk_jl_path"]
+            "time": end-start
         })
     
     except:

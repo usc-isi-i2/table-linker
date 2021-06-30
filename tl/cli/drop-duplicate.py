@@ -46,10 +46,8 @@ def run(**kwargs):
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
-            "command": "drop-duplicate",
-            "column": kwargs["column"],
-            "time": end-start,
-            "input_file": kwargs["input_file"]
+            "command": "drop-duplicate-"+kwargs["column"],
+            "time": end-start
         })
         odf.to_csv(sys.stdout, index=False)
     except:

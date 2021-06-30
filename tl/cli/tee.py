@@ -30,8 +30,7 @@ def run(**kwargs):
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
             "command": "tee",
-            "time": end-start,
-            "input": kwargs["input"]
+            "time": end-start
         })
         tee.writeln(input_content)
     except:

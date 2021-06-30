@@ -8,8 +8,8 @@ from tl.exceptions import UnsupportTypeError
 
 def parser():
     return {
-        'help': 'computes pseudo ground feature based on singleton feature and'
-                ' context match score'
+        'help': 'computes pseudo ground feature based on specified columns and'
+                ' thresholds'
     }
 
 
@@ -23,23 +23,12 @@ def add_arguments(parser):
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'),
                         default=sys.stdin)
 
-    parser.add_argument('--singleton-column', type=str, action='store',
-                        dest='singleton_column', required=True,
-                        default='singleton',
-                        help="specify column name of singleton feature. "
-                             "Default is 'singleton'")
-
-    parser.add_argument('--context-score-column', type=str, action='store',
-                        dest='context_column', required=True,
-                        default='context_score',
-                        help="specify column name of context score feature. "
-                             "Default is 'context_score'")
-
-    parser.add_argument('--context-score-threshold', type=float,
-                        action='store', required=True, default=0.7,
-                        dest='context_score_threshold',
-                        help="specify the threshold for context score. "
-                             "Default is 0.7")
+    parser.add_argument('--column-thresholds', type=str, action='store',
+                        dest='column_thresholds',
+                        help="string specifying the columns to be used along "
+                             "with corresponding thresholds; column:threshold"
+                             "; multiple features can be specified "
+                             "by separating with a comma.")
 
     # output column
     parser.add_argument('-o', '--output-column-name', type=str,
@@ -58,25 +47,21 @@ def run(**kwargs):
         from tl.file_formats_validator import FFV
         ffv = FFV()
         input_file_path = kwargs["input_file"]
-        singleton_column = kwargs["singleton_column"]
-        context_column = kwargs["context_column"]
-        context_threshold = kwargs["context_score_threshold"]
+        column_thresholds = [(_.split(":")[0], float(_.split(":")[1]))
+                             for _ in kwargs["column_thresholds"].split(",")]
         output_column_name = kwargs["output_column"]
 
         df = pd.read_csv(input_file_path)
         if ffv.is_candidates_file(df):
             start = time.time()
             result_df = create_pseudo_gt(df=df,
-                                         singleton_column=singleton_column,
-                                         context_column=context_column,
-                                         context_threshold=context_threshold,
+                                         column_thresholds=column_thresholds,
                                          output_column=output_column_name)
             end = time.time()
             logger = Logger(kwargs["logfile"])
             logger.write_to_file(args={
                 "command": "create-pseudo-gt",
-                "time": end-start,
-                "input_file": input_file_path
+                "time": end-start
             })
             result_df.to_csv(sys.stdout, index=False)
         else:

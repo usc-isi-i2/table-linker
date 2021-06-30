@@ -82,8 +82,7 @@ def run(**kwargs):
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
             "command": "build-elasticsearch-input",
-            "time": end-start,
-            "input_file": kwargs["input_file_path"]
+            "time": end-start
         })
     except:
         message = 'Command: build-elasticsearch-input\n'

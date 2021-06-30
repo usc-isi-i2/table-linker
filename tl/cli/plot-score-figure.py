@@ -57,8 +57,7 @@ def run(**kwargs):
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
             "command": "plot-score-figure",
-            "time": end-start,
-            "output_score_table": kwargs["output_score_table"]
+            "time": end-start
         })
 
     except:

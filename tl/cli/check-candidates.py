@@ -8,7 +8,7 @@ from tl.utility.logging import Logger
 
 def parser():
     return {
-        'help': 'Checks if for each candidate the ground truth was retrieved'
+        'help': 'Checks if for each row the ground truth was retrieved'
                 ' and outputs those rows for which the ground truth was never'
                 ' retrieved'
     }
@@ -40,25 +40,31 @@ def run(**kwargs):
             start = time.time()
             grouped = df.groupby(by=["column", "row"])
             output = list()
+            columns = ["column", "row", "label", "context", "GT_kg_id",
+                       "GT_kg_label"]
+            if "GT_kg_description" in gtdf.columns:
+                columns.append("GT_kg_description")
             for i, gdf in grouped:
                 if ((gtdf["column"] == i[0]) & (gtdf["row"] == i[1])).any():
                     id = gtdf.loc[((gtdf["column"] == i[0]) & (
                         gtdf["row"] == i[1]))]["GT_kg_id"].iloc[0]
                     lbl = gtdf.loc[((gtdf["column"] == i[0]) & (
                         gtdf["row"] == i[1]))]["GT_kg_label"].iloc[0]
-                    if not (gdf["kg_id"] == id).any():
-                        output.append(
-                            [i[0], i[1], gdf["label"].iloc[0],
-                             gdf["context"].iloc[0], id, lbl])
+                    if id not in gdf["kg_id"].values:
+                        _ = [i[0], i[1], gdf["label"].iloc[0],
+                             gdf["context"].iloc[0], id, lbl]
+                        if "GT_kg_description" in columns:
+                            _.append(gtdf.loc[((gtdf["column"] == i[0]) & (
+                                     gtdf["row"] == i[1]))]
+                                     ["GT_kg_description"].iloc[0])
+                        output.append(_)
             result_df = pd.DataFrame(
-                output, columns=["column", "row", "label", "context",
-                                 "GT_kg_id", "GT_kg_label"])
+                output, columns=columns)
             end = time.time()
             logger = Logger(kwargs["logfile"])
             logger.write_to_file(args={
                 "command": "check-candidates",
-                "time": end-start,
-                "input_file": kwargs["input_file"]
+                "time": end-start
             })
             result_df.to_csv(sys.stdout, index=False)
         else:

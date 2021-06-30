@@ -38,10 +38,8 @@ def run(**kwargs):
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
-            "command": "drop-by-score",
-            "column": kwargs["column"],
-            "time": end-start,
-            "input_file": kwargs["input_file"]
+            "command": "drop-by-score-"+kwargs["column"],
+            "time": end-start
         })
         odf.to_csv(sys.stdout, index=False)
     except:

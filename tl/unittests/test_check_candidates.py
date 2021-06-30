@@ -16,6 +16,7 @@ class TestCheckCandidates(unittest.TestCase):
         super(TestCheckCandidates, self).__init__(*args, **kwargs)
         self.cd_path = '{}/data/candidates.csv'.format(parent_path)
         self.gt_path = '{}/data/gt.csv'.format(parent_path)
+        self.gt_d_path = '{}/data/gt_with_descriptions.csv'.format(parent_path)
         self.bad_cd_path = '{}/data/bad_candidates.csv'.format(parent_path)
         self.bad_gt_path = '{}/data/bad_gt.csv'.format(parent_path)
 
@@ -31,6 +32,20 @@ class TestCheckCandidates(unittest.TestCase):
         columns = out_df.columns
         required_columns = ["column", "row", "label", "context", "GT_kg_id",
                             "GT_kg_label"]
+        self.assertTrue(pd.Series(required_columns).isin(columns).all())
+
+    def test_candidates_input_with_GT_description(self):
+        out_csv = StringIO()
+        with redirect_stdout(out_csv):
+            check_candidates.run(**{
+                "input_file": self.cd_path,
+                "gt_file": self.gt_d_path,
+                "logfile": None
+            })
+        out_df = pd.read_table(StringIO(out_csv.getvalue()), sep=",")
+        columns = out_df.columns
+        required_columns = ["column", "row", "label", "context", "GT_kg_id",
+                            "GT_kg_label", "GT_kg_description"]
         self.assertTrue(pd.Series(required_columns).isin(columns).all())
 
     def test_candidate_file_check(self):
