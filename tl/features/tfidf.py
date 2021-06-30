@@ -1,5 +1,7 @@
 import math
 import pandas as pd
+import sys
+
 from tl.exceptions import RequiredInputParameterMissingException
 from collections import defaultdict
 
@@ -18,7 +20,7 @@ class TFIDF(object):
                 'One of the input parameters is required: {} or {}'.format("input_file", "df"))
 
         if input_file is not None:
-            self.input_df = pd.read_csv(input_file)
+            self.input_df = pd.read_csv(input_file, dtype=object)
         elif df is not None:
             self.input_df = df
         self.input_df = self.input_df.sort_values(['column', 'row'])
@@ -28,6 +30,7 @@ class TFIDF(object):
         self.feature_dict, self.feature_count_dict = self.build_qnode_feature_dict(feature_file, feature_name)
         self.feature_idf_dict = self.calculate_idf_features()
         self.singleton_column = singleton_column
+        self.feature_name = feature_name
 
     def calculate_idf_features(self):
         _ = {}
@@ -65,7 +68,7 @@ class TFIDF(object):
         hc_classes_count = defaultdict(dict)
         hc_classes_idf = defaultdict(dict)
         for column, col_candidates_df in grouped_obj:
-            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column] == 1][
+            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column].astype(int) == 1][
                 'kg_id'].unique().tolist()
             for candidate in hc_candidates:
                 if candidate in self.feature_dict:
@@ -97,22 +100,24 @@ class TFIDF(object):
         hc_classes_idf = self.normalize_idf_high_confidence_classes()
 
         scores = []
+        top_5_features = []
+        top_5_col_name = f"top5_{self.feature_name}"
         for kg_id, column in zip(self.input_df['kg_id'], self.input_df['column']):
             _score = 0.0
+            top_5_features_candidate = {}
+
             _feature_classes = self.feature_dict.get(kg_id, None)
             if _feature_classes:
                 for _class in _feature_classes:
                     _score += hc_classes_idf[column].get(_class, 0.0)
+                    top_5_features_candidate[_class] = hc_classes_idf[column].get(_class, 0.0)
             scores.append(_score)
 
+            top_5_features.append("|".join([f"{k}:{'{:.3f}'.format(v)}" for k, v in
+                                            sorted(top_5_features_candidate.items(),
+                                                   key=lambda x: x[1], reverse=True)[:5]]))
+
         self.input_df[self.output_col_name] = scores
+        self.input_df[top_5_col_name] = top_5_features
 
         return self.input_df
-
-    def compute_tfidf_score(self, kg_id: str, column: str, hc_classes_idf: dict) -> float:
-        _score = 0.0
-        _feature_classes = self.feature_dict.get(kg_id, None)
-        if _feature_classes:
-            for _class in _feature_classes:
-                _score += hc_classes_idf[column].get(_class, 0.0)
-        return _score
