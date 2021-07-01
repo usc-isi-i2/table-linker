@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -49,13 +50,21 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features.add_color import ColorRenderUnit
     import pandas as pd
+    import time
 
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         columns = kwargs['column'].strip().split(",")
         color_render = ColorRenderUnit(df, kwargs["sort_by_gt"], kwargs["gt_score_column"], kwargs["output_uri"])
         color_render.add_color_by_score(columns, k=kwargs['k'], use_all_columns=kwargs["use_all_columns"])
         color_render.add_border()
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "add-color",
+            "time": end-start,
+        })
         color_render.save_to_file()
 
     except:

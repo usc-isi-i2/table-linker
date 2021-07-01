@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -28,10 +29,17 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.evaluation import evaluation
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-
+        start = time.time()
         odf = evaluation.ground_truth_labeler(kwargs['gt_file'], df=df)
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "ground-truth-labeler",
+            "time": end-start
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: ground-truth-labeler\n'

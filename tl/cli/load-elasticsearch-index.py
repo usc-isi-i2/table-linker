@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -42,12 +43,20 @@ def add_arguments(parser):
 
 def run(**kwargs):
     from tl.utility.utility import Utility
+    import time
     try:
+        start = time.time()
         Utility.load_elasticsearch_index(kwargs['kgtk_jl_path'], kwargs['es_url'], kwargs['es_index'],
                                          es_version=kwargs['es_version'],
                                          mapping_file_path=kwargs['mapping_file_path'],
                                          es_user=kwargs['es_user'],
                                          es_pass=kwargs['es_pass'])
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "load-elasticsearch-index",
+            "time": end-start
+        })
     
     except:
         message = 'Command: load-elasticsearch-index\n'

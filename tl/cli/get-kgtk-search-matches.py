@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -38,11 +39,19 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.candidate_generation.get_kgtk_search_matches import KGTKSearchMatches
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         em = KGTKSearchMatches(api_url=kwargs['kgtk_api_url'])
         odf = em.get_matches(kwargs['column'], size=kwargs['size'],
                              output_column_name=kwargs['output_column_name'], df=df)
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "get-kgtk-search-matches",
+            "time": end-start
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-kgtk-search-matches\n'

@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -62,8 +63,9 @@ def add_arguments(parser):
 
 def run(**kwargs):
     from tl.utility.utility import Utility
+    import time
     try:
-
+        start = time.time()
         Utility.build_elasticsearch_file(kwargs['input_file_path'], kwargs['label_properties'],
                                          kwargs['mapping_file_path'], kwargs['output_file_path'],
                                          alias_fields=kwargs['alias_properties'],
@@ -76,6 +78,12 @@ def run(**kwargs):
                                          es_version=kwargs['es_version'],
                                          property_datatype_file=kwargs['property_datatype_file']
                                          )
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "build-elasticsearch-input",
+            "time": end-start
+        })
     except:
         message = 'Command: build-elasticsearch-input\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
