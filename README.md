@@ -655,7 +655,7 @@ tl align-page-rank candidates.csv > aligned_candidates.csv
 
 ### [`check-candidates`](#command_check-candidates)` [OPTIONS]`
 
-The `check-candidates` command takes a candidates/features file and a ground-truth file and returns those rows for which the ground-truth was never retrieved as a candidate.
+The `check-candidates` command takes a candidates/features file and returns those rows for which the ground-truth was never retrieved as a candidate. `ground-truth-labeler` command needs to be run previously for this command to work.
 
 This commands follows the following procedure:
 
@@ -671,32 +671,18 @@ Following is a snippet of the input file.
 | 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q12856    | Salcedo          | Baugen                                                                                                                                                                                                                       | fuzzy-augmented | municipality of the Philippines in the province of Ilocos Sur | 1.7080570334293118e-08 | 15.950816       | Q52797639 | Saliceto    | -1               | 
 
 
-The ground-truth file contains the correct Q-node and the Label of the corresponding Q-node.
+Step 2: Check if the grouped dataframe contains a 1 in the evaluation_label column. 
 
-Following is a snippet of the ground-truth file.
+Step 3: If not, add the column, row, label, context, GT_kg_id, GT_kg_label to the output. If the GT_kg_description of the Qnodes are available, then append that to output.
 
-| column | row | GT_kg_id  | GT_kg_label | 
-|--------|-----|-----------|-------------| 
-| 0      | 4   | Q52797639 | Saliceto    | 
-
-Step 2: Compare the column and row values to the ground-truth file and get the Q-node and label. 
-
-Step 3: Check if the correct Q-node appears in the kg_id column of the grouped dataframe.
-
-Step 4: If not, add the column, row, label, context, GT_kg_id, GT_kg_label to the output.
-
-**Options:**
-- `--gt-file`: Path to where the ground truth file is stored.
 
 **Examples:**
 ```bash
-$ tl check-candidates input.csv \
-     --gt-file ground-truth.csv
+$ tl check-candidates input.csv
 ```
 **File Example:**
 ```bash
-$ tl check-candidates input.csv \
-     --gt-file ground-truth.csv
+$ tl check-candidates input.csv
 ```
 
 | column | row | label   | context                       | GT_kg_id  | GT_kg_label | 

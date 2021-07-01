@@ -11,8 +11,8 @@ class TestCreatePseudoGT(unittest.TestCase):
     def __init__(self, *args, **kwargs) -> None:
         super(TestCreatePseudoGT, self).__init__(*args, **kwargs)
         self.feat_path = '{}/data/feature_file.csv'.format(parent_path)
-        self.column_thresholds = [("singleton", 1), ("context_score", 0.7)]
-        self.bad_column_thresholds = [("singleton", 1), ("con", 0.1)]
+        self.column_thresholds = "singleton:1,context_score:0.7"
+        self.bad_column_thresholds = "singleton:1,con:0.1"
         self.output_column = 'pseudo_gt'
 
     def test_feature_generation(self):
