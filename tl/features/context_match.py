@@ -101,9 +101,8 @@ class MatchContext(object):
             if context_data_type == 'q':
                 check_with_temp = p_value[1:]
                 check_with = float(check_with_temp.replace('"', ''))
-                value = self.quantity_score(check_with, check_for)
-                if (isinstance(check_with, float) or isinstance(check_with, int)) and \
-                        (isinstance(check_for, float) or isinstance(check_for, int)):
+                if isinstance(check_with, float) or isinstance(check_with, int):
+                    value = self.quantity_score(check_with, check_for)
                     if value >= self.similarity_quantity_threshold and value >= max_sim:
                         prop_val = prop[1]
                         max_sim = value
