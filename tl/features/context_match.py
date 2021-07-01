@@ -11,12 +11,12 @@ class MatchContext(object):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.result_data = pd.DataFrame()
-        self.isCustom = False
+        self.is_custom = False
         if context_path is None and custom_context_path is None:
             raise RequiredInputParameterMissingException(
                 'One of the input parameters is required: {} or {}'.format("context_path", "custom_context_path"))
         elif custom_context_path:
-            self.isCustom = True
+            self.is_custom = True
             self.context = self.read_context_file(custom_context_path)
         else:
             self.context = self.read_context_file(context_path)
@@ -30,22 +30,22 @@ class MatchContext(object):
 
     def read_context_file(self, context_path: str) -> dict:
         context_dict = {}
-        if self.isCustom:
+        if self.is_custom:
             f = gzip.open("coauthors.context.tsv.gz", 'rt')
-            column_1 = "node1"
-            column_2 = "node2"
+            node1_column = "node1"
+            node2_column = "node2"
         else:
             f = open(context_path)
-            column_1 = "qnode"
-            column_2 = "context"
+            node1_column = "qnode"
+            node2_column = "context"
         feature_idx = -1
         node_idx = -1
 
         for line in f:
             row = line.strip().split('\t')
-            if column_2 in row and column_1 in row:  # first line
-                feature_idx = row.index(column_2)
-                node_idx = row.index(column_1)
+            if node1_column in row and node2_column in row:  # first line
+                feature_idx = row.index(node2_column)
+                node_idx = row.index(node1_column)
             else:
                 context_dict[row[node_idx]] = row[feature_idx]
         return context_dict
@@ -85,7 +85,10 @@ class MatchContext(object):
         # We need to check if the quantity present in the check_for is also present in the properties result
 
         if context_data_type == 'q':
-            check_for = float(context.replace('"', ''))
+            try:
+                check_for = float(context.replace('"', ''))
+            except ValueError:
+                check_for = ""
         elif context_data_type == 'd':
             check_for = context.split(".")[0]
             check_for = self.remove_punctuation(check_for)
@@ -99,9 +102,11 @@ class MatchContext(object):
                 check_with_temp = p_value[1:]
                 check_with = float(check_with_temp.replace('"', ''))
                 value = self.quantity_score(check_with, check_for)
-                if value >= self.similarity_quantity_threshold and value >= max_sim:
-                    prop_val = prop[1]
-                    max_sim = value
+                if (isinstance(check_with, float) or isinstance(check_with, int)) and \
+                        (isinstance(check_for, float) or isinstance(check_for, int)):
+                    if value >= self.similarity_quantity_threshold and value >= max_sim:
+                        prop_val = prop[1]
+                        max_sim = value
             else:
                 check_with = self.remove_punctuation(p_value[1:])
                 if context_data_type == 'd':
@@ -113,6 +118,8 @@ class MatchContext(object):
                     if sim >= self.similarity_string_threshold and sim >= max_sim:
                         if len(prop) > 1:  # Resolves error if the context does not have a property
                             prop_val = prop[1]
+                            if (not prop[1].startswith("P")) and (prop[-2].startswith("P")):
+                                prop_val = prop[-2]
                             max_sim = sim
 
         max_sim = round(max_sim, 4)
@@ -319,7 +326,7 @@ class MatchContext(object):
 
             if context_value:
                 all_property_list = context_value.split("|")
-                if not self.isCustom:
+                if not self.is_custom:
                     all_property_list[0] = all_property_list[0][1:]
                     all_property_list[-1] = all_property_list[-1][:-1]
             else:
@@ -327,35 +334,44 @@ class MatchContext(object):
                 final_similarity_list.append("0.0")
                 continue
             for v in val_list:
+                v = "Playbox 3, Xbox 360"
                 # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
-                new_v = v.replace('"', '')
-                to_match_1 = new_v.replace(",", "")
-                to_match_2 = to_match_1.replace(".", "0")
+                if self.remove_punctuation(v) != "":
+                    new_v = v.replace('"', '')
+                    to_match_1 = new_v.replace(",", "")
+                    to_match_2 = to_match_1.replace(".", "0")
 
-                num_v = None
+                    num_v = None
 
-                if " " in to_match_2:
-                    split_v = to_match_1.split(" ")
-                    for s in split_v:
-                        new_s = s.replace(".", "0")
-                        if new_s.isnumeric():
-                            num_v = s
+                    if " " in to_match_2:
+                        split_v = to_match_1.split(" ")
+                        for s in split_v:
+                            if not s == ".":
+                                new_s = s.replace(".", "0")
+                                if new_s.isnumeric():
+                                    num_v = s
 
-                if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
-                    property_v, sim = self.match_context_with_type(to_match_1, all_property_list, context_data_type="d")
-                    if property_v == "":
-                        if to_match_1.isnumeric() or to_match_2.isnumeric():
-                            property_v, sim = self.match_context_with_type(to_match_1, all_property_list,
-                                                                           context_data_type="q")
-                        elif num_v is not None:
-                            property_v, sim = self.match_context_with_type(num_v, all_property_list,
-                                                                           context_data_type="q")
+                    if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
+                        property_v, sim = self.match_context_with_type(to_match_1, all_property_list,
+                                                                       context_data_type="d")
+                        if (property_v == "") and (to_match_1.count(".") <= 1):
+                            # Number of decimals shouldn't be greater than one.
+                            if to_match_1.isnumeric() or to_match_2.isnumeric():
+                                property_v, sim = self.match_context_with_type(to_match_1, all_property_list,
+                                                                               context_data_type="q")
+                            elif num_v is not None:
+                                property_v, sim = self.match_context_with_type(num_v, all_property_list,
+                                                                               context_data_type="q")
+                                property_v_2, sim_2 = self.process_context_string(v, all_property_list)
+                                if sim_2 > sim:
+                                    property_v = property_v_2
+                                    sim = sim_2
 
-                else:
-                    property_v, sim = self.process_context_string(v, all_property_list)
+                    else:
+                        property_v, sim = self.process_context_string(v, all_property_list)
 
-                prop_list.append(property_v)
-                sim_list.append(str(sim))
+                    prop_list.append(property_v)
+                    sim_list.append(str(sim))
 
             prop_str = "|".join(prop_list)
             sim_str = "|".join(sim_list)
@@ -397,7 +413,7 @@ class MatchContext(object):
                         if context_value:
                             # Initial Structuring
                             all_property_list = context_value.split("|")
-                            if not self.isCustom:
+                            if not self.is_custom:
                                 all_property_list[0] = all_property_list[0][1:]
                                 all_property_list[-1] = all_property_list[-1][:-1]
                             # Separate list of only properties.
