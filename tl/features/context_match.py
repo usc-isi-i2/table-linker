@@ -334,7 +334,6 @@ class MatchContext(object):
                 final_similarity_list.append("0.0")
                 continue
             for v in val_list:
-                v = "Playbox 3, Xbox 360"
                 # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
                 if self.remove_punctuation(v) != "":
                     new_v = v.replace('"', '')
