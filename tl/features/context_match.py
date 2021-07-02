@@ -34,7 +34,7 @@ class MatchContext(object):
     def read_context_file(self, context_path: str) -> dict:
         context_dict = {}
         if self.is_custom:
-            f = gzip.open("coauthors.context.tsv.gz", 'rt')
+            f = gzip.open(context_path, 'rt')
             node1_column = "node1"
             node2_column = "node2"
         else:
