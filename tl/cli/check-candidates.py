@@ -2,7 +2,6 @@ import traceback
 import argparse
 import sys
 import tl.exceptions
-from tl.exceptions import UnsupportTypeError
 from tl.utility.logging import Logger
 
 
