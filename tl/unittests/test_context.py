@@ -10,7 +10,7 @@ class TestContextMatch(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestContextMatch, self).__init__(*args, **kwargs)
         self.output_column_name = "weighted_context_score"
-        self.input_file_path = '{}/data/uni_test.csv'.format(parent_path)
+        self.input_file_path = '{}/data/unit_test.csv'.format(parent_path)
         self.context_file_path = '{}/data/unit_test_context.tsv'.format(parent_path)
         self.custom_context_path = '{}/data/custom_context.tsv.gz'.format(parent_path)
         self.kwargs = {'similarity_string_threshold': 0.80, 'similarity_quantity_threshold': 0.80,
