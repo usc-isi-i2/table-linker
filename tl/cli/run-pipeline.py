@@ -2,6 +2,7 @@ import argparse
 import sys
 import traceback
 from tl.exceptions import TLException
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -44,6 +45,8 @@ def add_arguments(parser):
 
 
 def run(**kwargs):
+    import time
+    start = time.time()
     if len(kwargs.get("pipeline")) == 0:
         raise TLException("pipeline command must be given.")
 
@@ -105,6 +108,12 @@ def run(**kwargs):
 
         PipelineUtility.print_pipeline_running_results(results, omit_header=kwargs['omit_headers'],
                                                        input_files=input_files, tag=kwargs.get('tag'))
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "run-pipeline",
+            "time": end-start
+        })
     except:
         message = 'Command: run-pipeline\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())

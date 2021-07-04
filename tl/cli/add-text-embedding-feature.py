@@ -3,6 +3,7 @@ import argparse
 import sys
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -101,12 +102,20 @@ def add_arguments(parser):
 def run(**kwargs):
     try:
         from tl.features.text_embedding import EmbeddingVector
+        import time
         input_file_path = kwargs.pop("input_file")
         vector_transformer = EmbeddingVector(kwargs)
         vector_transformer.load_input_file(input_file_path)
+        start = time.time()
         vector_transformer.get_vectors()
         vector_transformer.process_vectors()
         vector_transformer.add_score_column()
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "add-text-embedding-feature",
+            "time": end-start
+        })
         vector_transformer.print_output()
     except:
         message = 'Command: add-text-embedding-feature\n'

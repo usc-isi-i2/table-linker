@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -47,9 +48,17 @@ def add_arguments(parser):
 
 def run(**kwargs):
     from tl.features.plot_figure import FigurePlotterUnit
+    import time
     try:
+        start = time.time()
         plot_unit = FigurePlotterUnit(**kwargs)
         plot_unit.plot_bar_figure(kwargs["output_score_table"])
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "plot-score-figure",
+            "time": end-start
+        })
 
     except:
         message = 'Command: plot-score-figure\n'

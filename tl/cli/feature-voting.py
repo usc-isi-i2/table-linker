@@ -3,6 +3,7 @@ import traceback
 import argparse
 
 from tl.exceptions import TLException
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -33,13 +34,20 @@ def run(**kwargs):
     try:
         import pandas as pd
         from tl.features.feature_voting import feature_voting
+        import time
         input_file_path = kwargs.pop("input_file")
         input_column_names = kwargs.pop("input_column_names")
         df = pd.read_csv(input_file_path)
+        start = time.time()
         feature_col_names = input_column_names.split(',')
 
         odf = feature_voting(feature_col_names, df)
-
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "feature-voting",
+            "time": end-start
+        })
         odf.to_csv(sys.stdout, index=False)
 
     except:

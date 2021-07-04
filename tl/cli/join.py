@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -35,13 +36,21 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.evaluation.join import Join
     import pandas as pd
+    import time
 
     file_type = 'tsv' if kwargs['tsv'] else 'csv'
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
         i_df = pd.read_csv(kwargs['original_input_file'], sep=',' if file_type == 'csv' else '\t', dtype=object)
+        start = time.time()
         j = Join()
         odf = j.join(df, i_df, kwargs['ranking_score_column'], extra_info=kwargs['extra_info'])
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "join",
+            "time": end-start
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: join\n'

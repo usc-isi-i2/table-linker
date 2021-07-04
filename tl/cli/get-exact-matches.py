@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -51,6 +52,7 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.candidate_generation import get_exact_matches
     import pandas as pd
+    import time
     try:
         auxiliary_fields = kwargs.get('auxiliary_fields', None)
         auxiliary_folder = kwargs.get('auxiliary_folder', None)
@@ -64,6 +66,7 @@ def run(**kwargs):
             auxiliary_fields = auxiliary_fields.split(",")
 
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         em = get_exact_matches.ExactMatches(es_url=kwargs['url'], es_index=kwargs['index'], es_user=kwargs['user'],
                                             es_pass=kwargs['password'], output_column_name=kwargs['output_column_name'])
         odf = em.get_exact_matches(kwargs['column'],
@@ -72,6 +75,12 @@ def run(**kwargs):
                                    auxiliary_fields=auxiliary_fields,
                                    auxiliary_folder=auxiliary_folder,
                                    isa=kwargs['isa'])
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "get-exact-matches",
+            "time": end-start
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: get-exact-matches\n'

@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -33,11 +34,18 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features.extra_information import ExtraInformationProcessing
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
-
+        start = time.time()
         processing_unit = ExtraInformationProcessing(**kwargs)
         odf = processing_unit.check_extra_information(df=df)
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "check-extra-information",
+            "time": end-start
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: check-extra-information\n'

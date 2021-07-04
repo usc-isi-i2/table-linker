@@ -4,6 +4,7 @@ import argparse
 import sys
 
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
