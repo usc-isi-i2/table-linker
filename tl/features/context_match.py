@@ -51,6 +51,7 @@ class MatchContext(object):
                 node_idx = row.index(node1_column)
             else:
                 context_dict[row[node_idx]] = row[feature_idx]
+        f.close()
         return context_dict
 
     @staticmethod
