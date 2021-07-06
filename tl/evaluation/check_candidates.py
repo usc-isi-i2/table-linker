@@ -1,5 +1,3 @@
-import sys
-from numpy import dot
 import pandas as pd
 from tl.file_formats_validator import FFV
 from tl.exceptions import UnsupportTypeError
@@ -22,7 +20,7 @@ def check_candidates(df: pd.DataFrame):
                    "GT_kg_label"]
         if "GT_kg_description" in df.columns:
             columns.append("GT_kg_description")
-            
+
         for i, gdf in grouped:
             if 1 not in gdf["evaluation_label"].values:
                 _ = [i[0], i[1], gdf["label"].iloc[0], gdf["context"].iloc[0],
