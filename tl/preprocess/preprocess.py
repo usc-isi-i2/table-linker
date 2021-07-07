@@ -127,8 +127,29 @@ def string_clean(label, symbols, replace_by_space, keep_original):
         label = str(label)
     clean_label = ftfy.fix_encoding(label)
     clean_label = ftfy.fix_text(clean_label)
+    _no_brackets_label = remove_text_inside_brackets(clean_label)
+    if _no_brackets_label.strip() != "":
+        clean_label = _no_brackets_label
 
     for symbol in symbols:
         clean_label = clean_label.replace(symbol, ' ') if replace_by_space else clean_label.replace(symbol, '')
 
     return '{}|{}'.format(label, clean_label) if keep_original else clean_label
+
+
+def remove_text_inside_brackets(text, brackets="()[]"):
+    count = [0] * (len(brackets) // 2)  # count open/close brackets
+    saved_chars = []
+    for character in text:
+        for i, b in enumerate(brackets):
+            if character == b:  # found bracket
+                kind, is_close = divmod(i, 2)
+                count[kind] += (-1) ** is_close  # `+1`: open, `-1`: close
+                if count[kind] < 0:  # unbalanced bracket
+                    count[kind] = 0  # keep it
+                else:  # found bracket to remove
+                    break
+        else:  # character is not a [balanced] bracket
+            if not any(count):  # outside brackets
+                saved_chars.append(character)
+    return ''.join(saved_chars)
