@@ -1,7 +1,8 @@
 import requests
 import pandas as pd
-import sys
 from typing import List
+from concurrent.futures import ThreadPoolExecutor
+from itertools import repeat
 
 from tl.file_formats_validator import FFV
 from tl.exceptions import UnsupportTypeError
@@ -19,7 +20,7 @@ class KGTKSearchMatches(object):
 
     def get_matches(self, column, size=20, file_path=None, df=None, output_column_name: str = "retrieval_score",
                     auxiliary_fields: List[str] = None, auxiliary_folder: str = None,
-                    auxiliary_file_prefix='kgtk_search_'):
+                    auxiliary_file_prefix='kgtk_search_', max_threads=50):
         """
         uses KGTK search API to retrieve identifiers of KG entities matching the input search term.
 
@@ -41,16 +42,19 @@ class KGTKSearchMatches(object):
             df = pd.read_csv(file_path, dtype=object)
 
         df.fillna(value="", inplace=True)
+
         columns = df.columns
 
         uniq_labels = list(df[column].unique())
+        max_threads = min(len(uniq_labels), max_threads)
 
         results_dict = {}
-        for uniq_label in uniq_labels:
-            api_search_url = f"{self.api_url}?q=" \
-                             f"{uniq_label}&extra_info=true&language=en&type=ngram&size={size}&lowercase=true"
-
-            results_dict[uniq_label] = requests.get(api_search_url).json()
+        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+            for _results_dict in executor.map(
+                    self.kgtk_api_search, uniq_labels, repeat(size)):
+                results_dict.update(_results_dict)
+        # for uniq_label in uniq_labels:
+        #     results_dict.update(self.kgtk_api_search(size, uniq_label))
 
         new_df_list = list()
         seen_dict = {}
@@ -123,3 +127,10 @@ class KGTKSearchMatches(object):
             return pd.concat([df, pd.DataFrame(new_df_list)]).sort_values(by=['column', 'row', column])
 
         raise UnsupportTypeError("The input file is neither a canonical file or a candidate file!")
+
+    def kgtk_api_search(self, uniq_label: str, size: int) -> dict:
+        results_dict = dict()
+        api_search_url = f"{self.api_url}?q=" \
+                         f"{uniq_label}&extra_info=true&language=en&type=ngram&size={size}&lowercase=true"
+        results_dict[uniq_label] = requests.get(api_search_url).json()
+        return results_dict
