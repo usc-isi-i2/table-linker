@@ -4,6 +4,7 @@ import sys
 
 from tl.exceptions import RequiredInputParameterMissingException
 from collections import defaultdict
+from tl.features.utility import Utility
 
 
 class TFIDF(object):
@@ -26,41 +27,12 @@ class TFIDF(object):
         self.input_df = self.input_df.sort_values(['column', 'row'])
         self.output_col_name = output_column_name
         self.N = float(total_docs)
+        self.utils = Utility()
 
-        self.feature_dict, self.feature_count_dict = self.build_qnode_feature_dict(feature_file, feature_name)
-        self.feature_idf_dict = self.calculate_idf_features()
+        self.feature_dict, self.feature_count_dict = self.utils.build_qnode_feature_dict(feature_file, feature_name)
+        self.feature_idf_dict = self.utils.calculate_idf_features(self.feature_count_dict, self.N)
         self.singleton_column = singleton_column
         self.feature_name = feature_name
-
-    def calculate_idf_features(self):
-        _ = {}
-        for c in self.feature_count_dict:
-            _[c] = math.log(self.N / self.feature_count_dict[c])
-        return _
-
-    @staticmethod
-    def build_qnode_feature_dict(features_file: str, feature_name: str) -> (dict, dict):
-        feature_dict = {}
-        feature_count_dict = {}
-
-        f = open(features_file)
-        feature_idx = -1
-        node_idx = -1
-
-        for line in f:
-            row = line.strip().split('\t')
-            if feature_name in row:  # first line
-                feature_idx = row.index(feature_name)
-                node_idx = row.index('qnode')
-            else:
-                _features = row[feature_idx].split("|")  # [Q103838820:3247, Q103940464:9346440, Q10800557:73492,...]
-                feature_val = []
-                for x in _features:
-                    vals = x.split(":")
-                    feature_val.append(vals[0])
-                    feature_count_dict[vals[0]] = float(vals[1])
-                feature_dict[row[node_idx]] = feature_val
-        return feature_dict, feature_count_dict
 
     def normalize_idf_high_confidence_classes(self):
         grouped_obj = self.input_df.groupby('column')
