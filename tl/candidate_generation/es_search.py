@@ -71,10 +71,19 @@ class Search(object):
         if extra_musts:
             must.append(extra_musts)
 
+        must_not = [
+            {"term": {
+                "descriptions.en.keyword_lower": {
+                    "value": "wikimedia disambiguation page"
+                }
+            }}
+        ]
+
         return {
             "query": {
                 "bool": {
-                    "must": must
+                    "must": must,
+                    "must_not": must_not
                 }
             },
             "size": size
@@ -181,7 +190,7 @@ class Search(object):
         return hits
 
     def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
-                               lower_case: bool = True, auxiliary_fields: List[str] = None, ignore_cache=True,
+                               lower_case: bool = True, auxiliary_fields: List[str] = None, ignore_cache=False,
                                extra_musts: dict = None):
         candidate_dict = {}
         candidate_aux_dict = {}
