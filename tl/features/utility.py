@@ -1,4 +1,5 @@
 import math
+from collections import defaultdict
 
 
 class Utility(object):
@@ -44,3 +45,33 @@ class Utility(object):
         for c in feature_count_dict:
             _[c] = math.log(N / feature_count_dict[c])
         return _
+
+    @staticmethod
+    def normalize_idf_high_confidence_classes(input_df, hc_column, feature_dict, feature_idf_dict) -> defaultdict:
+        grouped_obj = input_df.groupby('column')
+        # hc = high confidence
+        hc_classes_count = defaultdict(dict)
+        hc_classes_idf = defaultdict(dict)
+        for column, col_candidates_df in grouped_obj:
+            hc_candidates = col_candidates_df[col_candidates_df[hc_column] == 1]['kg_id'].unique().tolist()
+            for candidate in hc_candidates:
+                if candidate in feature_dict:
+                    classes = feature_dict[candidate]
+                    for c in classes:
+                        if c not in hc_classes_count[column]:
+                            hc_classes_count[column][c] = 0
+                        hc_classes_count[column][c] += 1
+
+        # multiply hc class count with idf
+        for column, col_hc_classes in hc_classes_count.items():
+            for c in col_hc_classes:
+                hc_classes_idf[column][c] = col_hc_classes[c] * feature_idf_dict[c]
+
+        # normalize the high confidence idf scores so that they sum to 1
+        hc_classes_idf_sum = {}
+        for column, col_idf in hc_classes_idf.items():
+            hc_classes_idf_sum[column] = sum([col_idf[x] for x in col_idf])
+        for column, col_idf in hc_classes_idf.items():
+            for c in col_idf:
+                hc_classes_idf[column][c] = hc_classes_idf[column][c] / hc_classes_idf_sum[column]
+        return hc_classes_idf
