@@ -49,7 +49,7 @@ class SemanticsFeature(object):
 
     def label_high_confidence_candidates(self):
         data = self.input_df
-        data.loc[:, HC_CANDIDATE] = 0
+        data[HC_CANDIDATE] = 0
         data.loc[data['method'] == 'exact-match', HC_CANDIDATE] = 1
         grouped = data.groupby(['column', 'row'])
         table_lens = {}
