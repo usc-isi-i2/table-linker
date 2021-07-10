@@ -34,42 +34,13 @@ class TFIDF(object):
         self.singleton_column = singleton_column
         self.feature_name = feature_name
 
-    def normalize_idf_high_confidence_classes(self):
-        grouped_obj = self.input_df.groupby('column')
-        # hc = high confidence
-        hc_classes_count = defaultdict(dict)
-        hc_classes_idf = defaultdict(dict)
-        for column, col_candidates_df in grouped_obj:
-            hc_candidates = col_candidates_df[col_candidates_df[self.singleton_column].astype(int) == 1][
-                'kg_id'].unique().tolist()
-            for candidate in hc_candidates:
-                if candidate in self.feature_dict:
-                    classes = self.feature_dict[candidate]
-                    for c in classes:
-                        if c not in hc_classes_count[column]:
-                            hc_classes_count[column][c] = 0
-                        hc_classes_count[column][c] += 1
-
-        # multiply hc class count with idf
-        for column, col_hc_classes in hc_classes_count.items():
-            for c in col_hc_classes:
-                hc_classes_idf[column][c] = col_hc_classes[c] * self.feature_idf_dict[c]
-
-        # normalize the high confidence idf scores so that they sum to 1
-        hc_classes_idf_sum = {}
-        for column, col_idf in hc_classes_idf.items():
-            hc_classes_idf_sum[column] = sum([col_idf[x] for x in col_idf])
-        for column, col_idf in hc_classes_idf.items():
-            for c in col_idf:
-                hc_classes_idf[column][c] = hc_classes_idf[column][c] / hc_classes_idf_sum[column]
-        return hc_classes_idf
-
     def compute_tfidf(self):
         """
         Compute TF/IDF for all candidates.
 
         """
-        hc_classes_idf = self.normalize_idf_high_confidence_classes()
+        hc_classes_idf = self.utils.normalize_idf_high_confidence_classes(self.input_df, self.singleton_column,
+                                                                          self.feature_dict, self.feature_idf_dict)
 
         scores = []
         top_5_features = []
