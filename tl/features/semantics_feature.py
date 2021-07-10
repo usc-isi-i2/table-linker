@@ -59,10 +59,9 @@ class SemanticsFeature(object):
                 table_lens[key[0]] = 0
             table_lens[key[0]] += 1
             top_fuzzy_match = gdf[gdf['method'] == 'fuzzy-augmented']['pgr_rts'].max()
-            print(key, top_fuzzy_match)
-            # max_ids =
+
             data.loc[data['pgr_rts'] == top_fuzzy_match, HC_CANDIDATE] = 1
-            # data.iloc[max_ids, data.columns.get_loc("hc_candidate")] = 1
+
         self.input_df = data
         self.table_lengths = table_lens
 
