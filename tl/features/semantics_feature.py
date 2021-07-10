@@ -117,22 +117,22 @@ class SemanticsFeature(object):
         classes_count = {}
         candidate_x_i = {}
         alpha_j = {}
-        columns_df = data.groupby(['column'])
 
-        for column, column_df in columns_df:
-            classes_count[column] = {}
-            rows_df = column_df.groupby(['row'])
-            for row_id, row_df in rows_df:
-                classes_count[column][row_id] = {}
-                for _qnode, in zip(row_df['kg_id']):
-                    candidate_classes = self.feature_dict.get(_qnode, [])
-                    for cc in candidate_classes:
-                        if _qnode not in classes_count[column][row_id]:
-                            classes_count[column][row_id][_qnode] = {}
+        for column, row, kg_id in zip(data['column'], data['row'], data['kg_id']):
+            if column not in classes_count:
+                classes_count[column] = {}
+            if row not in classes_count[column]:
+                classes_count[column][row] = {}
 
-                        if cc not in classes_count[column][row_id][_qnode]:
-                            classes_count[column][row_id][_qnode][cc] = 0
-                        classes_count[column][row_id][_qnode][cc] += 1
+            candidate_classes = self.feature_dict.get(kg_id, [])
+
+            for cc in candidate_classes:
+                if kg_id not in classes_count[column][row]:
+                    classes_count[column][row][kg_id] = {}
+
+                if cc not in classes_count[column][row][kg_id]:
+                    classes_count[column][row][kg_id][cc] = 0
+                classes_count[column][row][kg_id][cc] += 1
 
         for c in classes_count:
             c_d = classes_count[c]
