@@ -25,10 +25,10 @@ class TestContextMatch(unittest.TestCase):
         columns = odf.columns
         # The context-score's should not be all 0).
         distinct_context_score_values = odf[self.output_column_name].unique().tolist()
-        self.assertTrue(len(distinct_context_score_values) > 1)
-        self.assertTrue(self.output_column_name in columns)
         # Check for one row : Red Dead Redemption Q548203
         node_context_score = odf[odf['kg_id'] == 'Q548203'][self.output_column_name].values.tolist()[0]
+        self.assertTrue(len(distinct_context_score_values) > 1)
+        self.assertTrue(self.output_column_name in columns)
         self.assertTrue(node_context_score == 1.0)
 
     def test_for_custom_context_file(self):
@@ -40,11 +40,11 @@ class TestContextMatch(unittest.TestCase):
         columns = odf.columns
         # Check if the score for a researcher is greater than 0. 
         researcher_val = odf[odf['kg_id'] == 'Q91463330'][self.output_column_name].values.tolist()
-        self.assertTrue(researcher_val[0] > 0)
         # researcher_prop_value contains the value for the properties matched.
         researcher_prop_value = odf[odf['kg_id'] == 'Q91463330']['context_property'].values.tolist()
         # The custom context file contains Pcoauthor as property.
         researcher_prop_value_list = researcher_prop_value[0].split("|")
+        self.assertTrue(researcher_val[0] > 0)
         self.assertTrue('Pcoauthor' in researcher_prop_value_list)
         self.assertTrue('context_similarity' in columns)
         self.assertTrue('context_property' in columns)
