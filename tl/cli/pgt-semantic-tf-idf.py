@@ -32,7 +32,7 @@ def add_arguments(parser):
     parser.add_argument('--feature-name', action='store', dest='feature_name', required=True,
                         help="name of the column in the feature file")
     parser.add_argument('--N', action='store', dest='total_docs', required=False, default=52546967,
-                        help="total number of documents in ES index, used to compute IDF")
+                        help="total number of documents in ES index, used to compute IDF. Default: 52546967")
 
 
 def run(**kwargs):
