@@ -903,7 +903,7 @@ class Utility(object):
         # astype float first to prevent error of "invalid literal for int() with base 10: '0.0'"
         out_df["column"] = out_df["column"].astype(float).astype(int)
         out_df["row"] = out_df["row"].astype(float).astype(int)
-        out_df = out_df.sort_values(by=['column', 'row'])
+        out_df = out_df.sort_values(by=['column', 'row']).reset_index(drop=True)
         return out_df
 
     @staticmethod

@@ -4,6 +4,7 @@ import hashlib
 import logging
 import re
 import requests
+import sys
 import typing
 from requests.auth import HTTPBasicAuth
 from typing import List
@@ -49,6 +50,7 @@ class Search(object):
     def create_exact_match_query(self, search_term: str, lower_case: bool, size: int, properties: List[str],
                                  extra_musts: dict = None):
         must = list()
+        search_term = search_term.strip()
         for property in properties:
             query_part = {
                 "term": {
@@ -69,10 +71,19 @@ class Search(object):
         if extra_musts:
             must.append(extra_musts)
 
+        must_not = [
+            {"term": {
+                "descriptions.en.keyword_lower": {
+                    "value": "wikimedia disambiguation page"
+                }
+            }}
+        ]
+
         return {
             "query": {
                 "bool": {
-                    "must": must
+                    "must": must,
+                    "must_not": must_not
                 }
             },
             "size": size
@@ -179,7 +190,7 @@ class Search(object):
         return hits
 
     def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
-                               lower_case: bool = True, auxiliary_fields: List[str] = None, ignore_cache=True,
+                               lower_case: bool = True, auxiliary_fields: List[str] = None, ignore_cache=False,
                                extra_musts: dict = None):
         candidate_dict = {}
         candidate_aux_dict = {}
@@ -193,6 +204,11 @@ class Search(object):
                 if query_type == 'exact-match':
                     hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties,
                                                                         extra_musts=extra_musts))
+                    if not hits:
+                        hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size,
+                                                                            ['all_labels_aliases'],
+                                                                            extra_musts=extra_musts))
+
                 elif query_type == 'phrase-match':
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
                 elif query_type == 'fuzzy-match':

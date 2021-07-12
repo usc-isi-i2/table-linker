@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -34,7 +35,9 @@ def add_arguments(parser):
 
 def run(**kwargs):
     from tl.features import tfidf
+    import time
     try:
+        start = time.time()
         tfidf_unit = tfidf.TFIDF(kwargs['output_column_name'],
                                  kwargs['feature_file'],
                                  kwargs['feature_name'],
@@ -43,6 +46,12 @@ def run(**kwargs):
                                  input_file=kwargs['input_file'])
 
         odf = tfidf_unit.compute_tfidf()
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "compute-tf-idf-"+kwargs["feature_name"],
+            "time": end-start
+        })
         odf.to_csv(sys.stdout, index=False)
     except Exception as e:
         message = 'Command: compute-tf-idf\n'

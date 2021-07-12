@@ -2,6 +2,7 @@ import argparse
 import sys
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -20,8 +21,17 @@ def add_arguments(parser):
 def run(**kwargs):
     try:
         from tl.utility.tee import Tee
+        import time
+        start = time.time()
         tee = Tee(kwargs.get("output_file_path"))
         input_content = kwargs.get("input")
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "tee",
+            "time": end-start
+        })
         tee.writeln(input_content)
     except:
         message = 'Command: tee\n'

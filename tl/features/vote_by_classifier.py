@@ -3,7 +3,8 @@ import pickle
 from tl.exceptions import RequiredInputParameterMissingException
 
 
-def vote_by_classifier(model_file, input_file=None, df=None, prob_threshold=0.995):
+def vote_by_classifier(features: str, model_file: str, input_file: str = None, df: pd.DataFrame = None,
+                       prob_threshold: float = 0.995):
     if input_file is None and df is None:
         raise RequiredInputParameterMissingException(
             'One of the input parameters is required: {} or {}'.format("input_file", "df"))
@@ -12,26 +13,23 @@ def vote_by_classifier(model_file, input_file=None, df=None, prob_threshold=0.99
 
     if input_file:
         df = pd.read_csv(input_file, dtype=object)
-    features_list = [
-        'aligned_pagerank', 'smallest_qnode_number', 'monge_elkan', 'des_cont_jaccard_normalized'
-    ]
-    for ft in features_list:
-        assert ft in df, f'There\'s no {ft} column in the table!'
 
     with open(model_file, 'rb') as fid:
         model_loaded = pickle.load(fid)
 
     try:
         prob_threshold = float(prob_threshold)
-    except:
-        prob_threshold = 0
+    except ValueError:
+        prob_threshold = 0.0
 
     # make prediction on target file
     odf = df.copy()
 
-    test_features = df.loc[
-                    :, ['aligned_pagerank', 'smallest_qnode_number', 'monge_elkan', 'des_cont_jaccard_normalized']
-                    ]
+    classifier_features = [x.strip() for x in features.split(',')]
+    for ft in classifier_features:
+        assert ft in df, f'There\'s no {ft} column in the table!'
+
+    test_features = df.loc[:, classifier_features]
 
     prob = model_loaded.predict_proba(test_features)
 

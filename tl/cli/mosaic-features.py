@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -35,12 +36,20 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.features import mosaic_features
     import pandas as pd
+    import time
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
+        start = time.time()
         odf = mosaic_features.mosaic_features(kwargs['label_column'],
                                              kwargs['num_char'],
                                              kwargs['num_tokens'],
                                              df=df)
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "mosaic-features",
+            "time": end-start
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: mosaic-features\n'

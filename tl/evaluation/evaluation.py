@@ -93,7 +93,7 @@ def metrics(column, file_path=None, df=None, k: typing.Union[int, typing.List[in
     df['max_score'] = df.groupby(by=['column', 'row'])[column].transform(max)
 
     # relevant df
-    rdf = df[df['evaluation_label'] != '0']
+    rdf = df[df['evaluation_label'].astype(float) != 0.0]
 
     # true positive for precision at 1
     tp_ps = []

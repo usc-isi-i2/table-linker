@@ -11,6 +11,8 @@ from tl import cli
 from tl.exceptions import tl_exception_handler, TLArgumentParseException
 from tl import __version__
 import sh
+import tempfile
+import os
 
 handlers = [x.name for x in pkgutil.iter_modules(cli.__path__)
             if not x.name.startswith('__')]
@@ -91,6 +93,15 @@ def cli_entry(*args):
         dest='tee',
         required=False,
         help='directory path for saving outputs of all pipeline stages')
+    
+    parser.add_argument(
+        '--log-file',
+        action='store',
+        type=str,
+        required=False,
+        dest='logfile',
+        help='path to file showing additional info about execution of command'
+    )
 
     sub_parsers = parser.add_subparsers(
         metavar='command',
@@ -110,7 +121,7 @@ def cli_entry(*args):
     if len(args) == 1:
         args = args + ('-h',)
     args = args[1:]
-
+    
     # parse internal pipe
     pipe = [tuple(y) for x, y in itertools.groupby(args, lambda a: a == pipe_delimiter) if not x]
     if '--tee' in args:
@@ -157,6 +168,10 @@ def cli_entry(*args):
         if '-P' in args:
             i = args.index('-P')
             global_cmd_options['-P'] = args[i + 1]
+        
+        if '--log-file' in args:
+            i = args.index('--log-file')
+            global_cmd_options['--log-file'] = args[i + 1]
 
         for idx, cmd_args in enumerate(pipe):
             _ = list(cmd_args)

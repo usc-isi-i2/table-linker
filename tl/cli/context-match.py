@@ -4,6 +4,7 @@ import argparse
 import sys
 
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -15,7 +16,7 @@ def parser():
 def add_arguments(parser):
     # input file
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
-    parser.add_argument('--context-file', type=str, dest='context_file', required=True,
+    parser.add_argument('--context-file', type=str, dest='context_file', required=False,
                         help="The file is used to look up context values for matching.")
     parser.add_argument('--debug', action='store_true',
                         help="if set, an kgtk debug logger will be saved at home directory. "
@@ -29,6 +30,10 @@ def add_arguments(parser):
                         dest='similarity_quantity_threshold', default=0.85,
                         help='The minimum threshold for similarity with input context for quantity matching. '
                              'Default: 0.85')
+    parser.add_argument('--custom-context-file', type=str, dest='custom_context_file', required=False,
+                        help="The file is used to look up context values for matching.") 
+    parser.add_argument('--string-separator', action = 'store', type=str, dest = 'string_separator', default = ",", 
+                        help = "Any separators to separate from in the context substrings.")
 
     # output
     parser.add_argument('-o', '--output-column-name', action='store', dest='output_column', default="context_score",
@@ -39,10 +44,19 @@ def add_arguments(parser):
 def run(**kwargs):
     try:
         from tl.features.context_match import MatchContext
+        import time
         input_file_path = kwargs.pop("input_file")
         context_file_path = kwargs.pop("context_file")
-        obj = MatchContext(input_file_path, context_file_path, kwargs)
+        custom_context_file_path = kwargs.pop("custom_context_file")
+        obj = MatchContext(input_file_path, kwargs, context_file_path, custom_context_file_path)
+        start = time.time()
         result_df = obj.process_data_by_column()
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "context-match",
+            "time": end-start
+        })
         result_df.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: context-match\n'

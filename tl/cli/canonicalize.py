@@ -2,6 +2,7 @@ import sys
 import argparse
 import traceback
 import tl.exceptions
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -34,13 +35,21 @@ def add_arguments(parser):
 def run(**kwargs):
     from tl.preprocess import preprocess
     import pandas as pd
+    import time
 
     file_type = 'tsv' if kwargs['tsv'] else 'csv'
     try:
         df = pd.read_csv(kwargs['input_file'], sep=',' if file_type == 'csv' else '\t', dtype=object)
 
+        start = time.time()
         odf = preprocess.canonicalize(kwargs['columns'], output_column=kwargs['output_column'], df=df,
                                       file_type=file_type, add_context=kwargs['add_context'])
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "canonicalize",
+            "time": end-start
+        })
         odf.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: canonicalize\n'

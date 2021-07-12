@@ -10,7 +10,8 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
     translate an input CSV or TSV file to canonical form
 
     Args:
-        columns: the columns in the input file to be linked to KG entities. Multiple columns are specified as a comma separated string.
+        columns: the columns in the input file to be linked to KG entities. Multiple columns are specified as a comma
+        separated string.
         output_column: specifies the name of a new column to be added. Default output column name is label
         file_path: input file path
         df: or input dataframe
@@ -28,28 +29,25 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
         df = pd.read_csv(file_path, sep=',' if file_type == 'csv' else '\t', dtype=object)
 
     columns = columns.split(',')
+    remaining_columns = df.columns.tolist()
     for column in columns:
         if column not in df.columns:
             raise RequiredColumnMissingException("The input column {} does not exist in given data.".format(column))
+        remaining_columns.remove(column)
+
     out = list()
     for i, v in df.iterrows():
         for column in columns:
+            new_row = {
+                'column': df.columns.get_loc(column),
+                'row': i,
+                output_column: v[column]
+            }
             if add_context:
-                remaining_columns = v.keys().tolist()
-                remaining_columns.remove(column)
                 remaining_values = "|".join(v[remaining_columns].dropna().values.tolist())
-                out.append({
-                    'column': df.columns.get_loc(column),
-                    'row': i,
-                    output_column: v[column],
-                    context_column_name: remaining_values
-                })
-            else:
-                out.append({
-                    'column': df.columns.get_loc(column),
-                    'row': i,
-                    output_column: v[column]
-                })
+                new_row[context_column_name] = remaining_values
+
+            out.append(new_row)
     return pd.DataFrame(out).sort_values(by=['column', 'row'])
 
 
@@ -86,7 +84,7 @@ def extract_ground_truth(target_column, kg_id_column, kg_label_column, file_path
             'row': i,
             'kg_id': v[kg_id_column],
             'kg_label': v[kg_label_column]
-            })
+        })
     return pd.DataFrame(out).sort_values(by=['column', 'row'])
 
 
@@ -129,8 +127,29 @@ def string_clean(label, symbols, replace_by_space, keep_original):
         label = str(label)
     clean_label = ftfy.fix_encoding(label)
     clean_label = ftfy.fix_text(clean_label)
+    _no_brackets_label = remove_text_inside_brackets(clean_label)
+    if _no_brackets_label.strip() != "":
+        clean_label = _no_brackets_label
 
     for symbol in symbols:
         clean_label = clean_label.replace(symbol, ' ') if replace_by_space else clean_label.replace(symbol, '')
 
     return '{}|{}'.format(label, clean_label) if keep_original else clean_label
+
+
+def remove_text_inside_brackets(text, brackets="()[]"):
+    count = [0] * (len(brackets) // 2)  # count open/close brackets
+    saved_chars = []
+    for character in text:
+        for i, b in enumerate(brackets):
+            if character == b:  # found bracket
+                kind, is_close = divmod(i, 2)
+                count[kind] += (-1) ** is_close  # `+1`: open, `-1`: close
+                if count[kind] < 0:  # unbalanced bracket
+                    count[kind] = 0  # keep it
+                else:  # found bracket to remove
+                    break
+        else:  # character is not a [balanced] bracket
+            if not any(count):  # outside brackets
+                saved_chars.append(character)
+    return ''.join(saved_chars)

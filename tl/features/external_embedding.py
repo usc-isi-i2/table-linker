@@ -287,16 +287,19 @@ class EmbeddingVector:
                 assert 'vote_by_classifier' in data, f"Missing column 'vote_by_classifier' to use lof-strategy: ems-mv"
                 assert 'singleton' in data, f"Missing column 'singleton' to use lof-strategy: ems-mv"
                 data.loc[data['vote_by_classifier'].astype(int) == 1, 'is_lof'] = 1
-                data.loc[data['singleton'] == 1, 'is_lof'] = 1
+                data.loc[data['singleton'].astype(int) == 1, 'is_lof'] = 1
             elif lof_strategy == 'ems-only':
                 assert 'singleton' in data, f"Missing column 'singleton' to use lof-strategy: ems-only"
-                data.loc[data['singleton'] == 1, 'is_lof'] = 1
+                data.loc[data['singleton'].astype(int) == 1, 'is_lof'] = 1
             else:
                 raise ValueError(f"No such lof strategy available! {lof_strategy}")
             lof_candidate_ids = list(data[data['is_lof'] == 1]['kg_id'])
 
             if not lof_candidate_ids:
-                return False
+                print("No pseudo GT available, using all exact matches as high precision", file=sys.stderr)
+                # return False
+                data.loc[(data['method'] == 'exact-match') & (data['kg_id'] != ""), 'is_lof'] = 1
+                lof_candidate_ids = list(data[data['is_lof'] == 1]['kg_id'])
 
             # obtain graph embedding
             missing_embedding_ids = []
@@ -324,16 +327,24 @@ class EmbeddingVector:
             # run outlier removal algorithm
             n_neigh = min(10, len(vectors) // 3)
 
-            clf = LocalOutlierFactor(n_neighbors=n_neigh, contamination=0.4, metric='cosine')
-            lof_pred = clf.fit_predict(vectors)
-            assert len(lof_pred) == len(vectors)
+            lof_failed = False
+            try:
+                clf = LocalOutlierFactor(n_neighbors=n_neigh, contamination=0.4, metric='cosine')
+                lof_pred = clf.fit_predict(vectors)
+                assert len(lof_pred) == len(vectors)
 
-            lof_vectors = vectors[lof_pred == 1]
-            print(f"Outlier removal generates {len(lof_vectors)} lof-voted candidates", file=sys.stderr)
-            data.loc[data['is_lof'] == 1, 'is_lof'] = lof_pred
+                lof_vectors = vectors[lof_pred == 1]
+                print(f"Outlier removal generates {len(lof_vectors)} lof-voted candidates", file=sys.stderr)
+                data.loc[data['is_lof'] == 1, 'is_lof'] = lof_pred
 
-            # centroid of lof-voted candidates
-            self.centroid[column] = np.mean(lof_vectors, axis=0)
+                # centroid of lof-voted candidates
+                self.centroid[column] = np.mean(lof_vectors, axis=0)
+            except Exception:
+                print('Column_vector_stragtegy centroid_of_lof failed', file=sys.stderr)
+                lof_failed = True
+
+            if lof_failed:
+                self.centroid[column] = np.mean(vectors, axis=0)
             assert "is_lof" in data, "is_lof column doesn't exist!"
             updated_loaded_file = updated_loaded_file.append(data)
 

@@ -49,11 +49,13 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`add-text-embedding-feature`](#command_add-text-embedding-feature)<sup>*</sup>: computes text embedding vectors of the candidates and similarity to rank candidates.
 - [`align-page-rank`](#command_align-page-rank)<sup>*</sup>: computes aligned page rank (exact-match candidates retain its pagerank as is, fuzzy-match candidates receive 0 for page rank).
 - [`canonicalize`](#command_canonicalize)<sup>*</sup>: translate an input CSV or TSV file to [canonical form](https://docs.google.com/document/d/1eYoS47dCryh8XKjWIey7khikkbggvc6IUkdUGrQ9pEQ/edit#heading=h.wn7c3l1ngi5z)
+- [`check-candidates`](#command_check-candidates)<sup>*</sup>: displays those rows for which the ground truth was never retrieved as a candidate.
 - [`check-extra-information`](#command_check-extra-information)<sup>*</sup> : Check if the given extra information exists in the given kg node and corresponding wikipedia page (if exists).
 - [`clean`](#command_clean)<sup>*</sup> : clean the values to be linked to the KG.
 - [`combine-linearly`](#command_combine-linearly)<sup>*</sup>: linearly combines two or more columns with scores for candidate knowledge graph objects for each input cell value.
 - [`compute-tf-idf`](#command_compute-tf-idf)<sup>*</sup>: compute the "tf-idf" like score base on the candidates. It is not the real tf-idf score algorithm but using a algorithm similar to tf-idf score.
 - [`context-match`](#command_context-match)<sup>*</sup>: matches the values present as the context to the properties of the candidate and calculates the score based on the properties matched for each candidate.
+- [`create-pseudo-gt`](#command_create-pseudo-gt)<sup>*</sup>: generates a boolean feature indicating if candidate is part of the pseudo ground truth or not.
 - [`create-singleton-feature`](#command_create-singleton-feature)<sup>*</sup>: generates a boolean feature for exact match singletons
 - [`drop-by-score`](#command_drop-by-score)<sup>*</sup>: Remove rows of each candidates according to specified score column from higher to lower.
 - [`drop-duplicate`](#command_drop-duplicate)<sup>*</sup>: Remove duplicate rows of each candidates according to specified column and keep the one with higher score on specified column.
@@ -92,6 +94,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - `-U {user id}`: the user id for authenticating to the ElasticSearch index
 - `-P {password}`: the password for authenticating to the ElasticSearch index
 - `--tee {directory}`: directory path for saving outputs of all pipeline stages
+- `--log-file {path_to_file}`: file path for saving additional info about execution of command
 
 ## Common Options
 These are options that can appear in different commands. We list them here so that options with the same meaning use the same character.
@@ -667,6 +670,43 @@ tl align-page-rank candidates.csv > aligned_candidates.csv
 |1     |10 |BP             |Q131755   |5.235995e-09 	 |fuzzy-augmented|0.000000e+00    |
 ```
 
+<a name="command_check-candidates" />
+
+### [`check-candidates`](#command_check-candidates)` [OPTIONS]`
+
+The `check-candidates` command takes a candidates/features file and returns those rows for which the ground-truth was never retrieved as a candidate. `ground-truth-labeler` command needs to be run previously for this command to work.
+
+This commands follows the following procedure:
+
+Step 1: Group the candidates dataframe by column and row. 
+
+Following is a snippet of the input file.
+
+
+| column | row | label   | context                       | label_clean | kg_id     | kg_labels        | kg_aliases                                                                                                                                                                                                                   | method          | kg_descriptions                                               | pagerank               | retrieval_score | GT_kg_id  | GT_kg_label | evaluation_label | 
+|--------|-----|---------|-------------------------------|-------------|-----------|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|---------------------------------------------------------------|------------------------|-----------------|-----------|-------------|------------------| 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q197728   | Santiago Salcedo | "Santiago Gabriel Salcedo\|Santiago Gabriel Salcedo Gonzalez\|S. Salcedo\|S. G. S. González\|Santiago G. Salcedo González\|González, S. G. S.\|Santiago Gabriel Salcedo González\|Santiago Gabriel S. González\|Salcedo, S." | fuzzy-augmented | Paraguayan association football player                        | 3.976872442613597e-09  | 16.31549        | Q52797639 | Saliceto    | -1               | 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q19681762 | Saúl Salcedo     | "Saul salcedo\|Saul Salcedo\|Saúl Savín Salcedo Zárate\|S. Salcedo\|Saul Savin Salcedo Zarate\|Salcedo, S."                                                                                                                  | fuzzy-augmented | Paraguayan footballer                                         | 3.5396131256502836e-09 | 16.12341        | Q52797639 | Saliceto    | -1               | 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Salceto     | Q12856    | Salcedo          | Baugen                                                                                                                                                                                                                       | fuzzy-augmented | municipality of the Philippines in the province of Ilocos Sur | 1.7080570334293118e-08 | 15.950816       | Q52797639 | Saliceto    | -1               | 
+
+
+Step 2: Check if the grouped dataframe contains a 1 in the evaluation_label column. 
+
+Step 3: If not, add the column, row, label, context, GT_kg_id, GT_kg_label to the output. If the GT_kg_description of the Qnodes are available, then append that to output.
+
+
+**Examples:**
+```bash
+$ tl check-candidates input.csv
+```
+**File Example:**
+```bash
+$ tl check-candidates input.csv
+```
+
+| column | row | label   | context                       | GT_kg_id  | GT_kg_label | 
+|--------|-----|---------|-------------------------------|-----------|-------------| 
+| 0      | 4   | Salceto | Saliceto\|Cortemilia-Saliceto | Q52797639 | Saliceto    | 
 
 <a name="command_check-extra-information" />
 
@@ -831,6 +871,10 @@ Following is a snippet of the context file.
 |-------|-----------------------------------------------------------------------|
 |Q185888|d"2010":P577&#124;i"(en)":P364:Q1860&#124;i"\'merica":P495:Q30&#124;...|
 
+Following is a snippet of a custom context file.
+|node1  |label  |node2                                                                  |
+|-------|-------|-----------------------------------------------------------------------|
+|Q185888|context|d"2010":P577&#124;i"(en)":P364:Q1860&#124;i"\'merica":P495:Q30&#124;...|
 
 Try to match to date, quantity and then string in the order depending upon the similarity thresholds given (Dates are matched with thresholds of 1.).
 
@@ -846,6 +890,9 @@ Step 4: Calculate the score for each candidate by multiplying the property value
 - `-o / --output-column-name {string}`: The output scoring column name. If not provided, the column name will be `context_score`.
 - `--similarity-string-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for string matching.
 - `--similarity-quantity-threshold {float}`: A value between 0 and 1, that acts as the minimum threshold for similarity with input context for quantity matching.
+- `--context-file {tab separated file}` : A context file generated from the ElasticSearch that will be used for matching the properties. 
+- `--custom-context-file {compressed tab separated file}` : A custom context file provided of the format above is used to match the properties.
+- `--string-separator`: To break down the values in the context string, this additional parametere can be used.
 - `--debug`: Adds properties matched and the similarity columns to the result.
 
 **Examples:**
@@ -873,6 +920,50 @@ $ tl context-match movies.csv \
 |1     |1  |Inception         |2&#124;2010&#124;Christopher Nolan&#124;8.9&#124;333261|Q25188   |0.6769     |
 |1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q1587838 |0.6337     |
 |1     |10 |The Hangover      |11&#124;2009&#124;Todd Phillips&#124;7.9&#124;154719   |Q219315  |0.6337     |
+
+<a name="command_create-pseudo-gt" />
+
+### [`create-pseudo-gt`](#command_create-pseudo-gt)` [OPTIONS]`
+
+The `create-pseudo-gt` command takes a features file and a string indicating the features and the corresponding thresholds by which pseudo ground truth needs to be computed, and creates a new feature indicating if the candidate is part of the pseudo ground truth (indicated with 1) or not (indicated with a 0).
+
+This commands follows the following procedure:
+
+Step 1: Read the input file and check for validity.
+
+Following is a snippet of the input file:
+
+| column | row | label                       | context      | label_clean                 | kg_id     | kg_labels                   | kg_aliases | method          | kg_descriptions                                 | pagerank               | retrieval_score | GT_kg_id  | GT_kg_label                 | evaluation_label | aligned_pagerank       | monge_elkan        | monge_elkan_aliases | jaro_winkler       | levenshtein | des_cont_jaccard | des_cont_jaccard_normalized | smallest_qnode_number | num_char | num_tokens | singleton | context_score | 
+|--------|-----|-----------------------------|--------------|-----------------------------|-----------|-----------------------------|------------|-----------------|-------------------------------------------------|------------------------|-----------------|-----------|-----------------------------|------------------|------------------------|--------------------|---------------------|--------------------|-------------|------------------|-----------------------------|-----------------------|----------|------------|-----------|---------------| 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346968 | "Sekhmatia Union, Nazirpur" |            | exact-match     | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 21.686          | Q22346968 | "Sekhmatia Union, Nazirpur" | 1                | 3.5396131256502836e-09 | 1.0                | 0.0                 | 1.0                | 1.0         | 0.0              | 0.0                         | 0                     | 25       | 3          | 1         | 0.89          | 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346968 | "Sekhmatia Union, Nazirpur" |            | fuzzy-augmented | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 36.477844       | Q22346968 | "Sekhmatia Union, Nazirpur" | 1                | 0.0                    | 1.0                | 0.0                 | 1.0                | 1.0         | 0.0              | 0.0                         | 0                     | 25       | 3          | 0         | 0.89          | 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346967 | "Nazirpur Union, Nazirpur"  |            | fuzzy-augmented | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 25.24847        | Q22346968 | "Sekhmatia Union, Nazirpur" | -1               | 0.0                    | 0.9151234567901234 | 0.0                 | 0.7677777777777778 | 0.64        | 0.0              | 0.0                         | 0                     | 24       | 3          | 0         | 0.0           | 
+
+Step 2: Set the output column name to 1 if the singleton feature is 1 or if the context score is greater than or equal to the threshold set by the user (default = 0.7).
+
+
+**Options:**
+- `--column-thresholds {string}`: String indicating which column need to be considered along with the corresponding threshold; for instance, `singleton`:1. Multiple columns and thresholds can be separated by a comma; for instance, `singleton`:1,`context_score`:0.7.
+- `-o / --output-column-name {string}`: Column name indicating the output.
+
+**Examples:**
+```bash
+$ tl create-pseudo-gt input.csv\
+--column-thresholds singleton:1,context_score:0.7\
+-o pseudo_gt
+```
+**File Example:**
+```bash
+$ tl create-pseudo-gt input.csv\
+--column-thresholds singleton:1,context_score:0.7\
+-o pseudo_gt
+```
+
+| column | row | label                       | context      | label_clean                 | kg_id     | kg_labels                   | kg_aliases | method          | kg_descriptions                                 | pagerank               | retrieval_score | GT_kg_id  | GT_kg_label                 | evaluation_label | aligned_pagerank       | monge_elkan        | monge_elkan_aliases | jaro_winkler       | levenshtein | des_cont_jaccard | des_cont_jaccard_normalized | smallest_qnode_number | num_char | num_tokens | singleton | context_score | pseudo_gt | 
+|--------|-----|-----------------------------|--------------|-----------------------------|-----------|-----------------------------|------------|-----------------|-------------------------------------------------|------------------------|-----------------|-----------|-----------------------------|------------------|------------------------|--------------------|---------------------|--------------------|-------------|------------------|-----------------------------|-----------------------|----------|------------|-----------|---------------|-----------| 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346968 | "Sekhmatia Union, Nazirpur" |            | exact-match     | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 21.686          | Q22346968 | "Sekhmatia Union, Nazirpur" | 1                | 3.5396131256502836e-09 | 1.0                | 0.0                 | 1.0                | 1.0         | 0.0              | 0.0                         | 0                     | 25       | 3          | 1         | 0.89          | 1.0       | 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346968 | "Sekhmatia Union, Nazirpur" |            | fuzzy-augmented | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 36.477844       | Q22346968 | "Sekhmatia Union, Nazirpur" | 1                | 0.0                    | 1.0                | 0.0                 | 1.0                | 1.0         | 0.0              | 0.0                         | 0                     | 25       | 3          | 0         | 0.89          | 1.0       | 
+| 0      | 0   | "Sekhmatia Union, Nazirpur" | 11877\|11502 | "Sekhmatia Union, Nazirpur" | Q22346967 | "Nazirpur Union, Nazirpur"  |            | fuzzy-augmented | "Union of Nazirpur Upazilla, Pirojpur District" | 3.5396131256502836e-09 | 25.24847        | Q22346968 | "Sekhmatia Union, Nazirpur" | -1               | 0.0                    | 0.9151234567901234 | 0.0                 | 0.7677777777777778 | 0.64        | 0.0              | 0.0                         | 0                     | 24       | 3          | 0         | 0.0           | 0.0       | 
 
 
 <a name="command_create-singleton-feature" />
