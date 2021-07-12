@@ -39,16 +39,19 @@ def run(**kwargs):
 
     file_type = 'tsv' if kwargs['tsv'] else 'csv'
     try:
-        df = pd.read_csv(kwargs['input_file'], sep=',' if file_type == 'csv' else '\t', dtype=object)
+        i_file = kwargs['input_file']
+        df = pd.read_csv(i_file, sep=',' if file_type == 'csv' else '\t', dtype=object)
+        file_name = i_file.split("/")[-1]
 
         start = time.time()
         odf = preprocess.canonicalize(kwargs['columns'], output_column=kwargs['output_column'], df=df,
-                                      file_type=file_type, add_context=kwargs['add_context'])
+                                      file_type=file_type, add_context=kwargs['add_context'],
+                                      file_name=file_name)
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
             "command": "canonicalize",
-            "time": end-start
+            "time": end - start
         })
         odf.to_csv(sys.stdout, index=False)
     except:
