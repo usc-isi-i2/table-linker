@@ -9,18 +9,20 @@ def smallest_qnode_number(df):
     Returns:
         a dataframe with 'smallest_qnode_number' column
     """
-    res = pd.DataFrame()
+    res = list()
     for ((col, row), group) in df.groupby(['column', 'row']):
         tmp_df = group.copy().fillna("")
         tmp_df['kg_id_num'] = tmp_df['kg_id'].map(lambda x: extract_qnumber(x))
         tmp_kgid_min = tmp_df['kg_id_num'].min()
         tmp_df['smallest_qnode_number'] = (tmp_df['kg_id_num'] == tmp_kgid_min).astype(int)
         group['smallest_qnode_number'] = tmp_df['smallest_qnode_number']
-        res = res.append(group)
-    return res
+        res.append(group)
+    return pd.concat(res)
 
 
 def extract_qnumber(qnode: str):
+    if qnode.startswith('P'):
+        return float('inf')
     if qnode.strip():
         return float(qnode.replace("Q", ""))
-    return float('inf') # infinite
+    return float('inf')  # infinite
