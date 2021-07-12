@@ -10,13 +10,13 @@ def align_page_rank(input_file=None, df=None):
         df = pd.read_csv(input_file, dtype=object)
     assert 'pagerank' in df, 'There\'s no page rank column in the table!'
 
-    odf = pd.DataFrame()
+    results = list()
     for ((col, row), group) in df.groupby(['column', 'row']):
         exact_match_df = group[group['method'] == 'exact-match'].copy()
         exact_match_df['aligned_pagerank'] = exact_match_df['pagerank'].astype(float)
-        odf = odf.append(exact_match_df)
+        results.append(exact_match_df)
 
         fuzzy_match_df = group[group['method'] == 'fuzzy-augmented'].copy()
         fuzzy_match_df['aligned_pagerank'] = 0
-        odf = odf.append(fuzzy_match_df)
-    return odf
+        results.append(fuzzy_match_df)
+    return pd.concat(results)
