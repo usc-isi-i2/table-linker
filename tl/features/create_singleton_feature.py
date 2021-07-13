@@ -16,7 +16,8 @@ def create_singleton_feature(output_column, file_path=None, df=None):
         raise UnsupportTypeError("The input file is not a candidate file!")
 
     exact_match_count = df[df['method'] == 'exact-match'].groupby(['column', 'row'])[['kg_id']].count()
-    exact_match_singleton = list(exact_match_count[exact_match_count['kg_id'] == 1].index)
+
+    exact_match_singleton = set(exact_match_count[exact_match_count['kg_id'] == 1].index)
 
     df[output_column] = df.apply(lambda x: is_singleton(x.column, x.row, exact_match_singleton, x.method), axis=1)
     return df
