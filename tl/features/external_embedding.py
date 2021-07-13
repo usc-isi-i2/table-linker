@@ -261,7 +261,7 @@ class EmbeddingVector:
     def _centroid_of_lof(self) -> bool:
         from sklearn.neighbors import LocalOutlierFactor
 
-        updated_loaded_file = pd.DataFrame()
+        results = []
         grouped_obj = self.loaded_file.groupby('column')
         for column, col_candidates_df in grouped_obj:
             data = col_candidates_df.copy()
@@ -346,9 +346,9 @@ class EmbeddingVector:
             if lof_failed:
                 self.centroid[column] = np.mean(vectors, axis=0)
             assert "is_lof" in data, "is_lof column doesn't exist!"
-            updated_loaded_file = updated_loaded_file.append(data)
+            results.append(data)
 
-        self.loaded_file = updated_loaded_file
+        self.loaded_file = pd.concat(results)
         return True
 
     def compute_distance(self, v1: np.array, v2: np.array):
