@@ -16,7 +16,8 @@ class FFV(object):
 
         columns = df.columns
 
-        if len(columns) >= 3 and all(c in columns for c in self.canonical_columns):
+        if len(columns) >= 3 and all(c in columns for c in self.canonical_columns) and all(
+                c not in columns for c in self.candidates_columns):
             return True
         return False
 
