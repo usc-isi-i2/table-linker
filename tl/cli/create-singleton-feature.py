@@ -39,11 +39,11 @@ def run(**kwargs):
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
-            "command": "creat-singleton-feature",
-            "time": end-start
+            "command": "create-singleton-feature",
+            "time": end - start
         })
         odf.to_csv(sys.stdout, index=False)
-    except:
+    except Exception:
         message = 'Command: create-singleton-feature\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)
