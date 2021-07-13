@@ -41,7 +41,7 @@ def run(**kwargs):
     try:
         i_file = kwargs['input_file']
         df = pd.read_csv(i_file, sep=',' if file_type == 'csv' else '\t', dtype=object)
-        file_name = i_file.split("/")[-1]
+        file_name = i_file.name.split("/")[-1]
 
         start = time.time()
         odf = preprocess.canonicalize(kwargs['columns'], output_column=kwargs['output_column'], df=df,
