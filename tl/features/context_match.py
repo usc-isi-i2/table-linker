@@ -6,6 +6,8 @@ from statistics import mode
 import gzip
 from pyrallel import ParallelProcessor
 from multiprocessing import cpu_count
+import itertools 
+import collections
 
 
 class MatchContext(object):
@@ -20,7 +22,10 @@ class MatchContext(object):
                 'One of the input parameters is required: {} or {}'.format("context_path", "custom_context_path"))
         elif custom_context_path:
             self.is_custom = True
-            self.context = self.read_context_file(custom_context_path)
+            if context_path:
+                self.context = self.read_context_file(context_path, custom_context_path)
+            else:
+                self.context = self.read_context_file(custom_context_path = custom_context_path)
         else:
             self.context = self.read_context_file(context_path)
         self.output_column_name = args.get("output_column")
@@ -34,19 +39,33 @@ class MatchContext(object):
         # with equal similarity.
         self.equal_matched_properties = {}
 
-    def read_context_file(self, context_path: str) -> dict:
-        context_dict = {}
-        if self.is_custom:
-            f = gzip.open(context_path, 'rt')
-            node1_column = "node1"
-            node2_column = "node2"
-        else:
+    def read_context_file(self, context_path = None, custom_context_path = None) -> dict:
+        if context_path:
             f = open(context_path)
             node1_column = "qnode"
             node2_column = "context"
+            context_dict_1 = self._read_context_file_line(f, node1_column, node2_column)
+            f.close()
+        if custom_context_path:
+            f = gzip.open(custom_context_path, 'rt')
+            node1_column = "node1"
+            node2_column = "node2"
+            context_dict_2 = self._read_context_file_line(f, node1_column, node2_column)
+            f.close()
+        if context_path and custom_context_path:
+            context_dict = collections.defaultdict(str)
+            for key, val in itertools.chain(context_dict_1.items(), context_dict_2.items()):
+                context_dict[key] += val 
+            return context_dict
+        if custom_context_path:
+            return context_dict_2
+        return context_dict_1
+            
+
+    def _read_context_file_line(self, f, node1_column: str, node2_column: str) -> dict:
+        context_dict = {}
         feature_idx = -1
         node_idx = -1
-
         for line in f:
             row = line.strip().split('\t')
             if node1_column in row and node2_column in row:  # first line
@@ -54,7 +73,7 @@ class MatchContext(object):
                 node_idx = row.index(node1_column)
             else:
                 context_dict[row[node_idx]] = row[feature_idx]
-        f.close()
+        
         return context_dict
 
     @staticmethod
