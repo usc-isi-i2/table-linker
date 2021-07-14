@@ -19,7 +19,13 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -e .
+          pip install coverage coveralls
       - name: Run Tests
         run: |
           cd tl/unittests
-          python -m unittest discover
+          coverage run --source=tl -m unittest discover
+      - name: Coverage
+        env:
+          GITHUB_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
+        run: |
+          coveralls --service=github
