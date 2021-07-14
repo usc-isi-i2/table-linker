@@ -22,7 +22,7 @@ def add_arguments(parser):
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
     parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column_name',
                         default="smc_score",
-                        help='the output column name where the normalized scores will be stored.Default is tf_idf_score')
+                        help='the output column name where the normalized scores will be stored.Default is smc_score')
     parser.add_argument('--pagerank-column', action='store', dest='pagerank_column', required=True,
                         help="Name of the column with pagerank feature")
     parser.add_argument('--retrieval-score-column', action='store', dest='retrieval_score_column', required=True,
