@@ -4,12 +4,15 @@ import rltk.similarity as similarity
 from tl.exceptions import RequiredInputParameterMissingException
 from statistics import mode
 import gzip
+from pyrallel import ParallelProcessor
+from multiprocessing import cpu_count
 
 
 class MatchContext(object):
     def __init__(self, input_path, args, context_path=None, custom_context_path=None):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
+        self.final_property_similarity_list = []
         self.result_data = pd.DataFrame()
         self.is_custom = False
         if context_path is None and custom_context_path is None:
@@ -338,82 +341,108 @@ class MatchContext(object):
 
         self.result_data = self.result_data.reset_index(drop=True)
         return self.result_data
+    
+    def mapper(self, idx, q_node, val):
+        """
+        Purpose: Mapper to the parallel processor to process each row parallely
+        Returns: The index of row, property string and the context similarity
+                 string
+        :param idx:
+        :param q_node:
+        :param val:
+        """
+        prop_list = []
+        sim_list = []
+        # if there is empty context in the data file
+        try:
+            val_list = val.split("|")
+        except AttributeError:
+            val_list = ""
+
+        # In some of the files, there is no context for a particular q-node. Removed during context file generation.
+        context_value = self.context.get(q_node, None)
+
+        if context_value:
+            all_property_list = context_value.split("|")
+            if not self.is_custom:
+                all_property_list[0] = all_property_list[0][1:]
+                all_property_list[-1] = all_property_list[-1][:-1]
+        else:
+            return idx, "", "0.0"
+        for v in val_list:
+            # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
+            if self.remove_punctuation(v) != "":
+                new_v = v.replace('"', '')
+                to_match_1 = new_v.replace(",", "")
+                to_match_2 = to_match_1.replace(".", "0")
+
+                num_v = None
+
+                if " " in to_match_2:
+                    split_v = to_match_1.split(" ")
+                    for s in split_v:
+                        if not s == ".":
+                            new_s = s.replace(".", "0")
+                            if new_s.isnumeric():
+                                num_v = s
+
+                if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
+                    property_v, sim = self.match_context_with_type(to_match_1, q_node, all_property_list,
+                                                                    context_data_type="d")
+                    if (property_v == "") and (to_match_1.count(".") <= 1):
+                        # Number of decimals shouldn't be greater than one.
+                        if to_match_1.isnumeric() or to_match_2.isnumeric():
+                            property_v, sim = self.match_context_with_type(to_match_1, q_node, all_property_list,
+                                                                            context_data_type="q")
+                        elif num_v is not None:
+                            property_v, sim = self.match_context_with_type(num_v, q_node, all_property_list,
+                                                                            context_data_type="q")
+                            property_v_2, sim_2 = self.process_context_string(v, q_node, all_property_list)
+                            if sim_2 > sim:
+                                property_v = property_v_2
+                                sim = sim_2
+
+                else:
+                    property_v, sim = self.process_context_string(v, q_node, all_property_list)
+
+                prop_list.append(property_v)
+                sim_list.append(str(sim))
+        prop_str = "|".join(prop_list)
+        sim_str = "|".join(sim_list)
+        return idx, prop_str, sim_str
+
+    def collector(self, idx, prop_str, sim_str):
+        """
+        Purpose: collects the output of the mapper and appends to 
+                 final_property_list.
+        :param idx:
+        :prop_str:
+        :sim_str:
+        """
+        self.final_property_similarity_list.append([idx, prop_str, sim_str])
 
     def process_data_context(self):
         """
-        Purpose: Processes the dataframe, reads each context_value separated by "|" and tries to match them to either
+        Purpose: Processes the dataframe, reads each context_value separated by
+        "|" and tries to match them to either
         date, string or quantity depending upon the structure of the context.
         """
-        final_property_list = []
-        final_similarity_list = []
+        self.final_property_similarity_list = []
+        cpus = cpu_count()
+        pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
+                               collector=self.collector, batch_size=100)
+        pp.start()
+        pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"], 
+                   self.data["context"]))
+        pp.task_done()
+        pp.join()
 
-        for q_node, val in zip(self.data['kg_id'], self.data['context']):
-            prop_list = []
-            sim_list = []
-            # if there is empty context in the data file
-            try:
-                val_list = val.split("|")
-            except AttributeError:
-                val_list = ""
-
-            # In some of the files, there is no context for a particular q-node. Removed during context file generation.
-            context_value = self.context.get(q_node, None)
-
-            if context_value:
-                all_property_list = context_value.split("|")
-                if not self.is_custom:
-                    all_property_list[0] = all_property_list[0][1:]
-                    all_property_list[-1] = all_property_list[-1][:-1]
-            else:
-                final_property_list.append("")
-                final_similarity_list.append("0.0")
-                continue
-            for v in val_list:
-                # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
-                if self.remove_punctuation(v) != "":
-                    new_v = v.replace('"', '')
-                    to_match_1 = new_v.replace(",", "")
-                    to_match_2 = to_match_1.replace(".", "0")
-
-                    num_v = None
-
-                    if " " in to_match_2:
-                        split_v = to_match_1.split(" ")
-                        for s in split_v:
-                            if not s == ".":
-                                new_s = s.replace(".", "0")
-                                if new_s.isnumeric():
-                                    num_v = s
-
-                    if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
-                        property_v, sim = self.match_context_with_type(to_match_1, q_node, all_property_list,
-                                                                       context_data_type="d")
-                        if (property_v == "") and (to_match_1.count(".") <= 1):
-                            # Number of decimals shouldn't be greater than one.
-                            if to_match_1.isnumeric() or to_match_2.isnumeric():
-                                property_v, sim = self.match_context_with_type(to_match_1, q_node, all_property_list,
-                                                                               context_data_type="q")
-                            elif num_v is not None:
-                                property_v, sim = self.match_context_with_type(num_v, q_node, all_property_list,
-                                                                               context_data_type="q")
-                                property_v_2, sim_2 = self.process_context_string(v, q_node, all_property_list)
-                                if sim_2 > sim:
-                                    property_v = property_v_2
-                                    sim = sim_2
-
-                    else:
-                        property_v, sim = self.process_context_string(v, q_node, all_property_list)
-
-                    prop_list.append(property_v)
-                    sim_list.append(str(sim))
-
-            prop_str = "|".join(prop_list)
-            sim_str = "|".join(sim_list)
-            final_property_list.append(prop_str)
-            final_similarity_list.append(sim_str)
-
-        self.data['context_property'] = final_property_list
-        self.data['context_similarity'] = final_similarity_list
+        property_sim_df = pd.DataFrame(self.final_property_similarity_list,
+                                       columns=["idx", "context_property",
+                                                "context_similarity"])
+        property_sim_df.set_index("idx", drop=True, inplace=True)
+        self.data = pd.merge(self.data, property_sim_df,
+                             left_index=True, right_index=True)
         self.calculate_property_value()
         # Recalculate for the most important property for each q_node's that don't have that property.
         unique_positions = self.properties_with_score_metric['position'].unique().tolist()
