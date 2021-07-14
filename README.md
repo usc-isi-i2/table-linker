@@ -20,6 +20,25 @@ pip install -e .
 ```
 If python3 is not installed, find out what version of python 3 is installed and use that instead
 
+## Install via Docker
+
+```
+git clone https://github.com/usc-isi-i2/table-linker
+cd table-linker
+```
+
+1. Build the Docker image
+```
+docker build -t table-linker .
+```
+2. Run Docker container
+```
+docker run \
+  -v <local path on host machine with files to wikify>:/data  \
+  -it -p 3322:3322 table-linker \
+  /bin/bash -c "jupyter lab --ip='*' --port=3322 --allow-root --no-browser --notebook-dir /table-linker/notebooks"
+```
+
 ## Pipelines
 The `tl` CLI works by pushing CSV data through a series of commands, starting with a single input on `stdin` and ending with a single output on `stdout`. This pipeline feature allows construction of pipelines for linking table cells to a knowledge graph (KG).
 
