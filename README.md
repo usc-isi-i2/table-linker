@@ -81,6 +81,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`string-similarity`](#command_string-similarity)<sup>*</sup>: compares the cell values in two input columns and outputs a similarity score for each pair of participating strings
 - [`tee`](#command_tee)<sup>*</sup>: saves the input to disk and echoes the input to the standard output without modification.
 - [`vote-by-classifier`](#command_vote-by-classifier) <sup>*</sup>: generates vote_by_model column as specified classifier's prediction output.
+- [`pgt-semantic-tf-idf`](#command_pgt-semantic-tf-idf) <sup>*</sup>: Identify pseudo GT and then compute tf-idf score using semantic features in the pseudo GT.
 
 
 **Note: only the commands marked with <sup>*</sup> are currently implemented**
@@ -1900,3 +1901,94 @@ $ tl vote-by-classifier candidates.csv \
 |1     |10 |BP             |Q100151423|...|fuzzy-augmented   |0.000000e+00    |0                 |
 |1     |10 |BP             |Q131755   |...|fuzzy-augmented   |0.000000e+00    |1                 |
 ```
+
+<a name="command_pgt-semantic-tf-idf" />
+
+### [`pgt-semantic-tf-idf`](#command_pgt-semantic-tf-idf)` [OPTIONS]`
+
+The `pgt-semantic-tf-idf` command adds two feature columns by computing the tf-idf like score based on high confidence candidates for an input column.
+This command is described in the following image:
+
+<img src="images/tl-ground-truth-class-feature.jpeg">
+
+This commands follows the following procedure:
+
+Step 1: Get the set of high confidence candidates. High confidence candidates, for each cell, are defined as candidates which has the method `exact-match` or have the highest `pagerank` * `retrieval_score` with method `fuzzy-augmented`.
+
+Step 2: For each of the high confidence candidates get the class-count data. This data is stored in Elasticseach index and is gathered during the 
+candidate generation step.
+
+The data consists of q-node:count pairs where the q-node represents a class and the count is the number of instances below the class. These counts use a generalized version of is-a where occupations and position held are considered is-a, eg, Scwarzenegger is an actor.
+
+Similarly, another dataset consists of p-node:count pairs where p-node represents a property the candidate qnode has and count is the total number of qnodes in
+the corpus which has this property.
+
+Step 3: Make a set of all the classes that appear in the high confidence classes, and count the number of times each class occurs in each candidate. For example, if two high precision candidates are human, then Q5 will have num-occurrences = 2.
+
+Step 4: Convert the instance counts for the set constructed in step 3 to IDF (see https://en.wikipedia.org/wiki/Tf–idf), and then multiply the IDF score of each class by the num-occurrences number from step 3. Then, normalize them so that all the IDF scores for the high confidence candidates sum to 1.0.
+
+Step 5: For each candidate in a cell, compute x<sub>i</sub> : 1 / # of times a class appears for all candidates in a cell.
+
+Step 6: For each column, compute alpha<sub>j</sub> : Σx<sub>i</sub> / # of rows in the input column
+  
+Step 7: For each candidate, including high confidence candidates, compute the tf-idf score by adding up the product of (IDF scores (computed in Step 4), alpha<sub>j</sub> and x<sub>i</sub>, for all the classes for that candidate. If the class appears in the high confidence classes, then multiple the class IDF by 1 otherwise by 0.
+
+**Options:**
+- `-o / --output-column {string}`: The output scoring column name. If not provided, the column name will be `smc_score`.
+- `--pagerank-column {string}`: Name of the column with pagerank feature.
+- `--retrieval-score-column {string}`: Name of the column with retrieval score feature.
+- `--feature-file {string}`: a tsv file with feature on which to compute tf idf score.
+- `--feature-name {string}`: name of the column which contains the class-count or property count in the `--feature-file`
+- `--N {int}`: total number of documents in ES index, used to compute IDF. `N` for DWD is 52546967
+
+**Examples:**
+```bash
+$ tl pgt-semantic-tf-idf --feature-file class_count.tsv \
+     --feature-name class_count \
+     --pagerank-column pagerank \
+     --retrieval-score-column retrieval_score \
+     -o class_count_tf_idf_score \
+     candidates.csv
+```
+
+**File Example:**
+```bash
+$ tl compute-tf-idf --feature-file class_count.tsv \
+     --feature-name class_count \
+     --pagerank-column pagerank \
+     --retrieval-score-column retrieval_score \
+     -o class_count_tf_idf_score \
+     candidates.csv
+
+$ cat input_file.csv
+| column | row | label       | context                                   | label_clean | kg_id      | kg_labels                | kg_aliases                             | method          | kg_descriptions                     | pagerank               | retrieval_score | singleton | 
+|--------|-----|-------------|-------------------------------------------|-------------|------------|--------------------------|----------------------------------------|-----------------|-------------------------------------|------------------------|-----------------|-----------| 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q213854    | Virat Kohli              | Cheeku                                 | fuzzy-augmented | Indian cricket player               | 3.983031232217997e-09  | 36.39384        | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q102354285 | Marie Virat              |                                        | fuzzy-augmented | Ph. D. 2009                         | 5.918546005357847e-09  | 23.48463        | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16027751  | Bernard Virat            |                                        | fuzzy-augmented | French biologist (1921-2003)        | 3.7401912005599e-09    | 23.48463        | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q7907059   | VIRAT                    |                                        | fuzzy-augmented |                                     | 0.0                    | 20.582134       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q2978459   | Virata                   | Virat                                  | fuzzy-augmented | character from the epic Mahabharata | 6.8901323967569805e-09 | 20.520416       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16682735  |                          |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.623405       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q6426050   | Kohli                    |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.601744       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q46251     | Fränzi Mägert-Kohli      | Franziska Kohli\|Fraenzi Maegert-Kohli | fuzzy-augmented | Swiss snowboarder                   | 3.5396131256502836e-09 | 19.233713       | 0         | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16434086  | Wirat Wachirarattanawong |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.010628       | 0         | 
+
+
+
+$ cat output_file.csv
+| column | row | label       | context                                   | label_clean | kg_id      | kg_labels                | kg_aliases                             | method          | kg_descriptions                     | pagerank               | retrieval_score | singleton | class_count_tf_idf_score | 
+|--------|-----|-------------|-------------------------------------------|-------------|------------|--------------------------|----------------------------------------|-----------------|-------------------------------------|------------------------|-----------------|-----------|--------------------------| 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q213854    | Virat Kohli              | Cheeku                                 | fuzzy-augmented | Indian cricket player               | 3.983031232217997e-09  | 36.39384        | 0         | 1.0000000000000002       | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q102354285 | Marie Virat              |                                        | fuzzy-augmented | Ph. D. 2009                         | 5.918546005357847e-09  | 23.48463        | 0         | 0.5442234316047089       | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16027751  | Bernard Virat            |                                        | fuzzy-augmented | French biologist (1921-2003)        | 3.7401912005599e-09    | 23.48463        | 0         | 0.5442234316047089       | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q7907059   | VIRAT                    |                                        | fuzzy-augmented |                                     | 0.0                    | 20.582134       | 0         | 0.0                      | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q2978459   | Virata                   | Virat                                  | fuzzy-augmented | character from the epic Mahabharata | 6.8901323967569805e-09 | 20.520416       | 0         | 0.031105662154115882     | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16682735  |                          |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.623405       | 0         | 0.20287301482664413      | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q6426050   | Kohli                    |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.601744       | 0         | 0.018154036805015324     | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q46251     | Fränzi Mägert-Kohli      | Franziska Kohli\|Fraenzi Maegert-Kohli | fuzzy-augmented | Swiss snowboarder                   | 3.5396131256502836e-09 | 19.233713       | 0         | 0.6945347101120541       | 
+| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16434086  | Wirat Wachirarattanawong |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.010628       | 0         | 0.5442234316047089       | 
+
+```
+
+
+
