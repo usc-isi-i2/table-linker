@@ -4,7 +4,6 @@ import argparse
 import sys
 
 import tl.exceptions
-from tl.utility.logging import Logger
 
 
 def parser():
@@ -44,19 +43,16 @@ def add_arguments(parser):
 def run(**kwargs):
     try:
         from tl.features.context_match import MatchContext
-        import time
         input_file_path = kwargs.pop("input_file")
         context_file_path = kwargs.pop("context_file")
         custom_context_file_path = kwargs.pop("custom_context_file")
-        obj = MatchContext(input_file_path, kwargs, context_file_path, custom_context_file_path)
-        start = time.time()
+        string_separator = kwargs.pop("string_separator")
+        output_column_name = kwargs.pop("output_column")
+        similarity_string_threshold  = kwargs.pop("similarity_string_threshold")
+        similarity_quantity_threshold = kwargs.pop("similarity_quantity_threshold")
+        obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold, 
+                           string_separator, output_column_name, context_file_path, custom_context_file_path)
         result_df = obj.process_data_by_column()
-        end = time.time()
-        logger = Logger(kwargs["logfile"])
-        logger.write_to_file(args={
-            "command": "context-match",
-            "time": end-start
-        })
         result_df.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: context-match\n'

@@ -5,7 +5,7 @@ from tl.exceptions import RequiredColumnMissingException
 
 
 def canonicalize(columns, output_column='label', file_path=None, df=None, file_type='csv',
-                 add_context=False, context_column_name="context"):
+                 add_context=False, context_column_name="context", file_name=None):
     """
     translate an input CSV or TSV file to canonical form
 
@@ -35,19 +35,29 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
             raise RequiredColumnMissingException("The input column {} does not exist in given data.".format(column))
         remaining_columns.remove(column)
 
+    remaining_col_ids = [df.columns.get_loc(x) for x in remaining_columns]
+
+    df.fillna("", inplace=True)
     out = list()
-    for i, v in df.iterrows():
+    
+    row_num = 0
+    for tup in zip(*[df[col] for col in df]):
         for column in columns:
+            column_idx = df.columns.get_loc(column)
             new_row = {
-                'column': df.columns.get_loc(column),
-                'row': i,
-                output_column: v[column]
+                'column': column_idx,
+                'row': row_num,
+                output_column: tup[column_idx]
             }
             if add_context:
-                remaining_values = "|".join(v[remaining_columns].dropna().values.tolist())
+                remaining_values = "|".join([tup[x] for x in remaining_col_ids])
                 new_row[context_column_name] = remaining_values
+            if file_name is not None:
+                new_row['filename'] = file_name
+                new_row['column-id'] = f'{file_name}-{column_idx}'
 
             out.append(new_row)
+        row_num += 1
     return pd.DataFrame(out).sort_values(by=['column', 'row'])
 
 

@@ -4,10 +4,14 @@ import rltk.similarity as similarity
 from tl.exceptions import RequiredInputParameterMissingException
 from statistics import mode
 import gzip
+import itertools 
+import collections
+import os
 
 
 class MatchContext(object):
-    def __init__(self, input_path, args, context_path=None, custom_context_path=None):
+    def __init__(self, input_path, similarity_string_threshold, similarity_quantity_threshold, 
+                           string_separator, output_column_name, context_path=None, custom_context_path=None):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.result_data = pd.DataFrame()
@@ -17,33 +21,52 @@ class MatchContext(object):
                 'One of the input parameters is required: {} or {}'.format("context_path", "custom_context_path"))
         elif custom_context_path:
             self.is_custom = True
-            self.context = self.read_context_file(custom_context_path)
+            if context_path:
+                self.context = self.read_context_file(context_path, custom_context_path)
+            else:
+                self.context = self.read_context_file(custom_context_path = custom_context_path)
         else:
             self.context = self.read_context_file(context_path)
-        self.output_column_name = args.get("output_column")
-        self.similarity_string_threshold = args.pop("similarity_string_threshold")
-        self.similarity_quantity_threshold = args.pop("similarity_quantity_threshold")
-        self.string_separator = args.pop("string_separator")
-        self.string_separator = self.string_separator.replace('"', '')
+        self.output_column_name = output_column_name
+        self.similarity_string_threshold = similarity_string_threshold
+        self.similarity_quantity_threshold = similarity_quantity_threshold
+        self.string_separator = string_separator.replace('"', '')
         self.properties_with_score_metric = pd.DataFrame(columns=['property', 'position', 'value', 'min_sim'])
-        self.debug = args.pop("debug")
         # The following is a dictionary that stores the q_nodes that match with multiple properties
         # with equal similarity.
         self.equal_matched_properties = {}
 
-    def read_context_file(self, context_path: str) -> dict:
-        context_dict = {}
-        if self.is_custom:
-            f = gzip.open(context_path, 'rt')
-            node1_column = "node1"
-            node2_column = "node2"
-        else:
+    def read_context_file(self, context_path = None, custom_context_path = None) -> dict:
+        if context_path:
             f = open(context_path)
             node1_column = "qnode"
             node2_column = "context"
+            context_dict_1 = self._read_context_file_line(f, node1_column, node2_column)
+            f.close()
+        if custom_context_path:
+            extension = os.path.splitext(custom_context_path)[1]
+            if extension == '.gz':
+                f = gzip.open(custom_context_path, 'rt')
+            else:
+                f = open(custom_context_path)
+            node1_column = "node1"
+            node2_column = "node2"
+            context_dict_2 = self._read_context_file_line(f, node1_column, node2_column)
+            f.close()
+        if context_path and custom_context_path:
+            context_dict = collections.defaultdict(str)
+            for key, val in itertools.chain(context_dict_1.items(), context_dict_2.items()):
+                context_dict[key] += val 
+            return context_dict
+        if custom_context_path:
+            return context_dict_2
+        return context_dict_1
+            
+
+    def _read_context_file_line(self, f, node1_column: str, node2_column: str) -> dict:
+        context_dict = {}
         feature_idx = -1
         node_idx = -1
-
         for line in f:
             row = line.strip().split('\t')
             if node1_column in row and node2_column in row:  # first line
@@ -51,7 +74,7 @@ class MatchContext(object):
                 node_idx = row.index(node1_column)
             else:
                 context_dict[row[node_idx]] = row[feature_idx]
-        f.close()
+        
         return context_dict
 
     @staticmethod
@@ -231,6 +254,7 @@ class MatchContext(object):
         # Part 1 - a: Calculating the number of occurrences in each cell.
         columns = ["column", "row", "property", "position", "number_of_occurrences", 'min_sim']
         properties_set = pd.DataFrame(columns=columns)
+        self.properties_with_score_metric = pd.DataFrame(columns=['property', 'position', 'value', 'min_sim'])
         # counter is the index for the properties_set
         counter = 0
         for value_of_row, value_of_column, value_of_property, value_of_sim in zip(self.data['row'], self.data['column'],
