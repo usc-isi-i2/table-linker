@@ -6,14 +6,14 @@ from statistics import mode
 import gzip
 from pyrallel import ParallelProcessor
 from multiprocessing import cpu_count
-import itertools 
+import itertools
 import collections
 import os
 
 
 class MatchContext(object):
-    def __init__(self, input_path, similarity_string_threshold, similarity_quantity_threshold, 
-                           string_separator, output_column_name, context_path=None, custom_context_path=None):
+    def __init__(self, input_path, similarity_string_threshold, similarity_quantity_threshold,
+                 string_separator, output_column_name, context_path=None, custom_context_path=None):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.final_property_similarity_list = []
@@ -27,7 +27,7 @@ class MatchContext(object):
             if context_path:
                 self.context = self.read_context_file(context_path, custom_context_path)
             else:
-                self.context = self.read_context_file(custom_context_path = custom_context_path)
+                self.context = self.read_context_file(custom_context_path=custom_context_path)
         else:
             self.context = self.read_context_file(context_path)
         self.output_column_name = output_column_name
@@ -39,7 +39,7 @@ class MatchContext(object):
         # with equal similarity.
         self.equal_matched_properties = {}
 
-    def read_context_file(self, context_path = None, custom_context_path = None) -> dict:
+    def read_context_file(self, context_path=None, custom_context_path=None) -> dict:
         if context_path:
             f = open(context_path)
             node1_column = "qnode"
@@ -59,12 +59,11 @@ class MatchContext(object):
         if context_path and custom_context_path:
             context_dict = collections.defaultdict(str)
             for key, val in itertools.chain(context_dict_1.items(), context_dict_2.items()):
-                context_dict[key] += val 
+                context_dict[key] += val
             return context_dict
         if custom_context_path:
             return context_dict_2
         return context_dict_1
-            
 
     def _read_context_file_line(self, f, node1_column: str, node2_column: str) -> dict:
         context_dict = {}
@@ -77,7 +76,7 @@ class MatchContext(object):
                 node_idx = row.index(node1_column)
             else:
                 context_dict[row[node_idx]] = row[feature_idx]
-        
+
         return context_dict
 
     @staticmethod
@@ -365,7 +364,7 @@ class MatchContext(object):
 
         self.result_data = self.result_data.reset_index(drop=True)
         return self.result_data
-    
+
     def mapper(self, idx, q_node, val):
         """
         Purpose: Mapper to the parallel processor to process each row parallely
@@ -412,15 +411,15 @@ class MatchContext(object):
 
                 if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
                     property_v, sim = self.match_context_with_type(to_match_1, q_node, all_property_list,
-                                                                    context_data_type="d")
+                                                                   context_data_type="d")
                     if (property_v == "") and (to_match_1.count(".") <= 1):
                         # Number of decimals shouldn't be greater than one.
                         if to_match_1.isnumeric() or to_match_2.isnumeric():
                             property_v, sim = self.match_context_with_type(to_match_1, q_node, all_property_list,
-                                                                            context_data_type="q")
+                                                                           context_data_type="q")
                         elif num_v is not None:
                             property_v, sim = self.match_context_with_type(num_v, q_node, all_property_list,
-                                                                            context_data_type="q")
+                                                                           context_data_type="q")
                             property_v_2, sim_2 = self.process_context_string(v, q_node, all_property_list)
                             if sim_2 > sim:
                                 property_v = property_v_2
@@ -456,7 +455,7 @@ class MatchContext(object):
         pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
                                collector=self.collector, batch_size=100)
         pp.start()
-        pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"], 
+        pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"],
                    self.data["context"]))
         pp.task_done()
         pp.join()
