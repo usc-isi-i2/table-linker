@@ -24,11 +24,9 @@ jobs:
           pip install coverage coveralls
       - name: Run Tests
         run: |
-          cd tl/unittests
-          coverage run --source=table-linker -m unittest discover
+          coverage run --source=tl --omit=tl/unittests/test_* -m unittest discover
       - name: Coverage
         env:
           GITHUB_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
         run: |
-          coveralls debug
-#          coveralls --service=github
+          coveralls --service=github
