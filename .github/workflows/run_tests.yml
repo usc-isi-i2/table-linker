@@ -19,6 +19,8 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -e . --no-cache-dir
+          pip uninstall rltk -y
+          pip install git+https://github.com/usc-isi-i2/rltk.git@fix-tokenizer#egg=rltk
           pip install coverage coveralls
       - name: Run Tests
         run: |
