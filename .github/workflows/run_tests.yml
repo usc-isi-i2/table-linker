@@ -19,13 +19,14 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -e . --no-cache-dir
+          pip uninstall rltk -y
+          pip install git+https://github.com/usc-isi-i2/rltk.git@fix-tokenizer#egg=rltk
           pip install coverage coveralls
       - name: Run Tests
         run: |
-          cd tl/unittests
-          coverage run --source=tl -m unittest discover
+          coverage run --source=tl --omit=tl/unittests/test_* -m unittest discover
       - name: Coverage
         env:
           GITHUB_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
         run: |
-          coveralls --service=github
+          coveralls --service=github-actions
