@@ -25,7 +25,7 @@ jobs:
       - name: Run Tests
         run: |
           cd tl/unittests
-          coverage run --source=tl -m unittest discover
+          coverage run --source=table-linker -m unittest discover
       - name: Coverage
         env:
           GITHUB_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
