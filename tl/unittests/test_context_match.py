@@ -14,7 +14,8 @@ class TestContextMatch(unittest.TestCase):
         self.context_file_path = '{}/data/unit_test_context.tsv'.format(parent_path)
         self.custom_context_path = '{}/data/custom_context.tsv.gz'.format(parent_path)
         self.kwargs = {'similarity_string_threshold': 0.90, 'similarity_quantity_threshold': 0.80,
-                       'string_separator': ",", 'output_column': self.output_column_name}
+                       'string_separator': ",", 'output_column': self.output_column_name,
+                       'debug':False}
 
     def test_combination_types_of_input(self):
         # the input file contains varied set of inputs ranging from
