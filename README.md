@@ -1,4 +1,6 @@
-[![Coverage Status](https://coveralls.io/repos/github/usc-isi-i2/table-linker/badge.svg)](https://coveralls.io/github/usc-isi-i2/table-linker)
+[![Coverage Status](https://coveralls.io/repos/github/usc-isi-i2/table-linker/badge.svg?branch=master)](https://coveralls.io/github/usc-isi-i2/table-linker)
+![Run Tests](https://github.com/usc-isi-i2/table-linker/actions/workflows/run_tests.yml/badge.svg)
+
 
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Command Line Interface
 
