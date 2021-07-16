@@ -1,5 +1,3 @@
-import sys
-
 import pandas as pd
 from tl.features.utility import Utility
 from tl.exceptions import RequiredInputParameterMissingException
@@ -40,7 +38,7 @@ class SemanticsFeature(object):
         self.hc_candidates = self.find_hc_candidates()
 
         self.hc_classes = self.create_hc_classes_set()
-        
+
     def create_hc_classes_set(self):
         hc_classes = set()
         for candidate in self.hc_candidates:
