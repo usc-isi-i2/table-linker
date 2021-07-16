@@ -47,7 +47,6 @@ def ground_truth_labeler(gt_file_path, file_path=None, df=None):
 
     evaluation_df['evaluation_label'] = evaluation_df.apply(lambda row: assign_evaluation_label(row), axis=1)
 
-    # evaluation_df.drop(columns=['max_score'], inplace=True)
     return evaluation_df
 
 
