@@ -55,7 +55,8 @@ def assign_evaluation_label(row):
     if row['GT_kg_id'] == '':
         return 0
 
-    if row['kg_id'] == row['GT_kg_id']:
+    gt_kg_ids = set(row['GT_kg_id'].split("|"))
+    if row['kg_id'] in gt_kg_ids:
         return 1
     return -1
 
