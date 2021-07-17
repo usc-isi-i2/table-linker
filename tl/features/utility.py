@@ -53,7 +53,7 @@ class Utility(object):
         hc_classes_count = defaultdict(dict)
         hc_classes_idf = defaultdict(dict)
         for column, col_candidates_df in grouped_obj:
-            hc_candidates = col_candidates_df[col_candidates_df[hc_column] == 1]['kg_id'].unique().tolist()
+            hc_candidates = col_candidates_df[col_candidates_df[hc_column].astype(int) == 1]['kg_id'].unique().tolist()
             for candidate in hc_candidates:
                 if candidate in feature_dict:
                     classes = feature_dict[candidate]
