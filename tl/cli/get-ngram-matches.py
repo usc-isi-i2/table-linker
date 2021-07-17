@@ -79,11 +79,11 @@ def run(**kwargs):
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
-            "command": "get-kgtk-search-matches",
+            "command": "get-ngram-matches",
             "time": end - start
         })
         odf.to_csv(sys.stdout, index=False)
     except Exception:
-        message = 'Command: get-kgtk-search-matches\n'
+        message = 'Command: get-ngram-matches\n'
         message += 'Error Message:  {}\n'.format(traceback.format_exc())
         raise tl.exceptions.TLException(message)

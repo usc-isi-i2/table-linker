@@ -4,12 +4,12 @@ import hashlib
 import logging
 import re
 import requests
-import sys
 import typing
 from requests.auth import HTTPBasicAuth
 from typing import List
 
 from tl.candidate_generation.phrase_query_json import query
+from tl.candidate_generation.ngram_query import ngram_query
 from tl.utility.singleton import singleton
 
 romance_languages = {'en', 'de', 'es', 'fr', 'it', 'pt'}
@@ -211,6 +211,8 @@ class Search(object):
 
                 elif query_type == 'phrase-match':
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
+                elif query_type == 'ngram-match':
+                    hits = self.search_es(self.create_ngram_query(search_term, size=size, extra_musts=extra_musts))
                 elif query_type == 'fuzzy-match':
                     hits = self.search_es(self.create_fuzzy_query(search_term, size, properties))
                 elif query_type == 'fuzzy-augmented':
@@ -324,3 +326,35 @@ class Search(object):
                     all_aliases.update(x for x in abbreviated_name[lang] if x.strip())
 
         return list(all_labels), list(all_aliases)
+
+    @staticmethod
+    def create_ngram_query(search_term: str, language: str = 'en', size: int = 20, extra_musts: dict = None) -> dict:
+        _search_terms = search_term.split(' ')
+        _search_terms = [x[:20] for x in _search_terms]
+
+        search_term_truncated = ' '.join(_search_terms)
+
+        search_field = f'all_labels.{language}.ngram'
+
+        exact_match_field = f'all_labels.{language}.keyword_lower'
+
+        query_part = {
+            "query_string": {
+                "fields": [
+                    f"{search_field}^1.0",
+                    f"{exact_match_field}^100"
+                ],
+                "query": search_term_truncated,
+                "default_operator": "AND"
+            }
+        }
+
+        ngrams_query = copy.deepcopy(ngram_query)
+        ngrams_query['query']['function_score']['query']['bool']['must'].append(query_part)
+
+        if extra_musts:
+            ngrams_query['query']['function_score']['query']['bool']['must'].append(extra_musts)
+
+        ngrams_query['size'] = size
+
+        return ngrams_query
