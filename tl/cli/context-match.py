@@ -4,6 +4,8 @@ import argparse
 import sys
 
 import tl.exceptions
+import time
+from tl.utility.logging import Logger
 
 
 def parser():
@@ -33,6 +35,11 @@ def add_arguments(parser):
                         help="The file is used to look up context values for matching.") 
     parser.add_argument('--string-separator', action = 'store', type=str, dest = 'string_separator', default = ",", 
                         help = "Any separators to separate from in the context substrings.")
+    parser.add_argument('--use-cpus', action='store', type=int,
+                        dest='use_cpus', required=False,
+                        help="Number of CPUs to be used for ParallelProcessor."
+                             " If unspecified, number of CPUs in system will"
+                             " be used.")
 
     # output
     parser.add_argument('-o', '--output-column-name', action='store', dest='output_column', default="context_score",
@@ -50,9 +57,18 @@ def run(**kwargs):
         output_column_name = kwargs.pop("output_column")
         similarity_string_threshold  = kwargs.pop("similarity_string_threshold")
         similarity_quantity_threshold = kwargs.pop("similarity_quantity_threshold")
+        use_cpus = kwargs.pop("use_cpus")
         obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold, 
-                           string_separator, output_column_name, context_file_path, custom_context_file_path)
+                           string_separator, output_column_name, context_file_path, custom_context_file_path,
+                           use_cpus)
+        start = time.time()
         result_df = obj.process_data_by_column()
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "context-match",
+            "time": end-start,
+        })
         result_df.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: context-match\n'

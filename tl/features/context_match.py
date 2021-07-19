@@ -13,7 +13,8 @@ import os
 
 class MatchContext(object):
     def __init__(self, input_path, similarity_string_threshold, similarity_quantity_threshold, 
-                           string_separator, output_column_name, context_path=None, custom_context_path=None):
+                           string_separator, output_column_name, context_path=None, custom_context_path=None,
+                           use_cpus=None):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.final_property_similarity_list = []
@@ -38,6 +39,10 @@ class MatchContext(object):
         # The following is a dictionary that stores the q_nodes that match with multiple properties
         # with equal similarity.
         self.equal_matched_properties = {}
+        if not use_cpus:
+            self.use_cpus = cpu_count()
+        else:
+            self.use_cpus = min(cpu_count(), use_cpus)
 
     def read_context_file(self, context_path = None, custom_context_path = None) -> dict:
         if context_path:
@@ -452,7 +457,7 @@ class MatchContext(object):
         date, string or quantity depending upon the structure of the context.
         """
         self.final_property_similarity_list = []
-        cpus = cpu_count()
+        cpus = self.use_cpus
         pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
                                collector=self.collector, batch_size=100)
         pp.start()

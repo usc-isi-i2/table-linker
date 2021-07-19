@@ -77,7 +77,11 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
             test_inp.append(a)
         test_tensor = torch.tensor(test_inp).float()
         scores = model.predict(test_tensor)
-        pred.extend(torch.squeeze(scores).tolist())
+        scores_list = torch.squeeze(scores).tolist()
+        if not type(scores_list) is list:
+            pred.append(scores_list)
+        else:
+            pred.extend(scores_list)
     out_df = pd.concat(new_df_list)
     out_df[output_column] = pred
 
