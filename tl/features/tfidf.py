@@ -1,10 +1,6 @@
-import math
 import pandas as pd
-import sys
-
-from tl.exceptions import RequiredInputParameterMissingException
-from collections import defaultdict
 from tl.features.utility import Utility
+from tl.exceptions import RequiredInputParameterMissingException
 
 
 class TFIDF(object):

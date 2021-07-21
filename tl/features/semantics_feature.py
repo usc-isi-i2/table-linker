@@ -28,11 +28,15 @@ class SemanticsFeature(object):
         self.utils = Utility()
 
         self.multiply_pgr_rts()
+
         self.feature_dict, self.feature_count_dict = self.utils.build_qnode_feature_dict(feature_file, feature_name)
+
         self.feature_idf_dict = self.utils.calculate_idf_features(self.feature_count_dict, self.N)
 
         self.feature_name = feature_name
+
         self.hc_candidates = self.find_hc_candidates()
+
         self.hc_classes = self.create_hc_classes_set()
 
     def create_hc_classes_set(self):
@@ -69,11 +73,13 @@ class SemanticsFeature(object):
         # create a new feature by multiplying the pagerank and the retrieval score
         scores = []
 
-        for pagerank, retrieval_score in zip(self.input_df[self.pagerank_column],
-                                             self.input_df[self.retrieval_score_column]):
+        data = self.input_df.copy()
+        for pagerank, retrieval_score in zip(data[self.pagerank_column],
+                                             data[self.retrieval_score_column]):
             scores.append(pagerank * retrieval_score)
 
-        self.input_df['pgr_rts'] = scores
+        data['pgr_rts'] = scores
+        self.input_df = data
 
     def compute_semantic_feature(self):
 

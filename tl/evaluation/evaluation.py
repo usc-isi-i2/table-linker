@@ -47,7 +47,6 @@ def ground_truth_labeler(gt_file_path, file_path=None, df=None):
 
     evaluation_df['evaluation_label'] = evaluation_df.apply(lambda row: assign_evaluation_label(row), axis=1)
 
-    # evaluation_df.drop(columns=['max_score'], inplace=True)
     return evaluation_df
 
 
@@ -55,7 +54,8 @@ def assign_evaluation_label(row):
     if row['GT_kg_id'] == '':
         return 0
 
-    if row['kg_id'] == row['GT_kg_id']:
+    gt_kg_ids = set(row['GT_kg_id'].split("|"))
+    if row['kg_id'] in gt_kg_ids:
         return 1
     return -1
 

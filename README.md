@@ -1,5 +1,5 @@
 [![Coverage Status](https://coveralls.io/repos/github/usc-isi-i2/table-linker/badge.svg?branch=master)](https://coveralls.io/github/usc-isi-i2/table-linker)
-![Run Tests](https://github.com/usc-isi-i2/table-linker/actions/workflows/run_tests.yml/badge.svg)
+![Tests](https://github.com/usc-isi-i2/table-linker/actions/workflows/run_tests.yml/badge.svg)
 
 
 # [« Home](https://github.com/usc-isi-i2/table-linker) / Command Line Interface
@@ -1961,37 +1961,34 @@ $ tl compute-tf-idf --feature-file class_count.tsv \
      --pagerank-column pagerank \
      --retrieval-score-column retrieval_score \
      -o class_count_tf_idf_score \
-     candidates.csv
+     companies_candidates.csv > candidates_pgt.csv
 
-$ cat input_file.csv
-| column | row | label       | context                                   | label_clean | kg_id      | kg_labels                | kg_aliases                             | method          | kg_descriptions                     | pagerank               | retrieval_score | singleton | 
-|--------|-----|-------------|-------------------------------------------|-------------|------------|--------------------------|----------------------------------------|-----------------|-------------------------------------|------------------------|-----------------|-----------| 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q213854    | Virat Kohli              | Cheeku                                 | fuzzy-augmented | Indian cricket player               | 3.983031232217997e-09  | 36.39384        | 0         | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q102354285 | Marie Virat              |                                        | fuzzy-augmented | Ph. D. 2009                         | 5.918546005357847e-09  | 23.48463        | 0         | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16027751  | Bernard Virat            |                                        | fuzzy-augmented | French biologist (1921-2003)        | 3.7401912005599e-09    | 23.48463        | 0         | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q7907059   | VIRAT                    |                                        | fuzzy-augmented |                                     | 0.0                    | 20.582134       | 0         | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q2978459   | Virata                   | Virat                                  | fuzzy-augmented | character from the epic Mahabharata | 6.8901323967569805e-09 | 20.520416       | 0         | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16682735  |                          |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.623405       | 0         | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q6426050   | Kohli                    |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.601744       | 0         | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q46251     | Fränzi Mägert-Kohli      | Franziska Kohli\|Fraenzi Maegert-Kohli | fuzzy-augmented | Swiss snowboarder                   | 3.5396131256502836e-09 | 19.233713       | 0         | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16434086  | Wirat Wachirarattanawong |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.010628       | 0         | 
-
-
-
-$ cat output_file.csv
-| column | row | label       | context                                   | label_clean | kg_id      | kg_labels                | kg_aliases                             | method          | kg_descriptions                     | pagerank               | retrieval_score | singleton | class_count_tf_idf_score | 
-|--------|-----|-------------|-------------------------------------------|-------------|------------|--------------------------|----------------------------------------|-----------------|-------------------------------------|------------------------|-----------------|-----------|--------------------------| 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q213854    | Virat Kohli              | Cheeku                                 | fuzzy-augmented | Indian cricket player               | 3.983031232217997e-09  | 36.39384        | 0         | 1.0000000000000002       | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q102354285 | Marie Virat              |                                        | fuzzy-augmented | Ph. D. 2009                         | 5.918546005357847e-09  | 23.48463        | 0         | 0.5442234316047089       | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16027751  | Bernard Virat            |                                        | fuzzy-augmented | French biologist (1921-2003)        | 3.7401912005599e-09    | 23.48463        | 0         | 0.5442234316047089       | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q7907059   | VIRAT                    |                                        | fuzzy-augmented |                                     | 0.0                    | 20.582134       | 0         | 0.0                      | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q2978459   | Virata                   | Virat                                  | fuzzy-augmented | character from the epic Mahabharata | 6.8901323967569805e-09 | 20.520416       | 0         | 0.031105662154115882     | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16682735  |                          |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.623405       | 0         | 0.20287301482664413      | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q6426050   | Kohli                    |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.601744       | 0         | 0.018154036805015324     | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q46251     | Fränzi Mägert-Kohli      | Franziska Kohli\|Fraenzi Maegert-Kohli | fuzzy-augmented | Swiss snowboarder                   | 3.5396131256502836e-09 | 19.233713       | 0         | 0.6945347101120541       | 
-| 0      | 0   | Virat Kohli | royal challengers bangalore\|152\|5/11/88 | Virat Kohli | Q16434086  | Wirat Wachirarattanawong |                                        | fuzzy-augmented |                                     | 3.5396131256502836e-09 | 19.010628       | 0         | 0.5442234316047089       | 
-
+$ head companies_candidates.csv
 ```
 
+|column|row|label    |label_clean|kg_id   |kg_labels                                                                             |method         |pagerank|retrieval_score|
+|------|---|---------|-----------|--------|--------------------------------------------------------------------------------------|---------------|--------|---------------|
+|1     |0  |Citigroup|Citigroup  |Q219508 |Citigroup                                                                             |exact-match    |6.80E-08|16.441374      |
+|1     |0  |Citigroup|Citigroup  |Q219508 |Citigroup                                                                             |fuzzy-augmented|6.80E-08|19.778538      |
+|1     |0  |Citigroup|Citigroup  |Q391243 |Citigroup Center                                                                      |fuzzy-augmented|7.26E-09|17.1681        |
+|1     |0  |Citigroup|Citigroup  |Q781961 |One Court Square                                                                      |fuzzy-augmented|4.77E-09|17.106327      |
+|1     |0  |Citigroup|Citigroup  |Q2425550|Citigroup Center                                                                      |fuzzy-augmented|2.84E-09|16.928787      |
+|1     |0  |Citigroup|Citigroup  |Q54491  |Citigroup Centre (Sydney)&#124;Citigroup Centre                                            |fuzzy-augmented|2.84E-09|16.907793      |
+|1     |0  |Citigroup|Citigroup  |Q5122510|Citigroup Global Markets Japan                                                        |fuzzy-augmented|5.68E-09|16.720482      |
+|1     |0  |Citigroup|Citigroup  |Q867663 |Citigroup Centre|fuzzy-augmented|4.19E-09|16.564976      |
+|1     |0  |Citigroup|Citigroup  |Q5122507|Citigroup Tower                                                                       |fuzzy-augmented|2.84E-09|16.550804      |
 
-
+```
+$ head candidates_pgt.csv
+```
+|column|row|label    |label_clean|kg_id   |pagerank|retrieval_score|pgr_rts |smc_score  |kg_labels                                                                             |method         |hc_candidate|top5_smc_score                                                          |
+|------|---|---------|-----------|--------|--------|---------------|--------|-----------|--------------------------------------------------------------------------------------|---------------|------------|------------------------------------------------------------------------|
+|1     |0  |Citigroup|Citigroup  |Q219508 |6.80E-08|16.441374      |1.12E-06|0.261552749|Citigroup                                                                             |exact-match    |1           |Q6881511:0.009&#124;Q12047392:0.009&#124;Q362482:0.009&#124;Q679206:0.009&#124;Q155076:0.009|
+|1     |0  |Citigroup|Citigroup  |Q219508 |6.80E-08|19.778538      |1.34E-06|0          |Citigroup                                                                             |fuzzy-augmented|0           |                                                                        |
+|1     |0  |Citigroup|Citigroup  |Q391243 |7.26E-09|17.1681        |1.25E-07|0          |Citigroup Center                                                                      |fuzzy-augmented|0           |                                                                        |
+|1     |0  |Citigroup|Citigroup  |Q781961 |4.77E-09|17.106327      |8.16E-08|0          |One Court Square                                                                      |fuzzy-augmented|0           |                                                                        |
+|1     |0  |Citigroup|Citigroup  |Q2425550|2.84E-09|16.928787      |4.81E-08|0          |Citigroup Center                                                                      |fuzzy-augmented|0           |                                                                        |
+|1     |0  |Citigroup|Citigroup  |Q54491  |2.84E-09|16.907793      |4.80E-08|0          |Citigroup Centre (Sydney)&#124;Citigroup Centre                                            |fuzzy-augmented|0           |                                                                        |
+|1     |0  |Citigroup|Citigroup  |Q5122510|5.68E-09|16.720482      |9.50E-08|0          |Citigroup Global Markets Japan                                                        |fuzzy-augmented|0           |                                                                        |
+|1     |0  |Citigroup|Citigroup  |Q867663 |4.19E-09|16.564976      |6.94E-08|0          |Citigroup Centre&#124;25 Canada Square&#124;Citigroup Centre (Londra)&#124;Citigroup Centre (Londres)|fuzzy-augmented|0           |                                                                        |
+|1     |0  |Citigroup|Citigroup  |Q5122507|2.84E-09|16.550804      |4.70E-08|0          |Citigroup Tower                                                                       |fuzzy-augmented|0           |                                                                        |
