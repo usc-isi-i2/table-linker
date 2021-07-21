@@ -39,7 +39,7 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
 
     df.fillna("", inplace=True)
     out = list()
-    
+
     row_num = 0
     for tup in zip(*[df[col] for col in df]):
         for column in columns:
@@ -143,6 +143,7 @@ def string_clean(label, symbols, replace_by_space, keep_original):
 
     for symbol in symbols:
         clean_label = clean_label.replace(symbol, ' ') if replace_by_space else clean_label.replace(symbol, '')
+    clean_label = " ".join(clean_label.split())
 
     return '{}|{}'.format(label, clean_label) if keep_original else clean_label
 

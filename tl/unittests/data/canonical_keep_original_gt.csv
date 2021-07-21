@@ -28,7 +28,7 @@ column,row,label,label_clean
 0,26,Yesterday Girl,Yesterday Girl|Yesterday Girl
 0,27,Yesterday,Yesterday|Yesterday
 0,28,Yesterday,Yesterday|Yesterday
-0,29,Yesterday & Today,Yesterday & Today|Yesterday   Today
+0,29,Yesterday & Today,Yesterday & Today|Yesterday Today
 0,30,"Yesterday, When I Was Mad","Yesterday, When I Was Mad|Yesterday, When I Was Mad"
 0,31,Yesterday's Wine,Yesterday's Wine|Yesterday's Wine
 0,32,Yesterday's Men,Yesterday's Men|Yesterday's Men
@@ -39,7 +39,7 @@ column,row,label,label_clean
 0,37,Yes We Can,Yes We Can|Yes We Can
 0,38,Yes It Is,Yes It Is|Yes It Is
 0,39,Yes,Yes|Yes
-0,40,Yep!,Yep!|Yep 
+0,40,Yep!,Yep!|Yep
 0,41,Yellow Submarine,Yellow Submarine|Yellow Submarine
 0,42,Yellow Flicker Beat,Yellow Flicker Beat|Yellow Flicker Beat
 0,43,Yellow,Yellow|Yellow
@@ -51,8 +51,8 @@ column,row,label,label_clean
 0,49,Yeah 3x,Yeah 3x|Yeah 3x
 0,50,Yeah,Yeah|Yeah
 0,51,Yeah,Yeah|Yeah
-0,52,Yeah!,Yeah!|Yeah 
-0,53,Yeah!,Yeah!|Yeah 
+0,52,Yeah!,Yeah!|Yeah
+0,53,Yeah!,Yeah!|Yeah
 0,54,Yay Yay,Yay Yay|Yay Yay
 0,55,Yassassin,Yassassin|Yassassin
 0,56,Yasei no Energy,Yasei no Energy|Yasei no Energy
@@ -256,11 +256,11 @@ column,row,label,label_clean
 1,117,M. Chapman,M. Chapman|M. Chapman
 1,118,D. Was,D. Was|D. Was
 1,119,O. Williams,O. Williams|O. Williams
-1,120,P. &. Win,P. &. Win|P.  . Win
+1,120,P. &. Win,P. &. Win|P. . Win
 1,121,N-Dubz,N-Dubz|N-Dubz
 1,122,B. Wilson,B. Wilson|B. Wilson
 1,123,N. Kershaw,N. Kershaw|N. Kershaw
-1,124,"Barry, Robin & Maurice Gibb","Barry, Robin & Maurice Gibb|Barry, Robin   Maurice Gibb"
+1,124,"Barry, Robin & Maurice Gibb","Barry, Robin & Maurice Gibb|Barry, Robin Maurice Gibb"
 1,125,K. West,K. West|K. West
 1,126,D. A. Coe,D. A. Coe|D. A. Coe
 1,127,J. S. Sherrill,J. S. Sherrill|J. S. Sherrill
@@ -278,7 +278,7 @@ column,row,label,label_clean
 2,2,James Stroud,James Stroud|James Stroud
 2,3,Tom Rothrock,Tom Rothrock|Tom Rothrock
 2,4,Robert Palmer,Robert Palmer|Robert Palmer
-2,5,Ashford & Simpson,Ashford & Simpson|Ashford   Simpson
+2,5,Ashford & Simpson,Ashford & Simpson|Ashford Simpson
 2,6,Jacknife Lee,Jacknife Lee|Jacknife Lee
 2,7,Madonna,Madonna|Madonna
 2,8,LL Cool J,LL Cool J|LL Cool J
@@ -294,7 +294,7 @@ column,row,label,label_clean
 2,18,Sakanaction,Sakanaction|Sakanaction
 2,19,"Tyler, The Creator","Tyler, The Creator|Tyler, The Creator"
 2,20,Thomas Newman,Thomas Newman|Thomas Newman
-2,21,Dre & Vidal,Dre & Vidal|Dre   Vidal
+2,21,Dre & Vidal,Dre & Vidal|Dre Vidal
 2,22,Rick Hall,Rick Hall|Rick Hall
 2,23,Guns N' Roses,Guns N' Roses|Guns N' Roses
 2,24,Feeder,Feeder|Feeder
@@ -393,7 +393,7 @@ column,row,label,label_clean
 2,117,Mike Chapman,Mike Chapman|Mike Chapman
 2,118,David Was,David Was|David Was
 2,119,Deekay,Deekay|Deekay
-2,120,Play & Win,Play & Win|Play   Win
+2,120,Play & Win,Play & Win|Play Win
 2,121,Dappy,Dappy|Dappy
 2,122,Brian Wilson,Brian Wilson|Brian Wilson
 2,123,Peter Collins,Peter Collins|Peter Collins
@@ -426,7 +426,7 @@ column,row,label,label_clean
 3,13,Phil Collins,Phil Collins|Phil Collins
 3,14,Gloria Estefan,Gloria Estefan|Gloria Estefan
 3,15,Sara Evans,Sara Evans|Sara Evans
-3,16,Brooks & Dunn,Brooks & Dunn|Brooks   Dunn
+3,16,Brooks & Dunn,Brooks & Dunn|Brooks Dunn
 3,17,Yung Lean,Yung Lean|Yung Lean
 3,18,Sakanaction,Sakanaction|Sakanaction
 3,19,"Tyler, The Creator","Tyler, The Creator|Tyler, The Creator"
@@ -443,13 +443,13 @@ column,row,label,label_clean
 3,30,Pet Shop Boys,Pet Shop Boys|Pet Shop Boys
 3,31,George Jones,George Jones|George Jones
 3,32,Madness,Madness|Madness
-3,33,Chad & Jeremy,Chad & Jeremy|Chad   Jeremy
-3,34,Smokey Robinson & the Miracles,Smokey Robinson & the Miracles|Smokey Robinson   the Miracles
+3,33,Chad & Jeremy,Chad & Jeremy|Chad Jeremy
+3,34,Smokey Robinson & the Miracles,Smokey Robinson & the Miracles|Smokey Robinson the Miracles
 3,35,Stevie Wonder,Stevie Wonder|Stevie Wonder
 3,36,The Go-Go's,The Go-Go's|The Go-Go's
 3,37,Will.i.am,Will.i.am|Will.i.am
 3,38,The Beatles,The Beatles|The Beatles
-3,39,McAlmont & Butler,McAlmont & Butler|McAlmont   Butler
+3,39,McAlmont & Butler,McAlmont & Butler|McAlmont Butler
 3,40,Duane Eddy,Duane Eddy|Duane Eddy
 3,41,The Beatles,The Beatles|The Beatles
 3,42,Lorde,Lorde|Lorde
@@ -518,7 +518,7 @@ column,row,label,label_clean
 3,105,George Strait,George Strait|George Strait
 3,106,Aerosmith,Aerosmith|Aerosmith
 3,107,Newton Faulkner,Newton Faulkner|Newton Faulkner
-3,108,Belle & Sebastian,Belle & Sebastian|Belle   Sebastian
+3,108,Belle & Sebastian,Belle & Sebastian|Belle Sebastian
 3,109,Logic,Logic|Logic
 3,110,Miley Cyrus,Miley Cyrus|Miley Cyrus
 3,111,The Vaccines,The Vaccines|The Vaccines
@@ -585,7 +585,7 @@ column,row,label,label_clean
 4,35,Never Had a Dream Come True,Never Had a Dream Come True|Never Had a Dream Come True
 4,36,Cool Jerk,Cool Jerk|Cool Jerk
 4,37,We Are the Ones,We Are the Ones|We Are the Ones
-4,38,Help!,Help!|Help 
+4,38,Help!,Help!|Help
 4,39,You Do,You Do|You Do
 4,40,Forty Miles of Bad Road,Forty Miles of Bad Road|Forty Miles of Bad Road
 4,41,Strawberry Fields Forever,Strawberry Fields Forever|Strawberry Fields Forever
@@ -679,7 +679,7 @@ column,row,label,label_clean
 4,129,Straight to... Number One,Straight to... Number One|Straight to... Number One
 4,130,Them Bones,Them Bones|Them Bones
 4,131,I'm in Love with a Monster,I'm in Love with a Monster|I'm in Love with a Monster
-4,132,0 to 100 / The Catch Up,0 to 100 / The Catch Up|0 to 100   The Catch Up
+4,132,0 to 100 / The Catch Up,0 to 100 / The Catch Up|0 to 100 The Catch Up
 4,133,Travelin Prayer,Travelin Prayer|Travelin Prayer
 4,134,Palaces of Montezuma,Palaces of Montezuma|Palaces of Montezuma
 4,135,Tormentor,Tormentor|Tormentor
