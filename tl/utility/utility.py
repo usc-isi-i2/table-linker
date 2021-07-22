@@ -1,3 +1,5 @@
+import sys
+
 import requests
 import json
 
@@ -291,18 +293,18 @@ class Utility(object):
 
             if response.status_code == 200 and response.json()['status'] in {"yellow", "green"}:
                 return True
-        except:
+        except Exception:
             pass
         return False
 
     @staticmethod
-    def create_gt_file_from_candidates(df: pd.DataFrame) -> pd.DataFrame:
-
-        df = df[df['evaluation_label'].astype(int) == 1]
+    def create_gt_file_from_candidates(df: pd.DataFrame, evaluation_label_column: str) -> pd.DataFrame:
+        df = df[df[evaluation_label_column].astype(int) == 1]
         out = list()
         for (column, row), gdf in df.groupby(['column', 'row']):
-            labels = "|".join(gdf['GT_kg_label'].values.to_list())
-            kg_ids = "|".join(gdf['GT_kg_id'].values.to_list())
+            labels = "|".join(dict.fromkeys(gdf['GT_kg_label'].values))  # keeps the values in order
+            kg_ids = "|".join(dict.fromkeys(gdf['GT_kg_id'].values))
+
             out.append({
                 'column': column,
                 'row': row,
