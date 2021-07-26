@@ -11,7 +11,7 @@ class FuzzyAugmented(object):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
         self.utility = Utility(self.es, output_column_name)
 
-    def get_matches(self, column, size=100, file_path=None,
+    def get_matches(self, column, size=50, file_path=None,
                     df=None, auxiliary_fields: List[str] = None, auxiliary_folder: str = None, isa: str = None):
         """
         Used the ElasticSearch which has the labels, aliases, wikipedia/wikitable anchor text, redirect text
