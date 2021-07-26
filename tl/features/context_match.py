@@ -17,6 +17,7 @@ class MatchContext(object):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.final_property_similarity_list = []
+        self.value_debug_list = []
         self.result_data = pd.DataFrame()
         self.is_custom = False
         if context_path is None and custom_context_path is None:
@@ -65,7 +66,8 @@ class MatchContext(object):
             return context_dict_2
         return context_dict_1
 
-    def _read_context_file_line(self, f, node1_column: str, node2_column: str) -> dict:
+    @staticmethod
+    def _read_context_file_line(f, node1_column: str, node2_column: str) -> dict:
         context_dict = {}
         feature_idx = -1
         node_idx = -1
@@ -131,6 +133,8 @@ class MatchContext(object):
         property_list = [prop for prop in all_property_list if prop.lower().startswith(context_data_type.lower())]
         prop_val = ""
         max_sim = 0.0
+        value_matched_to = ""
+        q_node_matched_to = ""
         # We need to check if the quantity present in the check_for is also present in the properties result
 
         if context_data_type == 'q':
@@ -155,6 +159,7 @@ class MatchContext(object):
                     if value >= self.similarity_quantity_threshold and value > max_sim:
                         prop_val = prop[1]
                         max_sim = value
+                        value_matched_to = check_with_temp
                         self.equal_matched_properties.pop(q_node, None)
                     elif value >= self.similarity_quantity_threshold and value == max_sim:
                         self.multiple_properties_match(q_node, prop_val, prop[1])
@@ -165,6 +170,7 @@ class MatchContext(object):
                     if check_for == check_with:
                         prop_val = prop[1]
                         max_sim = 1.0
+                        value_matched_to = check_with
                         self.equal_matched_properties.pop(q_node, None)
                     elif check_for == check_with:
                         self.multiple_properties_match(q_node, prop_val, prop[1])
@@ -176,12 +182,15 @@ class MatchContext(object):
                             if (not prop[1].startswith("P")) and (prop[-2].startswith("P")):
                                 prop_val = prop[-2]
                             max_sim = sim
+                            value_matched_to = check_with
+                            if len(prop) > 2:
+                                q_node_matched_to = prop[2]
                             self.equal_matched_properties.pop(q_node, None)
                     elif sim >= self.similarity_string_threshold and sim == max_sim and len(prop) > 1:
                         self.multiple_properties_match(q_node, prop_val, prop[1])
 
         max_sim = round(max_sim, 4)
-        return prop_val, max_sim
+        return prop_val, max_sim, value_matched_to, q_node_matched_to
 
     def preprocess(self, word: str) -> list:
         word = word.lower()
@@ -212,16 +221,23 @@ class MatchContext(object):
             # appending the property to temp
             temp = []
             sim_list = []
+            value_matched_to_list = []
+            q_node_matched_to_list = []
             sub_context_list = s_context.split(self.string_separator)
             for sub_s_context in sub_context_list:
-                p, s = self.match_context_with_type(sub_s_context, q_node, all_property_list, context_data_type="i")
+                p, s, temp_value_matched_to, temp_q_node_matched_to = self.match_context_with_type(
+                    sub_s_context, q_node, all_property_list, context_data_type="i")
                 if p != "":
                     temp.append(p)
                     sim_list.append(s)
+                    value_matched_to_list.append(temp_value_matched_to)
+                    q_node_matched_to_list.append(temp_q_node_matched_to)
             # If all elements in temp have same value for property return that property
             # Update: If there are multiple properties, we take the property that has maximum occurrences.
             if len(set(temp)) == 1:
                 p_val = temp[0]
+                value_matched_to = value_matched_to_list[0]
+                q_node_matched_to = q_node_matched_to_list[0]
                 sim = max(sim_list)
             elif len(temp) > 1:
                 if len(set(temp)) == len(temp):
@@ -229,23 +245,33 @@ class MatchContext(object):
                     sim = max(sim_list)
                     sim_ind = sim_list.index(sim)
                     p_val = temp[sim_ind]
+                    value_matched_to = value_matched_to_list[sim_ind]
+                    q_node_matched_to = q_node_matched_to_list[sim_ind]
                 else:
                     most_common_property = mode(temp)
                     # indices_for_prop = temp.index(most_common_property)`
                     new_sim_list = []
+                    q_node_matched_to = ""
+                    value_matched_to = ""
                     for k in range(len(temp)):
                         if temp[k] == most_common_property:
                             new_sim_list.append(sim_list[k])
+                            value_matched_to = value_matched_to + value_matched_to_list[k]
+                            q_node_matched_to = q_node_matched_to + q_node_matched_to_list[k]
                     p_val = most_common_property
                     sim = sum(new_sim_list) / len(new_sim_list)
             else:
                 p_val = ""
                 sim = 0.0
+                value_matched_to = ""
+                q_node_matched_to = ""
 
         else:
-            p_val, sim = self.match_context_with_type(s_context, q_node, all_property_list, context_data_type="i")
+            p_val, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(s_context, q_node,
+                                                                                           all_property_list,
+                                                                                           context_data_type="i")
         max_sim = round(sim, 4)
-        return p_val, max_sim
+        return p_val, max_sim, value_matched_to, q_node_matched_to
 
     def calculate_property_value(self):
         """
@@ -361,6 +387,7 @@ class MatchContext(object):
             self.data = group.reset_index(drop=True)
             self.process_data_context()
             self.result_data = pd.concat([self.result_data, self.data])
+            # self.value_debug_list = []
 
         self.result_data = self.result_data.reset_index(drop=True)
         return self.result_data
@@ -376,6 +403,7 @@ class MatchContext(object):
         """
         prop_list = []
         sim_list = []
+        matched_to_list = []
         # if there is empty context in the data file
         try:
             val_list = val.split("|")
@@ -391,7 +419,7 @@ class MatchContext(object):
                 all_property_list[0] = all_property_list[0][1:]
                 all_property_list[-1] = all_property_list[-1][:-1]
         else:
-            return idx, "", "0.0"
+            return idx, "", "", "0.0"
         for v in val_list:
             # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
             if self.remove_punctuation(v) != "":
@@ -410,39 +438,51 @@ class MatchContext(object):
                                 num_v = s
 
                 if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
-                    property_v, sim = self.match_context_with_type(to_match_1, q_node, all_property_list,
-                                                                   context_data_type="d")
+                    property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
+                        to_match_1, q_node, all_property_list, context_data_type="d")
                     if (property_v == "") and (to_match_1.count(".") <= 1):
                         # Number of decimals shouldn't be greater than one.
                         if to_match_1.isnumeric() or to_match_2.isnumeric():
-                            property_v, sim = self.match_context_with_type(to_match_1, q_node, all_property_list,
-                                                                           context_data_type="q")
+                            property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
+                                to_match_1, q_node,
+                                all_property_list,
+                                context_data_type="q")
                         elif num_v is not None:
-                            property_v, sim = self.match_context_with_type(num_v, q_node, all_property_list,
-                                                                           context_data_type="q")
-                            property_v_2, sim_2 = self.process_context_string(v, q_node, all_property_list)
+                            property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
+                                num_v, q_node, all_property_list, context_data_type="q")
+                            property_v_2, sim_2, value_matched_to_2, q_node_matched_to_2 = self.process_context_string(
+                                v, q_node,
+                                all_property_list)
                             if sim_2 > sim:
                                 property_v = property_v_2
                                 sim = sim_2
-
+                                value_matched_to = value_matched_to_2
+                                q_node_matched_to = q_node_matched_to_2
                 else:
-                    property_v, sim = self.process_context_string(v, q_node, all_property_list)
+                    property_v, sim, value_matched_to, q_node_matched_to = self.process_context_string(
+                        v, q_node, all_property_list
+                    )
 
                 prop_list.append(property_v)
                 sim_list.append(str(sim))
+                value_for_debug = "/".join([property_v, q_node_matched_to, str(sim), value_matched_to])
+                matched_to_list.append(value_for_debug)
+
         prop_str = "|".join(prop_list)
         sim_str = "|".join(sim_list)
-        return idx, prop_str, sim_str
+        value_debug_str = "|".join(matched_to_list)
+        return idx, value_debug_str, prop_str, sim_str
 
-    def collector(self, idx, prop_str, sim_str):
+    def collector(self, idx, value_debug_str, prop_str, sim_str):
         """
-        Purpose: collects the output of the mapper and appends to 
+        Purpose: collects the output of the mapper and appends to
                  final_property_list.
+        :param sim_str: 
+        :param prop_str:
+        :param value_debug_str:
         :param idx:
-        :prop_str:
-        :sim_str:
         """
-        self.final_property_similarity_list.append([idx, prop_str, sim_str])
+        self.final_property_similarity_list.append([idx, prop_str, sim_str, value_debug_str])
 
     def process_data_context(self):
         """
@@ -462,7 +502,7 @@ class MatchContext(object):
 
         property_sim_df = pd.DataFrame(self.final_property_similarity_list,
                                        columns=["idx", "context_property",
-                                                "context_similarity"])
+                                                "context_similarity", "context_property_similarity_q_node"])
         property_sim_df.set_index("idx", drop=True, inplace=True)
         self.data = pd.merge(self.data, property_sim_df,
                              left_index=True, right_index=True)
@@ -479,11 +519,13 @@ class MatchContext(object):
             important_properties.append(temp_row['property'].values.tolist()[0])
             important_property_value.append(temp_row['value'].values.tolist()[0])
             min_sim_value.append(temp_row['min_sim'].values.tolist()[0])
-        for df_ind, q_node, properties_str, similarity_str in zip(
+        for df_ind, q_node, properties_str, similarity_str, context_property_similarity_q_node_str in zip(
                 self.data.index, self.data['kg_id'],
-                self.data['context_property'], self.data['context_similarity']):
+                self.data['context_property'], self.data['context_similarity'],
+                self.data['context_property_similarity_q_node']):
             property_list = properties_str.split("|")
             similarity_list = similarity_str.split("|")
+            context_property_similarity_q_node_list = context_property_similarity_q_node_str.split("|")
             is_change = False
             for p_l in range(len(property_list)):
                 # If we have any property for that position
@@ -519,6 +561,8 @@ class MatchContext(object):
                                 is_change = True
                                 similarity_list[p_l] = str(new_sim_val) + "$$"
                                 property_list[p_l] = imp_prop
+                                context_property_similarity_q_node_list[p_l] = "/".join(
+                                    [imp_prop, str(new_sim_val) + "$$"])
 
                     else:
                         # Another property is present at this location instead.
@@ -545,8 +589,11 @@ class MatchContext(object):
                                     max_property = temp_prop
                                     max_property_value = temp_prop_value
                     property_list[temp_position - 1] = max_property
+
             if is_change:
                 self.data.loc[df_ind, 'context_property'] = "|".join(property_list)
                 self.data.loc[df_ind, 'context_similarity'] = "|".join(similarity_list)
+                self.data.loc[df_ind, 'context_property_similarity_q_node'] = "|".join(
+                    context_property_similarity_q_node_list)
 
         self.calculate_score()
