@@ -307,8 +307,8 @@ class Utility(object):
             kg_ids = "|".join(dict.fromkeys(gdf['GT_kg_id'].values))
 
             out.append({
-                'column': column,
-                'row': row,
+                'column': int(column),
+                'row': int(row),
                 'GT_kg_id': kg_ids,
                 'GT_kg_label': labels
             })
