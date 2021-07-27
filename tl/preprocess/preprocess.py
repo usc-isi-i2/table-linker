@@ -1,11 +1,12 @@
 import ftfy
 import pandas as pd
+from typing import List
 from tl.exceptions import RequiredInputParameterMissingException
 from tl.exceptions import RequiredColumnMissingException
 
 
 def canonicalize(columns, output_column='label', file_path=None, df=None, file_type='csv',
-                 add_context=False, context_column_name="context", file_name=None):
+                 add_context=False, context_column_name="context", file_name=None, skip_columns: List[str] = None):
     """
     translate an input CSV or TSV file to canonical form
 
@@ -34,6 +35,9 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
         if column not in df.columns:
             raise RequiredColumnMissingException("The input column {} does not exist in given data.".format(column))
         remaining_columns.remove(column)
+    if skip_columns:
+        for c in skip_columns:
+            remaining_columns.remove(c)
 
     remaining_col_ids = [df.columns.get_loc(x) for x in remaining_columns]
 
