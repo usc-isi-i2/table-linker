@@ -299,7 +299,8 @@ class Utility(object):
 
     @staticmethod
     def create_gt_file_from_candidates(df: pd.DataFrame, evaluation_label_column: str) -> pd.DataFrame:
-        df = df[df[evaluation_label_column].astype(int) == 1]
+        df[evaluation_label_column] = df[evaluation_label_column].map(lambda x: Utility.return_int(x))
+        df = df[df[evaluation_label_column] == 1]
         out = list()
         for (column, row), gdf in df.groupby(['column', 'row']):
             labels = "|".join(dict.fromkeys(gdf['GT_kg_label'].values))  # keeps the values in order
@@ -312,3 +313,10 @@ class Utility(object):
                 'GT_kg_label': labels
             })
         return pd.DataFrame(out)
+
+    @staticmethod
+    def return_int(x):
+        try:
+            return int(x)
+        except:
+            return 0
