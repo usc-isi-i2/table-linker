@@ -299,7 +299,6 @@ class Utility(object):
 
     @staticmethod
     def create_gt_file_from_candidates(df: pd.DataFrame, evaluation_label_column: str) -> pd.DataFrame:
-        df[evaluation_label_column] = df[evaluation_label_column].map(lambda x: str(x).strip())
         df = df[df[evaluation_label_column].astype(int) == 1]
         out = list()
         for (column, row), gdf in df.groupby(['column', 'row']):
