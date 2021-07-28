@@ -53,6 +53,7 @@ class MatchContext(object):
             node1_column = "node1"
             node2_column = "node2"
             custom_context_dict = self._read_context_file_line(f, node1_column, node2_column)
+            f.close()
 
         merged_context_dict = collections.defaultdict(str)
         for key, val in itertools.chain(context_dict.items(), custom_context_dict.items()):
