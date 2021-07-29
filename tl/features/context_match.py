@@ -107,7 +107,7 @@ class MatchContext(object):
             if old_property != new_property:
                 self.equal_matched_properties[q_node] = [old_property, new_property]
 
-    def match_context_with_type(self, context: str, q_node: str, all_property_list: list, context_data_type: str) -> (
+    def match_context_with_type(self, context: str, q_node: str, all_property_set: set, context_data_type: str) -> (
             str, float):
         """
         Purpose: Matching the given context (of type numerical/quantity/string/date) to the property
@@ -115,16 +115,17 @@ class MatchContext(object):
         Args:
             context: Passed piece of context that needs to be matched.
             q_node: kg_id of the current row.
-            all_property_list: Contains the list of properties and their values for the given q_node.
+            all_property_set: Contains the list of properties and their values for the given q_node.
             context_data_type = "q", "i", "d" represents that the property value is of type quantity, item and date
             year respectively.
         Returns: The Property matched and the similarity by which the property matched to the passed context.
         :param q_node:
-        :param all_property_list:
+        :param all_property_set:
         :param context:
         :param context_data_type:
         """
-        property_list = [prop for prop in all_property_list if prop.lower().startswith(context_data_type.lower())]
+        
+        property_list = {prop for prop in all_property_set if prop.lower().startswith(context_data_type.lower())}
         prop_val = ""
         max_sim = 0.0
         value_matched_to = ""
@@ -197,15 +198,15 @@ class MatchContext(object):
         result = re.sub(r'[^\w\s]', '', input_string)
         return result
 
-    def process_context_string(self, s_context: str, q_node: str, all_property_list: list) -> (str, float):
+    def process_context_string(self, s_context: str, q_node: str, all_property_set: set) -> (str, float):
         """
         Purpose: Before matching with the properties, necessary processing to handle cases where the comma-separated
         values match to the same properties.
         Args:
             s_context: Passed piece of context that needs to be matched.
-            all_property_list: Contains the list of properties and their values for the given q_node.
+            all_property_set: Contains the list of properties and their values for the given q_node.
         Returns: The Property matched and the similarity by which the property matched to the passed context.
-        :param all_property_list:
+        :param all_property_set:
         :param s_context:
         :param q_node:
         """
@@ -220,7 +221,7 @@ class MatchContext(object):
             sub_context_list = s_context.split(self.string_separator)
             for sub_s_context in sub_context_list:
                 p, s, temp_value_matched_to, temp_q_node_matched_to = self.match_context_with_type(
-                    sub_s_context, q_node, all_property_list, context_data_type="i")
+                    sub_s_context, q_node, all_property_set, context_data_type="i")
                 if p != "":
                     temp.append(p)
                     sim_list.append(s)
@@ -262,7 +263,7 @@ class MatchContext(object):
 
         else:
             p_val, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(s_context, q_node,
-                                                                                           all_property_list,
+                                                                                           all_property_set,
                                                                                            context_data_type="i")
         max_sim = round(sim, 4)
         return p_val, max_sim, value_matched_to, q_node_matched_to
@@ -323,13 +324,13 @@ class MatchContext(object):
 
         properties_l_df = properties_set['property']
         properties_list = properties_l_df.values.tolist()
-        c_prop_list = list(set(properties_list))
+        c_prop_list = dict.fromkeys(properties_list).keys()
         positions_list = properties_set['position']
         position_l = positions_list.values.tolist()
-        c_pos_list = list(set(position_l))
+        c_pos_list = list(dict.fromkeys(position_l).keys())
         row_list = properties_set['row']
         row_l = row_list.values.tolist()
-        c_row_list = list(set(row_l))
+        c_row_list = dict.fromkeys(row_l).keys()
         counter = 0
         for prop in c_prop_list:
             for pos in c_pos_list:
@@ -414,6 +415,8 @@ class MatchContext(object):
                 all_property_list[-1] = all_property_list[-1][:-1]
         else:
             return idx, "", "", "0.0"
+        all_property_set = set(all_property_list)
+        val_set = dict.fromkeys(val_list).keys()
         for v in val_list:
             # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
             if self.remove_punctuation(v) != "":
@@ -433,20 +436,20 @@ class MatchContext(object):
 
                 if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
                     property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
-                        to_match_1, q_node, all_property_list, context_data_type="d")
+                        to_match_1, q_node, all_property_set, context_data_type="d")
                     if (property_v == "") and (to_match_1.count(".") <= 1):
                         # Number of decimals shouldn't be greater than one.
                         if to_match_1.isnumeric() or to_match_2.isnumeric():
                             property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
                                 to_match_1, q_node,
-                                all_property_list,
+                                all_property_set,
                                 context_data_type="q")
                         elif num_v is not None:
                             property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
-                                num_v, q_node, all_property_list, context_data_type="q")
+                                num_v, q_node, all_property_set, context_data_type="q")
                             property_v_2, sim_2, value_matched_to_2, q_node_matched_to_2 = self.process_context_string(
                                 v, q_node,
-                                all_property_list)
+                                all_property_set)
                             if sim_2 > sim:
                                 property_v = property_v_2
                                 sim = sim_2
@@ -454,7 +457,7 @@ class MatchContext(object):
                                 q_node_matched_to = q_node_matched_to_2
                 else:
                     property_v, sim, value_matched_to, q_node_matched_to = self.process_context_string(
-                        v, q_node, all_property_list
+                        v, q_node, all_property_set
                     )
 
                 prop_list.append(property_v)
@@ -538,9 +541,10 @@ class MatchContext(object):
                             if not self.is_custom:
                                 all_property_list[0] = all_property_list[0][1:]
                                 all_property_list[-1] = all_property_list[-1][:-1]
+                            all_property_set = set(all_property_list)
                             # Separate list of only properties.
                             is_present = False
-                            for prop in all_property_list:
+                            for prop in all_property_set:
                                 prop = prop.split(":")
                                 if len(prop) > 1:
                                     if prop[1] == imp_prop:
