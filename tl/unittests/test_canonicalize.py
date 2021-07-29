@@ -38,8 +38,8 @@ class TestCanonicalize(unittest.TestCase):
         self.assertEqual(len(odf), 274)
         self.assertTrue(self.ffv.is_canonical_file(odf))
         self.assertTrue('context' in odf.columns)
-        self.assertEqual(odf.iloc[116, 3], "B. Robison|George Strait|How 'bout Them Cowgirls")
-        self.assertEqual(odf.iloc[91, 3], "B. Nowell|Paul Leary|Doin' Time")
+        self.assertEqual(odf.iloc[116, 3], "B. Robison|George Strait|George Strait|How 'bout Them Cowgirls")
+        self.assertEqual(odf.iloc[91, 3], "B. Nowell|Paul Leary|Sublime|Doin' Time")
 
     def test_canonicalize_with_additional_columns(self):
         odf = preprocess.canonicalize('col0,col3', df=self.input_csv, add_context=True, file_name='input.csv')
@@ -47,8 +47,8 @@ class TestCanonicalize(unittest.TestCase):
         self.assertTrue('context' in odf.columns)
         self.assertTrue('filename' in odf.columns)
         self.assertTrue('column-id' in odf.columns)
-        self.assertEqual(odf.iloc[116, 3], "B. Robison|George Strait|How 'bout Them Cowgirls")
-        self.assertEqual(odf.iloc[91, 3], "B. Nowell|Paul Leary|Doin' Time")
+        self.assertEqual(odf.iloc[116, 3], "B. Robison|George Strait|George Strait|How 'bout Them Cowgirls")
+        self.assertEqual(odf.iloc[91, 3], "B. Nowell|Paul Leary|Sublime|Doin' Time")
         self.assertEqual(odf.iloc[34, 4], "input.csv")
         self.assertEqual(odf.iloc[34, 5], "input.csv-0")
         self.assertEqual(odf.iloc[200, 5], "input.csv-3")
