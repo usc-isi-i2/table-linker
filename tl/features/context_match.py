@@ -24,14 +24,9 @@ class MatchContext(object):
         if context_path is None and custom_context_path is None:
             raise RequiredInputParameterMissingException(
                 'One of the input parameters is required: {} or {}'.format("context_path", "custom_context_path"))
-        elif custom_context_path:
-            self.is_custom = True
-            if context_path:
-                self.context = self.read_context_file(context_path, custom_context_path)
-            else:
-                self.context = self.read_context_file(custom_context_path=custom_context_path)
-        else:
-            self.context = self.read_context_file(context_path)
+
+        self.context = self.read_context_file(context_path=context_path, custom_context_path=custom_context_path)
+
         self.output_column_name = output_column_name
         self.similarity_string_threshold = similarity_string_threshold
         self.similarity_quantity_threshold = similarity_quantity_threshold
@@ -46,11 +41,13 @@ class MatchContext(object):
             self.use_cpus = min(cpu_count(), use_cpus)
 
     def read_context_file(self, context_path=None, custom_context_path=None) -> dict:
+        context_dict = {}
+        custom_context_dict = {}
         if context_path:
             f = open(context_path)
             node1_column = "qnode"
             node2_column = "context"
-            context_dict_1 = self._read_context_file_line(f, node1_column, node2_column)
+            context_dict = self._read_context_file_line(f, node1_column, node2_column)
             f.close()
         if custom_context_path:
             extension = os.path.splitext(custom_context_path)[1]
@@ -60,16 +57,13 @@ class MatchContext(object):
                 f = open(custom_context_path)
             node1_column = "node1"
             node2_column = "node2"
-            context_dict_2 = self._read_context_file_line(f, node1_column, node2_column)
+            custom_context_dict = self._read_context_file_line(f, node1_column, node2_column)
             f.close()
-        if context_path and custom_context_path:
-            context_dict = collections.defaultdict(str)
-            for key, val in itertools.chain(context_dict_1.items(), context_dict_2.items()):
-                context_dict[key] += val
-            return context_dict
-        if custom_context_path:
-            return context_dict_2
-        return context_dict_1
+
+        merged_context_dict = collections.defaultdict(str)
+        for key, val in itertools.chain(context_dict.items(), custom_context_dict.items()):
+            merged_context_dict[key] += val
+        return merged_context_dict
 
     @staticmethod
     def _read_context_file_line(f, node1_column: str, node2_column: str) -> dict:
