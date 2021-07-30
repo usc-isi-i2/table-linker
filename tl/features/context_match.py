@@ -288,9 +288,8 @@ class MatchContext(object):
             list_of_properties = value_of_property.split("|")
             list_of_sim = value_of_sim.split("|")
             # The positions will be denoted by the index. (Alternative: using dictionary instead - extra overhead)
-            dict_of_properties = {list_of_properties[i] : i for i in range(len(list_of_properties))}
-            for d_property in dict_of_properties:
-                j = dict_of_properties[d_property] 
+            dict_of_properties = {(list_of_properties[i], i) : i for i in range(len(list_of_properties))}
+            for (d_property, j) in dict_of_properties:
                 position = j + 1
                 if d_property != "":
                     if d_property not in properties_set.property.values:
@@ -360,6 +359,7 @@ class MatchContext(object):
         for properties_str, sim_str in zip(self.data['context_property'], self.data['context_similarity']):
             sim_list = sim_str.split("|")
             properties_list = properties_str.split("|")
+            
             sum_prop = 0
             for i in range(len(properties_list)):
                 if properties_list[i] != "":
