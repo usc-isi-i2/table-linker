@@ -125,7 +125,7 @@ class MatchContext(object):
         :param context_data_type:
         """
         
-        property_list = {prop for prop in all_property_set if prop.lower().startswith(context_data_type.lower())}
+        property_set = {prop for prop in all_property_set if prop.lower().startswith(context_data_type.lower())}
         prop_val = ""
         max_sim = 0.0
         value_matched_to = ""
@@ -143,7 +143,7 @@ class MatchContext(object):
         else:
             check_for = self.preprocess(context)
 
-        for prop in property_list:
+        for prop in property_set:
             prop = prop.split(":")
             p_value = prop[0]
             if context_data_type == 'q':
@@ -219,7 +219,8 @@ class MatchContext(object):
             value_matched_to_list = []
             q_node_matched_to_list = []
             sub_context_list = s_context.split(self.string_separator)
-            for sub_s_context in sub_context_list:
+            sub_s_context_dict = dict.fromkeys(sub_context_list).keys()
+            for sub_s_context in sub_s_context_dict:
                 p, s, temp_value_matched_to, temp_q_node_matched_to = self.match_context_with_type(
                     sub_s_context, q_node, all_property_set, context_data_type="i")
                 if p != "":
@@ -242,6 +243,7 @@ class MatchContext(object):
                     p_val = temp[sim_ind]
                     value_matched_to = value_matched_to_list[sim_ind]
                     q_node_matched_to = q_node_matched_to_list[sim_ind]
+                    sim = sim/len(temp)
                 else:
                     most_common_property = mode(temp)
                     # indices_for_prop = temp.index(most_common_property)`
@@ -286,17 +288,19 @@ class MatchContext(object):
             list_of_properties = value_of_property.split("|")
             list_of_sim = value_of_sim.split("|")
             # The positions will be denoted by the index. (Alternative: using dictionary instead - extra overhead)
-            for j in range(len(list_of_properties)):
+            dict_of_properties = {list_of_properties[i] : i for i in range(len(list_of_properties))}
+            for d_property in dict_of_properties:
+                j = dict_of_properties[d_property] 
                 position = j + 1
-                if list_of_properties[j] != "":
-                    if list_of_properties[j] not in properties_set.property.values:
+                if d_property != "":
+                    if d_property not in properties_set.property.values:
                         # Add a new row
-                        properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j],
+                        properties_set.loc[counter] = [value_of_column, value_of_row, d_property,
                                                        str(position), "1", list_of_sim[j]]
                         counter = counter + 1
                     else:
                         # Increment the count if same position, else add another row with the new position
-                        ind = properties_set[(properties_set['property'] == list_of_properties[j]) & (
+                        ind = properties_set[(properties_set['property'] == d_property) & (
                                 properties_set['row'] == value_of_row) & (
                                                      properties_set['position'] == str(position))].index.values
                         if len(ind) != 0:
@@ -308,7 +312,7 @@ class MatchContext(object):
                                 new_count)
                             properties_set.iloc[ind, properties_set.columns.get_loc('min_sim')] = new_sim
                         else:
-                            properties_set.loc[counter] = [value_of_column, value_of_row, list_of_properties[j],
+                            properties_set.loc[counter] = [value_of_column, value_of_row, d_property,
                                                            str(position), "1", list_of_sim[j]]
                             counter = counter + 1
                             # Part 1 - b - Calculating each individual property's value (also considers position)
@@ -324,16 +328,16 @@ class MatchContext(object):
 
         properties_l_df = properties_set['property']
         properties_list = properties_l_df.values.tolist()
-        c_prop_list = dict.fromkeys(properties_list).keys()
+        c_prop_set = dict.fromkeys(properties_list).keys()
         positions_list = properties_set['position']
         position_l = positions_list.values.tolist()
-        c_pos_list = list(dict.fromkeys(position_l).keys())
+        c_pos_set = dict.fromkeys(position_l).keys()
         row_list = properties_set['row']
         row_l = row_list.values.tolist()
-        c_row_list = dict.fromkeys(row_l).keys()
+        c_row_set = dict.fromkeys(row_l).keys()
         counter = 0
-        for prop in c_prop_list:
-            for pos in c_pos_list:
+        for prop in c_prop_set:
+            for pos in c_pos_set:
                 # Update : Added the minimum similarity values for each property
                 ind = properties_set[
                     (properties_set['property'] == prop) & (properties_set['position'] == pos)].index.values
@@ -345,7 +349,7 @@ class MatchContext(object):
                         property_cal = round((property_cal + float(prop_val)), 4)
                         min_values_list.append(properties_set['min_sim'].values[i])
                     min_sim_value = min(min_values_list)
-                    f_prop_cal = round(property_cal / len(c_row_list), 4)
+                    f_prop_cal = round(property_cal / len(c_row_set), 4)
                     self.properties_with_score_metric.loc[counter] = [prop, pos, f_prop_cal, min_sim_value]
                     counter = counter + 1
         self.properties_with_score_metric = self.properties_with_score_metric.sort_values(['value'], ascending=False)
@@ -509,29 +513,35 @@ class MatchContext(object):
         important_properties = []
         important_property_value = []
         min_sim_value = []
-        for pos in unique_positions:
+        # No need of converting others to set as directly referenced from the index.
+        unique_positions_dict = {unique_positions[i] : i for i in range(0, len(unique_positions) ) }
+
+        for pos in unique_positions_dict:
             temp_row = self.properties_with_score_metric[
                 self.properties_with_score_metric['position'] == pos].sort_values(
                 ['value'], ascending=False).head(1)
             important_properties.append(temp_row['property'].values.tolist()[0])
             important_property_value.append(temp_row['value'].values.tolist()[0])
             min_sim_value.append(temp_row['min_sim'].values.tolist()[0])
+
         for df_ind, q_node, properties_str, similarity_str, context_property_similarity_q_node_str in zip(
                 self.data.index, self.data['kg_id'],
                 self.data['context_property'], self.data['context_similarity'],
                 self.data['context_property_similarity_q_node']):
             property_list = properties_str.split("|")
             similarity_list = similarity_str.split("|")
+            property_list_dict = { property_list[i] : i for i in range(0, len(property_list) ) }
             context_property_similarity_q_node_list = context_property_similarity_q_node_str.split("|")
             is_change = False
-            for p_l in range(len(property_list)):
+            for p_property in property_list_dict:
                 # If we have any property for that position
-                if str(p_l + 1) in unique_positions:
-                    ind = unique_positions.index(str(p_l + 1))
+                p_l = property_list_dict[p_property]
+                if str(p_l + 1) in unique_positions_dict:
+                    ind = unique_positions_dict[str(p_l + 1)]
                     imp_prop = important_properties[ind]
-                    if property_list[p_l] == imp_prop:
+                    if p_property == imp_prop:
                         continue
-                    elif property_list[p_l] == "":
+                    elif p_property == "":
                         # Need to check if this property is present for the particular q_node
                         context_value = self.context.get(q_node, None)
                         # Create a list of this values. In some cases the kg_id may not be present in the context_file.
@@ -565,17 +575,19 @@ class MatchContext(object):
                     else:
                         # Another property is present at this location instead.
                         pass
+            #equal_matched_properties is a dict
             if q_node in self.equal_matched_properties:
                 # temp references to the other possible properties that we can place.
                 temp_list = self.equal_matched_properties.get(q_node, None)
                 matched_property = temp_list[0]
-                if matched_property in property_list:
+                if matched_property in property_list_dict:
                     temp_position = property_list.index(matched_property) + 1
                     current_property_value = self.properties_with_score_metric[
                         (self.properties_with_score_metric['property'] == matched_property) &
                         (self.properties_with_score_metric['position'] == str(temp_position))]['value'].values[0]
                     max_property = matched_property
                     max_property_value = current_property_value
+                    # Following is a list of two items - contains old_property, possible_new_property
                     for temp_prop in temp_list:
                         if not temp_prop == matched_property:
                             temp_prop_value_l = self.properties_with_score_metric[
