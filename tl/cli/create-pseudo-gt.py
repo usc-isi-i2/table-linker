@@ -29,6 +29,11 @@ def add_arguments(parser):
                              "with corresponding thresholds; column:threshold"
                              "; multiple features can be specified "
                              "by separating with a comma.")
+    
+    parser.add_argument('--filter', type=str, action='store',
+                        dest='filter',
+                        help="string specifying the columns and the values to"
+                             " be used to filter the dataframe")
 
     # output column
     parser.add_argument('-o', '--output-column-name', type=str,
@@ -47,12 +52,14 @@ def run(**kwargs):
         input_file_path = kwargs["input_file"]
         column_thresholds = kwargs["column_thresholds"]
         output_column_name = kwargs["output_column"]
+        filter = kwargs["filter"]
 
         df = pd.read_csv(input_file_path)
         start = time.time()
         result_df = create_pseudo_gt(df=df,
                                      column_thresholds=column_thresholds,
-                                     output_column=output_column_name)
+                                     output_column=output_column_name,
+                                     filter=filter)
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={

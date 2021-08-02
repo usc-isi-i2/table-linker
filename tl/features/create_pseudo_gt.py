@@ -7,35 +7,36 @@ import sys
 
 
 def create_pseudo_gt(df: pd.DataFrame, column_thresholds: str,
-                     output_column: str):
+                     output_column: str, filter: str):
     column_thresholds = [_.split(":") for _ in column_thresholds.split(",")]
+
+    if filter:
+        col, val = filter.split(":")
+        val =  float(val)
+        if col not in df.columns:
+            raise RequiredColumnMissingException("The input column {} does not" 
+                                                 " exist in given data.".format(col))
     ffv = FFV()
     if ffv.is_candidates_file(df):
         grouped = df.groupby(by=["column", "row"])
         for column, threshold in column_thresholds:
-            top_cd_df = pd.concat([gdf.sort_values(by=[column], ascending=False).head(1) for _, gdf in grouped])
             if column not in df.columns:
                 raise RequiredColumnMissingException(
                     "The input column {} does not exist"
                     " in given data.".format(column))
 
+            top_cd_df = pd.concat([gdf.sort_values(by=[column], ascending=False).head(1) for _, gdf in grouped])
+            if filter:
+                top_cd_df = top_cd_df[top_cd_df[col] > val]
             if threshold=="median":
-                for _, gdf in grouped:
-                    column_median =  top_cd_df[top_cd_df["column"] == _[0]][column].astype(float).median()
-                    # gdf.loc[((gdf[column].astype(float) == gdf[column].max()) & 
-                    #        (gdf[column].astype(float) >= column_median)), 
-                    #        output_column] = 1
-                    gdf.loc[(gdf[column].astype(float) >= column_median), 
+                for _, gdf in top_cd_df.groupby(by=["column"]):
+                    gdf.loc[(gdf[column].astype(float) >= gdf[column].astype(float).median()), 
                             output_column] = 1
                     df.loc[gdf.index[gdf[output_column].astype(float) == 1],
                            output_column] = 1
             elif threshold=="mean":
-                for _, gdf in grouped:
-                    column_mean =  top_cd_df[top_cd_df["column"] == _[0]][column].astype(float).mean()
-                    # gdf.loc[((gdf[column].astype(float) == gdf[column].max()) & 
-                    #        (gdf[column].astype(float) >= column_mean)), 
-                    #        output_column] = 1
-                    gdf.loc[(gdf[column].astype(float) >= column_mean), 
+                for _, gdf in top_cd_df.groupby(by=["column"]):
+                    gdf.loc[(gdf[column].astype(float) >= gdf[column].astype(float).mean()), 
                             output_column] = 1
                     df.loc[gdf.index[gdf[output_column].astype(float) == 1],
                            output_column] = 1
@@ -43,40 +44,25 @@ def create_pseudo_gt(df: pd.DataFrame, column_thresholds: str,
                 method, perc = threshold.split("top")
                 perc = float(perc)
                 if method == "median":
-                    for _, gdf in grouped:
+                    for _, gdf in top_cd_df.groupby(by=["column"]):
+                        gdf = gdf[gdf[column].astype(float) >= gdf[column].astype(float).median()]
                         num_rows = max(1, int(gdf.shape[0]*(perc/100.0)))
-                        top_n = gdf.nlargest(n=num_rows, columns=[column],
-                                             keep="first")
-                        column_median =  df[df["column"] == _[0]][column].astype(float).median()
-                        top_n.loc[(top_n[column].astype(float) >= column_median,
-                                  output_column)] = 1
-                        df.loc[top_n.index[top_n[output_column].astype(float) == 1],
-                               output_column] = 1
+                        gdf = gdf.nlargest(n=num_rows, columns=[column], keep="first")
+                        gdf[output_column] = 1
+                        df.loc[gdf.index[gdf[output_column].astype(float) == 1],
+                            output_column] = 1
                 elif method=="mean":
-                    for _, gdf in grouped:
+                    for _, gdf in top_cd_df.groupby(by=["column"]):
+                        gdf = gdf[gdf[column].astype(float) >= gdf[column].astype(float).mean()]
                         num_rows = max(1, int(gdf.shape[0]*(perc/100.0)))
-                        top_n = gdf.nlargest(n=num_rows, columns=[column],
-                                             keep="first")
-                        column_mean =  df[df["column"] == _[0]][column].astype(float).mean()
-                        top_n.loc[(top_n[column].astype(float) >= column_mean,
-                                  output_column)] = 1
-                        df.loc[top_n.index[top_n[output_column].astype(float) == 1],
-                               output_column] = 1
-                else:
-                    method = float(method)
-                    for _, gdf in grouped:
-                        num_rows = max(1, int(gdf.shape[0]*(perc/100.0)))
-                        top_n = gdf.nlargest(n=num_rows, columns=[column],
-                                     keep="first")
-                        top_n.loc[(top_n[column].astype(float) >= method,
-                                  output_column)] = 1
-                        df.loc[top_n.index[top_n[output_column].astype(float) == 1],
-                               output_column] = 1
+                        gdf = gdf.nlargest(n=num_rows, columns=[column], keep="first")
+                        gdf[output_column] = 1
+                        df.loc[gdf.index[gdf[output_column].astype(float) == 1],
+                            output_column] = 1
             else:
-                grouped = df.groupby(by=["column", "row"])
-                for _, gdf in grouped:
+                for _, gdf in top_cd_df.groupby(by=["column"]):
                     gdf.loc[(gdf[column].astype(float) >= float(threshold)), 
-                           output_column] = 1
+                            output_column] = 1
                     df.loc[gdf.index[gdf[output_column].astype(float) == 1],
                            output_column] = 1
         # If too few candidate rows in pseudo gt
