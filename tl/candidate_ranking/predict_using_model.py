@@ -1,3 +1,5 @@
+import sys
+
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException, UnsupportTypeError
 from tl.file_formats_validator import FFV
@@ -76,8 +78,8 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
         for a in arr:
             test_inp.append(a)
         test_tensor = torch.tensor(test_inp).float()
-        scores = model.predict(test_tensor)
-        pred.extend(torch.squeeze(scores).tolist())
+        scores = torch.squeeze(model.predict(test_tensor)).tolist()
+        pred.extend(scores) if isinstance(scores, list) else pred.append(scores)
     out_df = pd.concat(new_df_list)
     out_df[output_column] = pred
 
