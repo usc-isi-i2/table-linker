@@ -148,7 +148,14 @@ class MatchContext(object):
             p_value = prop[0]
             if context_data_type == 'q':
                 check_with_temp = p_value[1:]
-                check_with = float(check_with_temp.replace('"', ''))
+                check_with_temp = check_with_temp.replace('"', '')
+                # The following line handles cases q12wr or equivalent.
+                is_digit_list = [c.isdigit() or c == '.' for c in check_with_temp]
+                is_digit_set = set(is_digit_list)
+                if False in is_digit_set:
+                    print(check_with_temp)
+                    continue
+                check_with = float(check_with_temp)
                 if isinstance(check_with, float) or isinstance(check_with, int):
                     value = self.quantity_score(check_with, check_for)
                     if value >= self.similarity_quantity_threshold and value > max_sim:
