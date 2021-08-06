@@ -14,7 +14,8 @@ class PickHCCandidates(object):
                  maximum_cells: int = 100,
                  minimum_cells: int = 10,
                  str_sim_threshold: float = 0.9,
-                 str_sim_threshold_backup: float = 0.8):
+                 str_sim_threshold_backup: float = 0.8,
+                 output_column_name: str = 'ignore_candidate'):
         """
         Initializes the PickHCCanddidates class with the following parameters.
         Args:
@@ -49,6 +50,7 @@ class PickHCCandidates(object):
         self.string_sim_cols = string_sim_cols
         self.str_sim_threshold = str_sim_threshold
         self.str_sim_threshold_backup = str_sim_threshold_backup
+        self.output_column_name = output_column_name
 
     def max_string_similarity(self):
         best_str_sims = []
@@ -106,10 +108,9 @@ class PickHCCandidates(object):
         self.max_string_similarity()
         self.calculate_equal_sim()
 
-        print(self.cell_count_dict)
         data = self.input_df
         data.reset_index(drop=True, inplace=True)
-        data['ignore'] = 1
+        data[self.output_column_name] = 1
         cell_bucket_list = []
         for column, gdf in data.groupby(['column']):
             cell_bucket = {}
@@ -137,5 +138,6 @@ class PickHCCandidates(object):
                 column = int(_[0])
                 row = int(_[1])
 
-                data.loc[(data['column'] == column) & (data['row'] == row) & (data['kg_id'] == kg_id), 'ignore'] = 0
+                data.loc[(data['column'] == column) & (data['row'] == row) & (
+                        data['kg_id'] == kg_id), self.output_column_name] = 0
         return data

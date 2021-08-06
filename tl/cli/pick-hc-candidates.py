@@ -52,7 +52,8 @@ def run(**kwargs):
                                 maximum_cells=kwargs['max_cells'],
                                 minimum_cells=kwargs['min_cells'],
                                 str_sim_threshold=kwargs['str_sim_threshold'],
-                                str_sim_threshold_backup=kwargs['str_sim_threshold_backup'])
+                                str_sim_threshold_backup=kwargs['str_sim_threshold_backup'],
+                                output_column_name=kwargs['output_column_name'])
 
         odf = phcc.process()
         end = time.time()
