@@ -150,12 +150,10 @@ class MatchContext(object):
                 check_with_temp = p_value[1:]
                 check_with_temp = check_with_temp.replace('"', '')
                 # The following line handles cases q12wr or equivalent.
-                is_digit_list = [c.isdigit() or c == '.' for c in check_with_temp]
-                is_digit_set = set(is_digit_list)
-                if False in is_digit_set:
-                    print(check_with_temp)
+                try:
+                    check_with = float(check_with_temp)
+                except ValueError:
                     continue
-                check_with = float(check_with_temp)
                 if isinstance(check_with, float) or isinstance(check_with, int):
                     value = self.quantity_score(check_with, check_for)
                     if value >= self.similarity_quantity_threshold and value > max_sim:
@@ -577,7 +575,7 @@ class MatchContext(object):
                                 similarity_list[p_l] = str(new_sim_val) + "$$"
                                 property_list[p_l] = imp_prop
                                 context_property_similarity_q_node_list[p_l] = "/".join(
-                                    [imp_prop, str(new_sim_val) + "$$"])
+                                    [imp_prop, "", str(new_sim_val) + "$$", ""])
 
                     else:
                         # Another property is present at this location instead.
