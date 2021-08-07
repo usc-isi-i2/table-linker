@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 from typing import List
 from tl.exceptions import RequiredInputParameterMissingException
 
@@ -34,15 +35,15 @@ class PickHCCandidates(object):
                 'One of the input parameters is required: {} or {}'.format("input_file", "df"))
 
         if input_file is not None:
-            i_df = pd.read_csv(input_file)
-            i_df['kg_id'].fillna("", inplace=True)
-            self.input_df = i_df[i_df['kg_id'] != ""]
+            self.input_df = pd.read_csv(input_file)
+            self.input_df['kg_id'].fillna("", inplace=True)
 
         elif df is not None:
             self.input_df = df
 
-        assert all(c in df.columns for c in string_sim_cols), f"one or more provided string similarity columns: " \
-                                                              f"{','.join(string_sim_cols)} not found in the file"
+        assert all(
+            c in self.input_df.columns for c in string_sim_cols), f"one or more provided string similarity columns: " \
+                                                                  f"{','.join(string_sim_cols)} not found in the file"
 
         self.desired_cell_factor = desired_cell_factor
         self.maximum_cells = maximum_cells
@@ -116,8 +117,10 @@ class PickHCCandidates(object):
             cell_bucket = {}
             seen_labels = set()
             threshold = self.str_sim_threshold
-            for row, label, kg_id, str_sim in zip(gdf['row'], gdf['label_clean'], gdf['kg_id'],
-                                                  gdf[BEST_STR_SIMILARITY]):
+            mean_equal_sim = gdf[EQUAL_SIM].mean()
+
+            for row, label, kg_id, str_sim, equal_sim in zip(gdf['row'], gdf['label_clean'], gdf['kg_id'],
+                                                             gdf[BEST_STR_SIMILARITY], gdf[EQUAL_SIM]):
                 if len(cell_bucket) >= self.cell_count_dict[column]['smc_cells'] or \
                         str_sim < self.str_sim_threshold_backup:
                     break
@@ -127,7 +130,10 @@ class PickHCCandidates(object):
 
                 cell_bucket_key = f"{column}_{row}"
 
-                if str_sim >= threshold and cell_bucket_key not in cell_bucket and label not in seen_labels:
+                if str_sim >= threshold and \
+                        cell_bucket_key not in cell_bucket and \
+                        label not in seen_labels and \
+                        equal_sim < mean_equal_sim:
                     cell_bucket[cell_bucket_key] = kg_id
                     seen_labels.add(label)
             cell_bucket_list.append(cell_bucket)
