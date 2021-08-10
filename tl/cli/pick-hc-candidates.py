@@ -39,6 +39,9 @@ def add_arguments(parser):
                         required=False, default=0.8,
                         help="a second string similarity threshold to fall back on, in case there are not sufficient "
                              "candidates with string similarity greater than or equal to --string-similarity-threshold")
+    parser.add_argument('--filter-above', action='store', dest='filter_above', required=False, default='mean',
+                        help="{mean|median}, filter out all the candidates with equal sim above the equal sim mean or "
+                             "median for a column. Default is mean")
 
 
 def run(**kwargs):

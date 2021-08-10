@@ -16,7 +16,8 @@ class PickHCCandidates(object):
                  minimum_cells: int = 10,
                  str_sim_threshold: float = 0.9,
                  str_sim_threshold_backup: float = 0.8,
-                 output_column_name: str = 'ignore_candidate'):
+                 output_column_name: str = 'ignore_candidate',
+                 filter_above: str = 'mean'):
         """
         Initializes the PickHCCanddidates class with the following parameters.
         Args:
@@ -52,6 +53,7 @@ class PickHCCandidates(object):
         self.str_sim_threshold = str_sim_threshold
         self.str_sim_threshold_backup = str_sim_threshold_backup
         self.output_column_name = output_column_name
+        self.filter_above = filter_above.lower().strip()
 
     def max_string_similarity(self):
         best_str_sims = []
@@ -117,7 +119,7 @@ class PickHCCandidates(object):
             cell_bucket = {}
             seen_labels = set()
             threshold = self.str_sim_threshold
-            mean_equal_sim = gdf[EQUAL_SIM].mean()
+            mean_equal_sim = gdf[EQUAL_SIM].mean() if self.filter_above == 'mean' else gdf[EQUAL_SIM].median()
 
             for row, label, kg_id, str_sim, equal_sim in zip(gdf['row'], gdf['label_clean'], gdf['kg_id'],
                                                              gdf[BEST_STR_SIMILARITY], gdf[EQUAL_SIM]):
