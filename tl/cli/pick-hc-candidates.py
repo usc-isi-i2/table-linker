@@ -7,7 +7,8 @@ from tl.utility.logging import Logger
 
 def parser():
     return {
-        'help': """Pick high confidence candidates"""
+        'help': """Identify high confidence candidates based on string similarity and number of candidates with 
+            same string similarity."""
     }
 
 
@@ -23,22 +24,24 @@ def add_arguments(parser):
     parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column_name',
                         default="ignore_candidate",
                         help='the output column name where the value {0/1} will be stored.Default is ignore_candidate')
-    parser.add_argument('-s', '--string-similarity-columns', action='store', dest='str_sim_columns', required=True,
+    parser.add_argument('-s', '--string-similarity-columns', type=str,
+                        action='store', dest='str_sim_columns', required=True,
                         help="a comma separated list of columns with string similarity features")
-    parser.add_argument('--maximum-cells', action='store', dest='max_cells', required=False, default=100,
-                        help="maximum number of cells that can set to not ignore")
-    parser.add_argument('--minimum-cells', action='store', dest='min_cells', required=False, default=10,
-                        help="minimum number of cells that can be set to not ignore")
-    parser.add_argument('--desired-cell-factor', action='store', dest='desired_cell_factor', required=False,
+    parser.add_argument('--maximum-cells', action='store', dest='max_cells', type=int, required=False, default=100,
+                        help="maximum number of cells that can set to not ignore. Default 100")
+    parser.add_argument('--minimum-cells', action='store', dest='min_cells', type=int, required=False, default=10,
+                        help="minimum number of cells that can be set to not ignore. Default 10")
+    parser.add_argument('--desired-cell-factor', action='store', dest='desired_cell_factor', type=float, required=False,
                         default=0.25,
-                        help="fraction of number of cells to be considered")
-    parser.add_argument('--string-similarity-threshold', action='store', dest='str_sim_threshold', required=False,
-                        default=0.9,
-                        help="string similarity threshold below which cells will be ignored")
-    parser.add_argument('--string-similarity-threshold-2', action='store', dest='str_sim_threshold_backup',
+                        help="fraction of number of cells to be considered. Default 0.25")
+    parser.add_argument('--string-similarity-threshold', action='store', dest='str_sim_threshold', type=float,
+                        required=False, default=0.9,
+                        help="string similarity threshold below which cells will be ignored. Default 0.9")
+    parser.add_argument('--string-similarity-threshold-2', action='store', dest='str_sim_threshold_backup', type=float,
                         required=False, default=0.8,
                         help="a second string similarity threshold to fall back on, in case there are not sufficient "
-                             "candidates with string similarity greater than or equal to --string-similarity-threshold")
+                             "candidates with string similarity greater than or equal to --string-similarity-threshold."
+                             "Default 0.8")
     parser.add_argument('--filter-above', action='store', dest='filter_above', required=False, default='mean',
                         help="{mean|median}, filter out all the candidates with equal sim above the equal sim mean or "
                              "median for a column. Default is mean")
