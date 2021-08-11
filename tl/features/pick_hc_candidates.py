@@ -1,5 +1,4 @@
 import pandas as pd
-import sys
 from typing import List
 from tl.exceptions import RequiredInputParameterMissingException
 
