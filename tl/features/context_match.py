@@ -13,7 +13,7 @@ import os
 
 class MatchContext(object):
     def __init__(self, input_path, similarity_string_threshold, similarity_quantity_threshold,
-                 string_separator, missing_property_replacement_factor, output_column_name, context_path=None, custom_context_path=None):
+                 string_separator, missing_property_replacement_factor, ignore_column_name, output_column_name, context_path=None, custom_context_path=None):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.final_property_similarity_list = []
@@ -21,14 +21,13 @@ class MatchContext(object):
         self.result_data = pd.DataFrame()
         self.is_custom = False
         self.missing_property_replacement_factor = missing_property_replacement_factor
-
         if context_path is None and custom_context_path is None:
             raise RequiredInputParameterMissingException(
                 'One of the input parameters is required: {} or {}'.format("context_path", "custom_context_path"))
         self.final_data['index'] = self.final_data.index
-        if 'ignore' in self.final_data.columns:
-            self.final_data_subset = self.final_data[self.final_data['ignore'] == 0]
-            self.to_result_data = self.final_data[self.final_data['ignore'] == 1]
+        if ignore_column_name in self.final_data.columns:
+            self.final_data_subset = self.final_data[self.final_data[ignore_column_name] == 0]
+            self.to_result_data = self.final_data[self.final_data[ignore_column_nmae] == 1]
         else:
             self.final_data_subset = self.final_data
             self.to_result_data = None
@@ -377,10 +376,6 @@ class MatchContext(object):
             sim_list = sim_str.split("|")
             properties_list = properties_str.split("|")
             value_debug_str_list = value_debug_str.split("|")
-
-            # sim_list = sim_str
-            # properties_list = properties_str
-            # value_debug_str_list = value_debug_str
             sum_prop = 0
             property_values_list = []
             for i in range(len(properties_list)):
@@ -392,11 +387,7 @@ class MatchContext(object):
                         (self.properties_with_score_metric['property'] == curr_property) & (
                                 self.properties_with_score_metric['position'] == str(i + 1))]
                     value = ind_df['value'].tolist()
-                    try:
-                        prop_value = value[0]
-                    except IndexError:
-                        prop_value = 0
-                        continue
+                    prop_value = value[0]
                     sum_prop = round(sum_prop + (float(prop_value) * float(sim_value)), 4)
                     property_values_list.append(prop_value)
                     value_debug_str_list[i] = value_debug_str_list[i].replace(curr_property,
