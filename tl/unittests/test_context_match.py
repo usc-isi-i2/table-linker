@@ -17,12 +17,13 @@ class TestContextMatch(unittest.TestCase):
         self.similarity_quantity_threshold = 0.80
         self.missing_property_replacement_factor = 0.5
         self.string_separator = ','
+        self.ignore_column_name = 'ignore'
 
     def test_combination_types_of_input(self):
         # the input file contains varied set of inputs ranging from
         # quantity as numbers, floats and badly formatted numbers, dates and strings with separators.
         obj_1 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold,
-                             self.string_separator, self.missing_property_replacement_factor,
+                             self.string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
                              self.output_column_name, self.context_file_path, custom_context_path=None)
         odf = obj_1.process_data_by_column()
         odf.to_csv('{}/data/result_test_1.csv'.format(parent_path), index=False)
@@ -34,11 +35,13 @@ class TestContextMatch(unittest.TestCase):
         # Check for one row : Red Dead Redemption Q548203
         node_context_score = odf[odf['kg_id'] == 'Q548203'][self.output_column_name].values.tolist()[0]
         self.assertTrue(node_context_score == 1.0)
-        
+
     def test_for_custom_context_file(self):
         # The custom file contains the property Pcoauthor and should therefore match for column 7's some of the qnodes.
         obj_2 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold,
-                             self.string_separator, self.missing_property_replacement_factor, self.output_column_name,
+                             self.string_separator, self.missing_property_replacement_factor,
+                             self.ignore_column_name,
+                             self.output_column_name,
                              custom_context_path=self.custom_context_path,
                              context_path=self.context_file_path)
         odf = obj_2.process_data_by_column()
@@ -59,7 +62,8 @@ class TestContextMatch(unittest.TestCase):
         # We will check for results with string separator ;
         string_separator = ";"
         obj_3 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold,
-                             string_separator, self.missing_property_replacement_factor, self.output_column_name, custom_context_path=self.custom_context_path,
+                             string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.output_column_name, custom_context_path=self.custom_context_path,
                              context_path=self.context_file_path)
         odf = obj_3.process_data_by_column()
         odf.to_csv('{}/data/result_test_3.csv'.format(parent_path), index=False)
@@ -76,7 +80,8 @@ class TestContextMatch(unittest.TestCase):
     def test_for_quantity_match(self):
         similarity_quantity_threshold = 1
         obj_4 = MatchContext(self.input_file_path, self.similarity_string_threshold, similarity_quantity_threshold,
-                             self.string_separator, self.missing_property_replacement_factor, self.output_column_name, context_path=self.context_file_path)
+                             self.string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.output_column_name, context_path=self.context_file_path)
         odf = obj_4.process_data_by_column()
         odf.to_csv('{}/data/result_test_4.csv'.format(parent_path), index=False)
         # Check for the United States.
@@ -91,7 +96,8 @@ class TestContextMatch(unittest.TestCase):
     def test_for_item_match(self):
         similarity_string_threshold = 0.85
         obj_5 = MatchContext(self.input_file_path, similarity_string_threshold, self.similarity_quantity_threshold,
-                             self.string_separator, self.missing_property_replacement_factor, self.output_column_name, context_path=self.context_file_path)
+                             self.string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.output_column_name, context_path=self.context_file_path)
         odf = obj_5.process_data_by_column()
         odf.to_csv('{}/data/result_test_5.csv'.format(parent_path), index=False)
         # Check for the Bioshock series.
@@ -105,7 +111,8 @@ class TestContextMatch(unittest.TestCase):
 
     def test_for_date_match(self):
         obj_6 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold,
-                             self.string_separator, self.missing_property_replacement_factor, self.output_column_name, context_path=self.context_file_path)
+                             self.string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.output_column_name, context_path=self.context_file_path)
         odf = obj_6.process_data_by_column()
         odf.to_csv('{}/data/result_test_6.csv'.format(parent_path), index=False)
         # Check for the Bioshock series.
@@ -116,4 +123,4 @@ class TestContextMatch(unittest.TestCase):
         self.assertTrue(node_property.split("|")[1] == 'P577')
         self.assertTrue(node_similarity.split("|")[1] == "1.0")
         self.assertTrue(node_context_score == 0.9986)
-    
+
