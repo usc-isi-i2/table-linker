@@ -30,9 +30,13 @@ def add_arguments(parser):
                         help='The minimum threshold for similarity with input context for quantity matching. '
                              'Default: 0.85')
     parser.add_argument('--custom-context-file', type=str, dest='custom_context_file', required=False,
-                        help="The file is used to look up context values for matching.") 
-    parser.add_argument('--string-separator', action = 'store', type=str, dest = 'string_separator', default = ",", 
-                        help = "Any separators to separate from in the context substrings.")
+                        help="The file is used to look up context values for matching.")
+    parser.add_argument('--string-separator', action='store', type=str, dest='string_separator', default=",",
+                        help="Any separators to separate from in the context substrings.")
+    parser.add_argument('--missing-property-replacement-factor', action='store', type=float,
+                        dest='missing_property_replacement_factor', default=0.25,
+                        help='This factor is multiplied with the minimum similarity with which the '
+                             'most significant property matched')
 
     # output
     parser.add_argument('-o', '--output-column-name', action='store', dest='output_column', default="context_score",
@@ -48,10 +52,11 @@ def run(**kwargs):
         custom_context_file_path = kwargs.pop("custom_context_file")
         string_separator = kwargs.pop("string_separator")
         output_column_name = kwargs.pop("output_column")
-        similarity_string_threshold  = kwargs.pop("similarity_string_threshold")
+        similarity_string_threshold = kwargs.pop("similarity_string_threshold")
         similarity_quantity_threshold = kwargs.pop("similarity_quantity_threshold")
-        obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold, 
-                           string_separator, output_column_name, context_file_path, custom_context_file_path)
+        missing_property_replacement_factor = kwargs.pop("missing_property_replacement_factor")
+        obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold,
+                           string_separator, missing_property_replacement_factor, output_column_name, context_file_path, custom_context_file_path)
         result_df = obj.process_data_by_column()
         result_df.to_csv(sys.stdout, index=False)
     except:
