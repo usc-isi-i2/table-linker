@@ -3,7 +3,6 @@ from tl.exceptions import RequiredColumnMissingException
 from tl.file_formats_validator import FFV
 from tl.exceptions import UnsupportTypeError
 import numpy as np
-import sys
 
 
 def create_pseudo_gt(df: pd.DataFrame, column_thresholds: str,
@@ -40,6 +39,9 @@ def create_pseudo_gt(df: pd.DataFrame, column_thresholds: str,
                             output_column] = 1
                     df.loc[gdf.index[gdf[output_column].astype(float) == 1],
                            output_column] = 1
+            elif threshold=="max":
+                top_cd_df[output_column] = 1
+                df.loc[top_cd_df.index[top_cd_df[output_column] == 1], output_column] = 1
             elif "top" in threshold:
                 method, perc = threshold.split("top")
                 perc = float(perc)
