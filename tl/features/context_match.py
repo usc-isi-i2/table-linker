@@ -424,8 +424,6 @@ class MatchContext(object):
         self.result_data = pd.concat([self.result_data, self. to_result_data])
         self.result_data = self.result_data.sort_index()
         self.final_data.to_csv('results_tmp.csv')
-        import sys
-        print("self.final_data_columsn", self.final_data.columns, file=sys.stderr)
         if self.output_column_name not in self.result_data.columns:
             self.result_data = self.result_data.reindex(columns=self.result_data.columns.tolist() + [
                 self.output_column_name, 'context_property', 'context_similarity', 'context_property_similarity_q_node'])
