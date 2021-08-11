@@ -86,6 +86,7 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`vote-by-classifier`](#command_vote-by-classifier) <sup>*</sup>: generates vote_by_model column as specified classifier's prediction output.
 - [`pgt-semantic-tf-idf`](#command_pgt-semantic-tf-idf) <sup>*</sup>: Identify pseudo GT and then compute tf-idf score using semantic features in the pseudo GT.
 - [`pick-hc-candidates`](#command_pick-hc-candidates) <sup>*</sup>: Identify high confidence candidates based on string similarity and number of candidates with same string similarity.
+- [`kth-percentile`](#command_kth-precentile) <sup>*</sup>: Label the top kth percentile candidates for a column.
 
 
 **Note: only the commands marked with <sup>*</sup> are currently implemented**
@@ -2062,4 +2063,55 @@ $ head music_singles_hc_candidates.csv
 |0     |3  |The King of the Blues|The King of the Blues|Q3197058 |King of the Blues    |2.84E-09|26.890848      |1          |0                  |0.799253035 |0.80952381 |1                  |3        |1               |
 |0     |12 |Slowhand             |Slowhand             |Q48187   |Eric Clapton         |2.23E-07|16.442932      |0.455357143|1                  |0.402777778 |0.083333333|1                  |4        |0               |
 |0     |12 |Slowhand             |Slowhand             |Q549602  |Slowhand             |3.82E-09|15.8904705     |1          |0                  |1           |1          |1                  |4        |1               |
+
+
+<a name="command_kth-precentile" />
+
+### [`kth-percentile`](#command_kth-precentile)` [OPTIONS]`
+
+The `kth-percentile` computes the k<sup>th</sup> percentile for a given column and marks those rows as `1` which are above the k<sup>th</sup> percentile as `1`.
+In addition, if the option `--ignore-column` is specified, k<sup>th</sup> percentile is computed using rows which are marked as `ignore = 0`.
+
+**Options:**
+- `-c / --column {string}`: the input column which has numeric values to compute the k-percentile on
+- `-o / --output-column {string}`: the output column name where the value {0/1} will be stored, indicating whether this candidate
+                        belongs to k percenters. Default is `kth_percenter`
+- `--ignore-column {string}`: the column which marks candidates to be ignored or not
+- `--k-percentile {float|string}`: The value for kth percentile. The values to this option should either be any number between [0.0, 1.0], or a string ∈ {mean, median}
+
+**Examples:**
+```bash
+$ tl kth-percentile -c retrieval_score \
+    -o kth_percenter \
+    --k-percentile 0.05 \
+    music_singles_candidates.csv > music_singles_hc_candidates.csv
+```
+```bash
+$ tl kth-percentile -c retrieval_score \
+    -o kth_percenter \
+    --k-percentile 0.05 \
+    --ignore-column ignore_candidate \
+    music_singles_candidates.csv > music_singles_hc_candidates.csv
+```
+
+**File Example:**
+```
+$ tl kth-percentile -c retrieval_score \
+    -o kth_percenter \
+    --k-percentile 0.05 \
+    music_singles_candidates.csv > music_singles_hc_candidates.csv
+    
+$ head music_singles_hc_candidates.csv
+```
+|column|row|label                     |label_clean              |kg_id   |kg_labels                  |retrieval_score|kth_percenter|
+|------|---|--------------------------|-------------------------|--------|---------------------------|---------------|-------------|
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|        |                           |0              |0            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q303    |Elvis Presley              |45.493786      |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q7744584|The King of Rock \n\ Roll  |35.69553       |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q4319576|Nick Rock\n\Roll           |35.426224      |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q3437721|Rock \n\ Roll Is King      |34.43733       |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q4051146|The King of Rock and Roll  |32.125546      |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q7728602|The Daddy of Rock \n\ Roll |31.09376       |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q7761239|The Rock \n\ Roll Express  |30.621666      |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q941904 |Rock ’n’ Roll&#124;Rock \n\ Roll|30.403358      |1            |
 
