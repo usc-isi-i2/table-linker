@@ -35,10 +35,10 @@ class KthPercentile(object):
             # kth percentile is either mean or median
             _k_percentile = data[column].mean() if self.k_percentile == 'mean' else data[column].median()
         else:  # kth percentile is a number
-            _ = float(self.k_percentile)
-            assert 0.0 <= _ <= 1.0, "--k-percentile should be any number between [0.0, 1.0]," \
-                                    " or a string ∈ {mean, median}"
-            _k_percentile = float(data[column].quantile(float(self.k_percentile)))
+            _kth = float(self.k_percentile)
+            assert 0.0 <= _kth <= 1.0, "--k-percentile should be any number between [0.0, 1.0]," \
+                                       " or a string ∈ {mean, median}"
+            _k_percentile = float(data[column].quantile(_kth))
 
         data[self.output_column] = 0
         data.loc[data[column] >= _k_percentile, self.output_column] = 1
