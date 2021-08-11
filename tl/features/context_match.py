@@ -13,14 +13,14 @@ import os
 
 class MatchContext(object):
     def __init__(self, input_path, similarity_string_threshold, similarity_quantity_threshold,
-                 string_separator, output_column_name, context_path=None, custom_context_path=None):
+                 string_separator, missing_property_replacement_factor, output_column_name, context_path=None, custom_context_path=None):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.final_property_similarity_list = []
         self.value_debug_list = []
         self.result_data = pd.DataFrame()
         self.is_custom = False
-
+        self.missing_property_replacement_factor = missing_property_replacement_factor
 
         if context_path is None and custom_context_path is None:
             raise RequiredInputParameterMissingException(
@@ -370,22 +370,42 @@ class MatchContext(object):
     def calculate_score(self):
         # Sum up the individual property values for a row (update:multiply with the similarity)
         final_scores_list = []
-        for properties_str, sim_str in zip(self.data['context_property'], self.data['context_similarity']):
+        final_value_debug_str_list = []
+        for properties_str, sim_str, value_debug_str in zip(self.data['context_property'],
+                                                            self.data['context_similarity'],
+                                                            self.data['context_property_similarity_q_node']):
             sim_list = sim_str.split("|")
             properties_list = properties_str.split("|")
+            value_debug_str_list = value_debug_str.split("|")
 
+            # sim_list = sim_str
+            # properties_list = properties_str
+            # value_debug_str_list = value_debug_str
             sum_prop = 0
+            property_values_list = []
             for i in range(len(properties_list)):
-                if properties_list[i] != "":
+                curr_property = properties_list[i]
+                if curr_property != "":
                     sim_value = sim_list[i].split("$$")[0]
+
                     ind_df = self.properties_with_score_metric[
-                        (self.properties_with_score_metric['property'] == properties_list[i]) & (
+                        (self.properties_with_score_metric['property'] == curr_property) & (
                                 self.properties_with_score_metric['position'] == str(i + 1))]
                     value = ind_df['value'].tolist()
-                    sum_prop = round(sum_prop + (float(value[0]) * float(sim_value)), 4)
+                    try:
+                        prop_value = value[0]
+                    except IndexError:
+                        prop_value = 0
+                        continue
+                    sum_prop = round(sum_prop + (float(prop_value) * float(sim_value)), 4)
+                    property_values_list.append(prop_value)
+                    value_debug_str_list[i] = value_debug_str_list[i].replace(curr_property,
+                                                                              curr_property+"("+str(prop_value)+")")
+            final_value_debug_str_list.append("|".join(value_debug_str_list))
             if sum_prop > 1:
                 sum_prop = 1
             final_scores_list.append(sum_prop)
+        self.data['context_property_similarity_q_node'] = final_value_debug_str_list
         self.data[self.output_column_name] = final_scores_list
 
     def process_data_by_column(self):
@@ -403,6 +423,9 @@ class MatchContext(object):
             # self.value_debug_list = []
         self.result_data = pd.concat([self.result_data, self. to_result_data])
         self.result_data = self.result_data.sort_index()
+        self.final_data.to_csv('results_tmp.csv')
+        import sys
+        print("self.final_data_columsn", self.final_data.columns, file=sys.stderr)
         if self.output_column_name not in self.result_data.columns:
             self.result_data = self.result_data.reindex(columns=self.result_data.columns.tolist() + [
                 self.output_column_name, 'context_property', 'context_similarity', 'context_property_similarity_q_node'])
@@ -430,7 +453,7 @@ class MatchContext(object):
         context_value = self.context.get(q_node, None)
 
         if context_value:
-            all_property_list = context_value.split("|")
+            all_property_list = re.split(r'(?<!\\)\|', context_value)
             if not self.is_custom:
                 all_property_list[0] = all_property_list[0][1:]
                 all_property_list[-1] = all_property_list[-1][:-1]
@@ -564,7 +587,7 @@ class MatchContext(object):
                         # Create a list of this values. In some cases the kg_id may not be present in the context_file.
                         if context_value:
                             # Initial Structuring
-                            all_property_list = context_value.split("|")
+                            all_property_list = all_property_list = re.split(r'(?<!\\)\|', context_value)
                             if not self.is_custom:
                                 all_property_list[0] = all_property_list[0][1:]
                                 all_property_list[-1] = all_property_list[-1][:-1]
@@ -580,8 +603,7 @@ class MatchContext(object):
                                         break
                             # The property is not present at the location
                             if not is_present:
-                                weight_factor = 0.5
-                                new_sim_val = round(weight_factor * float(min_sim_value[ind]), 4)
+                                new_sim_val = round(self.missing_property_replacement_factor * float(min_sim_value[ind]), 4)
                                 # Update with new_property
                                 is_change = True
                                 similarity_list[p_l] = str(new_sim_val) + "$$"
