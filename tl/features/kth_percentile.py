@@ -48,7 +48,6 @@ class KthPercentile(object):
                 assert 0.0 <= _kth <= 1.0, "--k-percentile should be a number between [0.0, 1.0]," \
                                            " or a string ∈ {mean, median}"
                 _k_percentile = float(gdf[column].quantile(_kth))
-                print(c, _k_percentile, file=sys.stderr)
 
             gdf.loc[gdf[column] >= _k_percentile, self.output_column] = 1
             output.append(gdf)
