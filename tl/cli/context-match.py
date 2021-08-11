@@ -37,6 +37,9 @@ def add_arguments(parser):
                         dest='missing_property_replacement_factor', default=0.25,
                         help='This factor is multiplied with the minimum similarity with which the '
                              'most significant property matched')
+    parser.add_argument('--ignore-column-name', action='store',
+                        dest='ignore_column_name', default="ignore",
+                        help='This column is used to consider only few rows by setting to 1.')
 
     # output
     parser.add_argument('-o', '--output-column-name', action='store', dest='output_column', default="context_score",
@@ -55,8 +58,10 @@ def run(**kwargs):
         similarity_string_threshold = kwargs.pop("similarity_string_threshold")
         similarity_quantity_threshold = kwargs.pop("similarity_quantity_threshold")
         missing_property_replacement_factor = kwargs.pop("missing_property_replacement_factor")
+        ignore_column_name = kwargs.pop("ignore_column_name")
         obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold,
-                           string_separator, missing_property_replacement_factor, output_column_name, context_file_path, custom_context_file_path)
+                           string_separator, missing_property_replacement_factor, ignore_column_name,
+                           output_column_name, context_file_path, custom_context_file_path)
         result_df = obj.process_data_by_column()
         result_df.to_csv(sys.stdout, index=False)
     except:
