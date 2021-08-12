@@ -21,14 +21,16 @@ def add_arguments(parser):
 
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
     parser.add_argument('-c', '--column', action='store', type=str, dest='column', required=True,
-                        help='the input column which has numeric values, to computed k-percentile on')
+                        help='the input column which has numeric values to compute the k-percentile on')
     parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column_name',
                         default="kth_percenter",
                         help='the output column name where the value {0/1} will be stored, '
                              'indicating whether this candidate belongs to k percenters. Default is kth_percenter')
+    parser.add_argument('--ignore-column', action='store', type=str, dest='ignore_column', required=False,
+                        help='the column which marks candidates to be ignored or not')
     parser.add_argument('--k-percentile', action='store', dest='k_percentile', type=str, required=False, default='mean',
-                        help="mark the candidates as k percenter, which are above the --k-percentile. The values to"
-                             "this option should be any number between [0.0, 1.0], or a string ∈ {mean, median}")
+                        help="The value for kth percentile. The values to this option should either be any number "
+                             "between [0.0, 1.0], or a string ∈ {mean, median}")
 
 
 def run(**kwargs):
@@ -40,7 +42,8 @@ def run(**kwargs):
         kp = KthPercentile(input_file=kwargs['input_file'],
                            column=column,
                            output_column=kwargs['output_column_name'],
-                           k_percentile=kwargs['k_percentile'])
+                           k_percentile=kwargs['k_percentile'],
+                           ignore_column=kwargs['ignore_column'])
 
         odf = kp.process(column)
         end = time.time()
