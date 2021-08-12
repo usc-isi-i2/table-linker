@@ -15,13 +15,16 @@ class TestContextMatch(unittest.TestCase):
         self.custom_context_path = '{}/data/custom_context.tsv.gz'.format(parent_path)
         self.similarity_string_threshold = 0.90
         self.similarity_quantity_threshold = 0.80
+        self.missing_property_replacement_factor = 0.5
         self.string_separator = ','
+        self.ignore_column_name = 'ignore'
 
     def test_combination_types_of_input(self):
         # the input file contains varied set of inputs ranging from
         # quantity as numbers, floats and badly formatted numbers, dates and strings with separators.
-        obj_1 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold, 
-                           self.string_separator, self.output_column_name, self.context_file_path, custom_context_path=None)
+        obj_1 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold,
+                             self.string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.output_column_name, self.context_file_path, custom_context_path=None)
         odf = obj_1.process_data_by_column()
         odf.to_csv('{}/data/result_test_1.csv'.format(parent_path), index=False)
         columns = odf.columns
@@ -35,13 +38,16 @@ class TestContextMatch(unittest.TestCase):
 
     def test_for_custom_context_file(self):
         # The custom file contains the property Pcoauthor and should therefore match for column 7's some of the qnodes.
-        obj_2 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold, 
-                           self.string_separator, self.output_column_name, custom_context_path=self.custom_context_path,
+        obj_2 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold,
+                             self.string_separator, self.missing_property_replacement_factor,
+                             self.ignore_column_name,
+                             self.output_column_name,
+                             custom_context_path=self.custom_context_path,
                              context_path=self.context_file_path)
         odf = obj_2.process_data_by_column()
         odf.to_csv('{}/data/result_test_2.csv'.format(parent_path), index=False)
         columns = odf.columns
-        # Check if the score for a researcher is greater than 0. 
+        # Check if the score for a researcher is greater than 0.
         researcher_val = odf[odf['kg_id'] == 'Q91463330'][self.output_column_name].values.tolist()
         self.assertTrue(researcher_val[0] > 0)
         # researcher_prop_value contains the value for the properties matched.
@@ -51,12 +57,13 @@ class TestContextMatch(unittest.TestCase):
         self.assertTrue('Pcoauthor' in researcher_prop_value_list)
         self.assertTrue('context_similarity' in columns)
         self.assertTrue('context_property' in columns)
-        
+
     def test_for_string_separators(self):
         # We will check for results with string separator ;
         string_separator = ";"
-        obj_3 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold, 
-                           string_separator, self.output_column_name, custom_context_path=self.custom_context_path,
+        obj_3 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold,
+                             string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.output_column_name, custom_context_path=self.custom_context_path,
                              context_path=self.context_file_path)
         odf = obj_3.process_data_by_column()
         odf.to_csv('{}/data/result_test_3.csv'.format(parent_path), index=False)
@@ -66,17 +73,18 @@ class TestContextMatch(unittest.TestCase):
         researcher_prop_value_list = node_property.split("|")
         node_similarity = odf[odf['kg_id'] == 'Q50419679']['context_similarity'].values.tolist()[0]
         node_context_score = odf[odf['kg_id'] == 'Q50419679'][self.output_column_name].values.tolist()[0]
-        self.assertTrue(node_similarity.split("|")[2]  == '1.0')
+        self.assertTrue(node_similarity.split("|")[2] == '1.0')
         self.assertTrue(researcher_prop_value_list[2] == 'Pcoauthor')
         self.assertTrue(node_context_score == 0.6375)
-        
+
     def test_for_quantity_match(self):
         similarity_quantity_threshold = 1
-        obj_4 = MatchContext(self.input_file_path, self.similarity_string_threshold, similarity_quantity_threshold, 
-                           self.string_separator, self.output_column_name, context_path=self.context_file_path)
+        obj_4 = MatchContext(self.input_file_path, self.similarity_string_threshold, similarity_quantity_threshold,
+                             self.string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.output_column_name, context_path=self.context_file_path)
         odf = obj_4.process_data_by_column()
         odf.to_csv('{}/data/result_test_4.csv'.format(parent_path), index=False)
-        # Check for the United States. 
+        # Check for the United States.
         # The property should match to P3259 with similariy 1.
         node_property = odf[odf['kg_id'] == 'Q30']['context_property'].values.tolist()[0]
         node_similarity = odf[odf['kg_id'] == 'Q30']['context_similarity'].values.tolist()[0]
@@ -84,14 +92,15 @@ class TestContextMatch(unittest.TestCase):
         self.assertTrue(node_property == 'P3529')
         self.assertTrue(node_similarity == "1.0")
         self.assertTrue(node_context_score == 0.5)
-        
+
     def test_for_item_match(self):
         similarity_string_threshold = 0.85
-        obj_5 = MatchContext(self.input_file_path, similarity_string_threshold, self.similarity_quantity_threshold, 
-                           self.string_separator, self.output_column_name, context_path=self.context_file_path)
+        obj_5 = MatchContext(self.input_file_path, similarity_string_threshold, self.similarity_quantity_threshold,
+                             self.string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.output_column_name, context_path=self.context_file_path)
         odf = obj_5.process_data_by_column()
         odf.to_csv('{}/data/result_test_5.csv'.format(parent_path), index=False)
-        # Check for the Bioshock series. 
+        # Check for the Bioshock series.
         # The property P400 should match with similariy 0.87 for the context field Windows ..
         node_property = odf[odf['kg_id'] == 'Q4914658']['context_property'].values.tolist()[0]
         node_similarity = odf[odf['kg_id'] == 'Q4914658']['context_similarity'].values.tolist()[0]
@@ -99,13 +108,14 @@ class TestContextMatch(unittest.TestCase):
         self.assertTrue(node_property.split("|")[2] == 'P400')
         self.assertTrue(node_similarity.split("|")[2] == "0.875")
         self.assertTrue(node_context_score >= 0.87)
-        
+
     def test_for_date_match(self):
-        obj_6 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold, 
-                           self.string_separator, self.output_column_name, context_path=self.context_file_path)
+        obj_6 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold,
+                             self.string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.output_column_name, context_path=self.context_file_path)
         odf = obj_6.process_data_by_column()
         odf.to_csv('{}/data/result_test_6.csv'.format(parent_path), index=False)
-        # Check for the Bioshock series. 
+        # Check for the Bioshock series.
         # The property P400 should match with similariy 0.87 for the context field Windows ..
         node_property = odf[odf['kg_id'] == 'Q102395995']['context_property'].values.tolist()[0]
         node_similarity = odf[odf['kg_id'] == 'Q102395995']['context_similarity'].values.tolist()[0]
@@ -113,6 +123,4 @@ class TestContextMatch(unittest.TestCase):
         self.assertTrue(node_property.split("|")[1] == 'P577')
         self.assertTrue(node_similarity.split("|")[1] == "1.0")
         self.assertTrue(node_context_score == 0.9986)
-
-        
 

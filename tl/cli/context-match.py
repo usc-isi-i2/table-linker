@@ -40,6 +40,13 @@ def add_arguments(parser):
                         help="Number of CPUs to be used for ParallelProcessor."
                              " If unspecified, number of CPUs in system will"
                              " be used.")
+    parser.add_argument('--missing-property-replacement-factor', action='store', type=float,
+                        dest='missing_property_replacement_factor', default=0.25,
+                        help='This factor is multiplied with the minimum similarity with which the '
+                             'most significant property matched')
+    parser.add_argument('--ignore-column-name', action='store',
+                        dest='ignore_column_name', default="ignore",
+                        help='This column is used to consider only few rows by setting to 1.')
 
     # output
     parser.add_argument('-o', '--output-column-name', action='store', dest='output_column', default="context_score",
@@ -55,12 +62,14 @@ def run(**kwargs):
         custom_context_file_path = kwargs.pop("custom_context_file")
         string_separator = kwargs.pop("string_separator")
         output_column_name = kwargs.pop("output_column")
-        similarity_string_threshold  = kwargs.pop("similarity_string_threshold")
+        similarity_string_threshold = kwargs.pop("similarity_string_threshold")
         similarity_quantity_threshold = kwargs.pop("similarity_quantity_threshold")
         use_cpus = kwargs.pop("use_cpus")
-        obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold, 
-                           string_separator, output_column_name, context_file_path, custom_context_file_path,
-                           use_cpus)
+        missing_property_replacement_factor = kwargs.pop("missing_property_replacement_factor")
+        ignore_column_name = kwargs.pop("ignore_column_name")
+        obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold,
+                           string_separator, missing_property_replacement_factor, ignore_column_name,
+                           output_column_name, context_file_path, custom_context_file_path)
         start = time.time()
         result_df = obj.process_data_by_column()
         end = time.time()
