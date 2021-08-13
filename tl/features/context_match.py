@@ -9,9 +9,6 @@ from multiprocessing import cpu_count
 import itertools
 import collections
 import os
-# import random
-# import time
-# import sys
 
 
 class MatchContext(object):
@@ -27,7 +24,6 @@ class MatchContext(object):
         if context_path is None and custom_context_path is None:
             raise RequiredInputParameterMissingException(
                 'One of the input parameters is required: {} or {}'.format("context_path", "custom_context_path"))
-        # start = time.time()
         self.final_data['index'] = self.final_data.index
         if ignore_column_name in self.final_data.columns:
             self.final_data_subset = self.final_data[self.final_data[ignore_column_name] == 0]
@@ -36,8 +32,6 @@ class MatchContext(object):
             self.final_data_subset = self.final_data
             self.to_result_data = None
         self.context = self.read_context_file(context_path=context_path, custom_context_path=custom_context_path)
-        # end =  time.time()
-        # print(f'read-{end-start}', file=sys.stderr)
         self.output_column_name = output_column_name
 
         self.similarity_string_threshold = similarity_string_threshold
@@ -193,7 +187,6 @@ class MatchContext(object):
                         self.multiple_properties_match(q_node, prop_val, prop[1])
                 elif context_data_type == "i":
                     sim = similarity.hybrid.symmetric_monge_elkan_similarity(self.preprocess(check_with), check_for)
-                    # sim = random.random()
                     if sim >= self.similarity_string_threshold and sim > max_sim:
                         if len(prop) > 1:  # Resolves error if the context does not have a property
                             prop_val = prop[1]
@@ -305,7 +298,6 @@ class MatchContext(object):
         self.properties_with_score_metric = pd.DataFrame(columns=['property', 'position', 'value', 'min_sim'])
         # counter is the index for the properties_set
         counter = 0
-        # start = time.time()
         for value_of_row, value_of_column, value_of_property, value_of_sim in zip(self.data['row'], self.data['column'],
                                                                                   self.data['context_property'],
                                                                                   self.data['context_similarity']):
@@ -339,8 +331,6 @@ class MatchContext(object):
                                                            str(position), "1", list_of_sim[j]]
                             counter = counter + 1
                             # Part 1 - b - Calculating each individual property's value (also considers position)
-        # end = time.time()
-        # print(f'loop1-{end-start}', file=sys.stderr)
         property_value_list = []
         for occurrences in zip(properties_set['number_of_occurrences']):
             # Record the occurrences of a particular property.
@@ -361,7 +351,6 @@ class MatchContext(object):
         row_l = row_list.values.tolist()
         c_row_set = dict.fromkeys(row_l).keys()
         counter = 0
-        # start = time.time()
         for prop in c_prop_set:
             for pos in c_pos_set:
                 # Update : Added the minimum similarity values for each property
@@ -378,8 +367,6 @@ class MatchContext(object):
                     f_prop_cal = round(property_cal / len(c_row_set), 4)
                     self.properties_with_score_metric.loc[counter] = [prop, pos, f_prop_cal, min_sim_value]
                     counter = counter + 1
-        # end = time.time()
-        # print(f'loop2-{end-start}', file=sys.stderr)
         self.properties_with_score_metric = self.properties_with_score_metric.sort_values(['value'], ascending=False)
 
     def calculate_score(self):
@@ -425,10 +412,7 @@ class MatchContext(object):
         grouped_object = self.final_data_subset.groupby(['column'])
         for cell, group in grouped_object:
             self.data = group.reset_index(drop=True)
-            # start = time.time()
             self.process_data_context()
-            # end = time.time()
-            # print(f'column-{cell}-{end-start}s', file=sys.stderr)
             self.result_data = pd.concat([self.result_data, self.data])
             # self.value_debug_list = []
         self.result_data = pd.concat([self.result_data, self. to_result_data])
@@ -539,11 +523,9 @@ class MatchContext(object):
         "|" and tries to match them to either
         date, string or quantity depending upon the structure of the context.
         """
-        # print(f'rows-{self.data.shape}', file=sys.stderr)
         self.final_property_similarity_list = []
         cpus = self.use_cpus
         batch = self.data.shape[0]//4
-        # start = time.time()
         if cpus > 1:
             pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
                                 collector=self.collector, batch_size=batch)
@@ -556,10 +538,6 @@ class MatchContext(object):
             for idx, q_node, val in zip(self.data.index.values.tolist(), self.data["kg_id"], self.data["context"]):
                 idx, value_debug_str, prop_str, sim_str = self.mapper(idx, q_node, val)
                 self.collector(idx, value_debug_str, prop_str, sim_str)
-        # end = time.time()
-        # print(f'pp-{end-start}s', file=sys.stderr)
-
-        # start = time.time()
         property_sim_df = pd.DataFrame(self.final_property_similarity_list,
                                        columns=["idx", "context_property",
                                                 "context_similarity", "context_property_similarity_q_node"])
@@ -567,10 +545,7 @@ class MatchContext(object):
         self.data = pd.merge(self.data, property_sim_df,
                              left_index=True, right_index=True)
         self.calculate_property_value()
-        # end = time.time()
-        # print(f'calpropval-{end-start}s', file=sys.stderr)
         # Recalculate for the most important property for each q_node's that don't have that property.
-        # start = time.time()
         unique_positions = self.properties_with_score_metric['position'].unique().tolist()
         important_properties = []
         important_property_value = []
@@ -585,9 +560,6 @@ class MatchContext(object):
             important_properties.append(temp_row['property'].values.tolist()[0])
             important_property_value.append(temp_row['value'].values.tolist()[0])
             min_sim_value.append(temp_row['min_sim'].values.tolist()[0])
-        # end = time.time()
-        # print(f'recalloop1-{end-start}s', file=sys.stderr)
-        # start = time.time()
         for df_ind, q_node, properties_str, similarity_str, context_property_similarity_q_node_str in zip(
                 self.data.index, self.data['kg_id'],
                 self.data['context_property'], self.data['context_similarity'],
@@ -668,9 +640,4 @@ class MatchContext(object):
                 self.data.loc[df_ind, 'context_similarity'] = "|".join(similarity_list)
                 self.data.loc[df_ind, 'context_property_similarity_q_node'] = "|".join(
                     context_property_similarity_q_node_list)
-        # end = time.time()
-        # print(f'recalloop2-{end-start}s', file=sys.stderr)
-        # start = time.time()
         self.calculate_score()
-        # end = time.time()
-        # print(f'calscore-{end-start}s', file=sys.stderr)
