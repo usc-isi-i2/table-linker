@@ -53,7 +53,7 @@ class TestContextMatch(unittest.TestCase):
         # researcher_prop_value contains the value for the properties matched.
         researcher_prop_value = odf[odf['kg_id'] == 'Q91463330']['context_property'].values.tolist()
         # The custom context file contains Pcoauthor as property.
-        researcher_prop_value_list = researcher_prop_value[0].split("|")
+        researcher_prop_value_list = researcher_prop_value[0]
         self.assertTrue('Pcoauthor' in researcher_prop_value_list)
         self.assertTrue('context_similarity' in columns)
         self.assertTrue('context_property' in columns)
@@ -70,10 +70,10 @@ class TestContextMatch(unittest.TestCase):
         # Check for qnode researcher
         node_property = odf[odf['kg_id'] == 'Q50419679']['context_property'].values.tolist()[0]
         # The custom context file contains Pcoauthor as property.
-        researcher_prop_value_list = node_property.split("|")
+        researcher_prop_value_list = node_property
         node_similarity = odf[odf['kg_id'] == 'Q50419679']['context_similarity'].values.tolist()[0]
         node_context_score = odf[odf['kg_id'] == 'Q50419679'][self.output_column_name].values.tolist()[0]
-        self.assertTrue(node_similarity.split("|")[2] == '1.0')
+        self.assertTrue(node_similarity[2] == '1.0')
         self.assertTrue(researcher_prop_value_list[2] == 'Pcoauthor')
         self.assertTrue(node_context_score == 0.6375)
 
@@ -89,8 +89,9 @@ class TestContextMatch(unittest.TestCase):
         node_property = odf[odf['kg_id'] == 'Q30']['context_property'].values.tolist()[0]
         node_similarity = odf[odf['kg_id'] == 'Q30']['context_similarity'].values.tolist()[0]
         node_context_score = odf[odf['kg_id'] == 'Q30'][self.output_column_name].values.tolist()[0]
-        self.assertTrue(node_property == 'P3529')
-        self.assertTrue(node_similarity == "1.0")
+        print(node_property)
+        self.assertTrue(node_property[0] == 'P3529')
+        self.assertTrue(node_similarity[0] == "1.0")
         self.assertTrue(node_context_score == 0.5)
 
     def test_for_item_match(self):
@@ -105,8 +106,8 @@ class TestContextMatch(unittest.TestCase):
         node_property = odf[odf['kg_id'] == 'Q4914658']['context_property'].values.tolist()[0]
         node_similarity = odf[odf['kg_id'] == 'Q4914658']['context_similarity'].values.tolist()[0]
         node_context_score = odf[odf['kg_id'] == 'Q4914658'][self.output_column_name].values.tolist()[0]
-        self.assertTrue(node_property.split("|")[2] == 'P400')
-        self.assertTrue(node_similarity.split("|")[2] == "0.875")
+        self.assertTrue(node_property[2] == 'P400')
+        self.assertTrue(node_similarity[2] == "0.875")
         self.assertTrue(node_context_score >= 0.87)
 
     def test_for_date_match(self):
@@ -120,7 +121,9 @@ class TestContextMatch(unittest.TestCase):
         node_property = odf[odf['kg_id'] == 'Q102395995']['context_property'].values.tolist()[0]
         node_similarity = odf[odf['kg_id'] == 'Q102395995']['context_similarity'].values.tolist()[0]
         node_context_score = odf[odf['kg_id'] == 'Q102395995'][self.output_column_name].values.tolist()[0]
-        self.assertTrue(node_property.split("|")[1] == 'P577')
-        self.assertTrue(node_similarity.split("|")[1] == "1.0")
+        self.assertTrue(node_property[1] == 'P577')
+        self.assertTrue(node_similarity[1] == "1.0")
         self.assertTrue(node_context_score == 0.9986)
+
+      
 
