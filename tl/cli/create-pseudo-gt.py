@@ -1,9 +1,9 @@
 import sys
 import argparse
 import traceback
+from typing_extensions import Required
 import tl.exceptions
 from tl.utility.logging import Logger
-from tl.exceptions import UnsupportTypeError
 
 
 def parser():
@@ -28,10 +28,11 @@ def add_arguments(parser):
                         help="string specifying the columns to be used along "
                              "with corresponding thresholds; column:threshold"
                              "; multiple features can be specified "
-                             "by separating with a comma.")
-    
+                             "by separating with a comma."
+                             " Eg: gt_score:median,singleton:1")
+
     parser.add_argument('--filter', type=str, action='store',
-                        dest='filter',
+                        dest='filter', required=False, default=None,
                         help="string specifying the columns and the values to"
                              " be used to filter the dataframe")
 

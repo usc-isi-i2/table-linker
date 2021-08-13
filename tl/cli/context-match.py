@@ -6,6 +6,7 @@ import sys
 import tl.exceptions
 import time
 from tl.utility.logging import Logger
+from multiprocessing import cpu_count
 
 
 def parser():
@@ -36,7 +37,7 @@ def add_arguments(parser):
     parser.add_argument('--string-separator', action = 'store', type=str, dest = 'string_separator', default = ",", 
                         help = "Any separators to separate from in the context substrings.")
     parser.add_argument('--use-cpus', action='store', type=int,
-                        dest='use_cpus', required=False,
+                        dest='use_cpus', required=False, default = cpu_count(),
                         help="Number of CPUs to be used for ParallelProcessor."
                              " If unspecified, number of CPUs in system will"
                              " be used.")
