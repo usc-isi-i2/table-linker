@@ -89,8 +89,9 @@ class TestContextMatch(unittest.TestCase):
         node_property = odf[odf['kg_id'] == 'Q30']['context_property'].values.tolist()[0]
         node_similarity = odf[odf['kg_id'] == 'Q30']['context_similarity'].values.tolist()[0]
         node_context_score = odf[odf['kg_id'] == 'Q30'][self.output_column_name].values.tolist()[0]
-        self.assertTrue(node_property == 'P3529')
-        self.assertTrue(node_similarity == "1.0")
+        print(node_property)
+        self.assertTrue(node_property[0] == 'P3529')
+        self.assertTrue(node_similarity[0] == "1.0")
         self.assertTrue(node_context_score == 0.5)
 
     def test_for_item_match(self):
@@ -123,3 +124,6 @@ class TestContextMatch(unittest.TestCase):
         self.assertTrue(node_property[1] == 'P577')
         self.assertTrue(node_similarity[1] == "1.0")
         self.assertTrue(node_context_score == 0.9986)
+
+      
+
