@@ -52,11 +52,12 @@ def add_arguments(parser):
 
     parser.add_argument(
         '--lof-strategy', action='store', dest='lof_strategy',
-        default='ems-mv', choices=["ems-mv", 'ems-only'],
+        default='ems-mv', choices=["ems-mv", 'ems-only', 'pseudo-gt'],
         help='''
         The name of outlier removal (lof) strategy: 
         - on exact-match-singleton candidates only 
         - on exact-match-singleton and model-voted candidates combined
+        - on the pseudo ground truth from the create-pseudo-gt command
         This argument is only valid for column-vector-strategy == centroid-of-lof
         ''')
 

@@ -13,7 +13,7 @@ import os
 
 class MatchContext(object):
     def __init__(self, input_path, similarity_string_threshold, similarity_quantity_threshold,
-                 string_separator, missing_property_replacement_factor, ignore_column_name, output_column_name, context_path=None, custom_context_path=None):
+                 string_separator, missing_property_replacement_factor, ignore_column_name, output_column_name, context_path=None, custom_context_path=None, use_cpus=None):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.final_property_similarity_list = []
@@ -33,7 +33,6 @@ class MatchContext(object):
             self.final_data_subset = self.final_data
             self.to_result_data = None
         self.context = self.read_context_file(context_path=context_path, custom_context_path=custom_context_path)
-
         self.output_column_name = output_column_name
 
         self.similarity_string_threshold = similarity_string_threshold
@@ -43,6 +42,10 @@ class MatchContext(object):
         # The following is a dictionary that stores the q_nodes that match with multiple properties
         # with equal similarity.
         self.equal_matched_properties = {}
+        if not use_cpus:
+            self.use_cpus = cpu_count()
+        else:
+            self.use_cpus = min(cpu_count(), use_cpus)
 
     def read_context_file(self, context_path=None, custom_context_path=None) -> dict:
         context_dict = {}
@@ -524,15 +527,20 @@ class MatchContext(object):
         date, string or quantity depending upon the structure of the context.
         """
         self.final_property_similarity_list = []
-        cpus = cpu_count()
-        pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
-                               collector=self.collector, batch_size=100)
-        pp.start()
-        pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"],
-                   self.data["context"]))
-        pp.task_done()
-        pp.join()
-
+        cpus = self.use_cpus
+        batch = self.data.shape[0]//4
+        if cpus > 1:
+            pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
+                                collector=self.collector, batch_size=batch)
+            pp.start()
+            pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"],
+                    self.data["context"]))
+            pp.task_done()
+            pp.join()
+        else:
+            for idx, q_node, val in zip(self.data.index.values.tolist(), self.data["kg_id"], self.data["context"]):
+                idx, value_debug_str, prop_str, sim_str = self.mapper(idx, q_node, val)
+                self.collector(idx, value_debug_str, prop_str, sim_str)
         property_sim_df = pd.DataFrame(self.final_property_similarity_list,
                                        columns=["idx", "context_property",
                                                 "context_similarity", "context_property_similarity_q_node"])

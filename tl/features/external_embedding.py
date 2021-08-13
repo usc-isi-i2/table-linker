@@ -291,6 +291,9 @@ class EmbeddingVector:
             elif lof_strategy == 'ems-only':
                 assert 'singleton' in data, f"Missing column 'singleton' to use lof-strategy: ems-only"
                 data.loc[data['singleton'].astype(int) == 1, 'is_lof'] = 1
+            elif lof_strategy == 'pseudo-gt':
+                assert 'pseudo_gt' in data, f"Missing column 'pseudo_gt' to use lof-strategy: pseudo-gt"
+                data.loc[data['pseudo_gt'].astype(int) == 1, 'is_lof'] = 1
             else:
                 raise ValueError(f"No such lof strategy available! {lof_strategy}")
             lof_candidate_ids = list(data[data['is_lof'] == 1]['kg_id'])

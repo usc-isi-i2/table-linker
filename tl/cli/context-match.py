@@ -4,6 +4,9 @@ import argparse
 import sys
 
 import tl.exceptions
+import time
+from tl.utility.logging import Logger
+from multiprocessing import cpu_count
 
 
 def parser():
@@ -30,9 +33,14 @@ def add_arguments(parser):
                         help='The minimum threshold for similarity with input context for quantity matching. '
                              'Default: 0.85')
     parser.add_argument('--custom-context-file', type=str, dest='custom_context_file', required=False,
-                        help="The file is used to look up context values for matching.")
-    parser.add_argument('--string-separator', action='store', type=str, dest='string_separator', default=",",
-                        help="Any separators to separate from in the context substrings.")
+                        help="The file is used to look up context values for matching.") 
+    parser.add_argument('--string-separator', action = 'store', type=str, dest = 'string_separator', default = ",", 
+                        help = "Any separators to separate from in the context substrings.")
+    parser.add_argument('--use-cpus', action='store', type=int,
+                        dest='use_cpus', required=False, default = cpu_count(),
+                        help="Number of CPUs to be used for ParallelProcessor."
+                             " If unspecified, number of CPUs in system will"
+                             " be used.")
     parser.add_argument('--missing-property-replacement-factor', action='store', type=float,
                         dest='missing_property_replacement_factor', default=0.25,
                         help='This factor is multiplied with the minimum similarity with which the '
@@ -57,12 +65,20 @@ def run(**kwargs):
         output_column_name = kwargs.pop("output_column")
         similarity_string_threshold = kwargs.pop("similarity_string_threshold")
         similarity_quantity_threshold = kwargs.pop("similarity_quantity_threshold")
+        use_cpus = kwargs.pop("use_cpus")
         missing_property_replacement_factor = kwargs.pop("missing_property_replacement_factor")
         ignore_column_name = kwargs.pop("ignore_column_name")
         obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold,
                            string_separator, missing_property_replacement_factor, ignore_column_name,
                            output_column_name, context_file_path, custom_context_file_path)
+        start = time.time()
         result_df = obj.process_data_by_column()
+        end = time.time()
+        logger = Logger(kwargs["logfile"])
+        logger.write_to_file(args={
+            "command": "context-match",
+            "time": end-start,
+        })
         result_df.to_csv(sys.stdout, index=False)
     except:
         message = 'Command: context-match\n'
