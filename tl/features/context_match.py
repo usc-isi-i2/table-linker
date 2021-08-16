@@ -238,6 +238,7 @@ class MatchContext(object):
             for sub_s_context in sub_s_context_dict:
                 p, s, temp_value_matched_to, temp_q_node_matched_to = self.match_context_with_type(
                     sub_s_context, q_node, all_property_set, context_data_type="i")
+                
                 if p != "":
                     temp.append(p)
                     sim_list.append(s)
