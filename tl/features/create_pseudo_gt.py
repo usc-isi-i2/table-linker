@@ -85,10 +85,11 @@ def create_pseudo_gt(df: pd.DataFrame, column_thresholds: str,
             df.loc[(df["singleton"] == 1), output_column] = 1
         if np.sum(df[output_column] == 1) < 5:
             for _, gdf in df.groupby(by=["column", "row"]):
-                gdf.loc[(gdf["pgr_rts"] == gdf["pgr_rts"].max()),
+                if gdf[output_column].isna().all():
+                    gdf.loc[(gdf["pgr_rts"] == gdf["pgr_rts"].max()),
+                            output_column] = 1
+                    df.loc[gdf.index[gdf[output_column].astype(float) == 1],
                         output_column] = 1
-                df.loc[gdf.index[gdf[output_column].astype(float) == 1],
-                       output_column] = 1
         df[output_column] = df[output_column].fillna(-1)
         df = df.astype({output_column: int})
         return df
