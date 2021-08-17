@@ -15,6 +15,7 @@ def get_kg_links(score_column, file_path=None, df=None, label_column='label', to
 
     if file_path:
         df = pd.read_csv(file_path, dtype=object)
+    df[score_column].fillna(0.0, inplace=True)
     df.fillna("", inplace=True)
     df = df.astype(dtype={score_column: "float64"})
     ffv = FFV()
