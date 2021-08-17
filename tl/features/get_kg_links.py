@@ -1,7 +1,6 @@
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException, UnsupportTypeError
 from tl.file_formats_validator import FFV
-import sy
 
 
 def get_kg_links(score_column, file_path=None, df=None, label_column='label', top_k=5, k_rows=False):
