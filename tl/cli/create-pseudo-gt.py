@@ -1,7 +1,6 @@
 import sys
 import argparse
 import traceback
-from typing_extensions import Required
 import tl.exceptions
 from tl.utility.logging import Logger
 
