@@ -36,18 +36,18 @@ class KthPercentile(object):
         is_k_p_number = self.is_k_percentile_number()
         self.input_df[self.output_column] = 0
         for c, gdf in self.input_df.groupby(by=['column']):
-            if self.ignore_column is not None:
-                gdf = gdf[gdf[self.ignore_column].astype(int) == 0]
+
+            _gdf = gdf if self.ignore_column is None else gdf[gdf[self.ignore_column].astype(int) == 0]
             _k_percentile = None
             if not is_k_p_number:
                 # kth percentile is either mean or median
-                _k_percentile = gdf[column].mean() if self.k_percentile == 'mean' else gdf[column].median()
+                _k_percentile = _gdf[column].mean() if self.k_percentile == 'mean' else _gdf[column].median()
             else:  # kth percentile is a number
                 _ = float(self.k_percentile)
                 _kth = 1.0 - _ if _ != 1.0 else _
                 assert 0.0 <= _kth <= 1.0, "--k-percentile should be a number between [0.0, 1.0]," \
                                            " or a string ∈ {mean, median}"
-                _k_percentile = float(gdf[column].quantile(_kth))
+                _k_percentile = float(_gdf[column].quantile(_kth))
 
             gdf.loc[gdf[column] >= _k_percentile, self.output_column] = 1
             output.append(gdf)
