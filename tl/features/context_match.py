@@ -5,6 +5,7 @@ from tl.exceptions import RequiredInputParameterMissingException
 from statistics import mode
 import gzip
 from pyrallel import ParallelProcessor
+import sys
 from multiprocessing import cpu_count
 import itertools
 import collections
@@ -14,7 +15,7 @@ import os
 class MatchContext(object):
     def __init__(self, input_path, similarity_string_threshold, similarity_quantity_threshold,
                  string_separator, missing_property_replacement_factor, ignore_column_name, output_column_name,
-                 context_path=None, custom_context_path=None):
+                 context_path=None, custom_context_path=None, use_cpus=None):
         self.final_data = pd.read_csv(input_path, dtype=object)
         self.data = pd.DataFrame()
         self.final_property_similarity_list = []
@@ -44,6 +45,10 @@ class MatchContext(object):
         # The following is a dictionary that stores the q_nodes that match with multiple properties
         # with equal similarity.
         self.equal_matched_properties = {}
+        if not use_cpus:
+            self.use_cpus = cpu_count()
+        else:
+            self.use_cpus = min(cpu_count(), use_cpus)
 
     def read_context_file(self, context_path=None, custom_context_path=None) -> dict:
         context_dict = {}
@@ -238,7 +243,6 @@ class MatchContext(object):
             for sub_s_context in sub_s_context_dict:
                 p, s, temp_value_matched_to, temp_q_node_matched_to = self.match_context_with_type(
                     sub_s_context, q_node, all_property_set, context_data_type="i")
-                
                 if p != "":
                     temp.append(p)
                     sim_list.append(s)
@@ -376,9 +380,6 @@ class MatchContext(object):
         for properties_list, sim_list, value_debug_str_list in zip(self.data['context_property'],
                                                                    self.data['context_similarity'],
                                                                    self.data['context_property_similarity_q_node']):
-            # sim_list = sim_str.split("|")
-            # properties_list = properties_str.split("|")
-            # value_debug_str_list = value_debug_str.split("|")
             sum_prop = 0
             property_values_list = []
             for i in range(len(properties_list)):
@@ -415,6 +416,7 @@ class MatchContext(object):
             self.data = group.reset_index(drop=True)
             self.process_data_context()
             self.result_data = pd.concat([self.result_data, self.data])
+        self.result_data = pd.concat([self.result_data, self.to_result_data])
         self.result_data = self.result_data.sort_values(by='index')
         self.result_data = self.result_data.drop(columns='index')
         if self.output_column_name not in self.result_data.columns:
@@ -526,15 +528,20 @@ class MatchContext(object):
         date, string or quantity depending upon the structure of the context.
         """
         self.final_property_similarity_list = []
-        cpus = cpu_count()
-        pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
-                               collector=self.collector, batch_size=100)
-        pp.start()
-        pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"],
-                   self.data["context"]))
-        pp.task_done()
-        pp.join()
-
+        cpus = self.use_cpus
+        batch = self.data.shape[0]//4
+        if cpus > 1:
+            pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
+                                collector=self.collector, batch_size=batch)
+            pp.start()
+            pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"],
+                    self.data["context"]))
+            pp.task_done()
+            pp.join()
+        else:
+            for idx, q_node, val in zip(self.data.index.values.tolist(), self.data["kg_id"], self.data["context"]):
+                idx, value_debug_str, prop_str, sim_str = self.mapper(idx, q_node, val)
+                self.collector(idx, value_debug_str, prop_str, sim_str)
         property_sim_df = pd.DataFrame(self.final_property_similarity_list,
                                        columns=["idx", "context_property",
                                                 "context_similarity", "context_property_similarity_q_node"])
