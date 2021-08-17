@@ -122,7 +122,7 @@ class TestContextMatch(unittest.TestCase):
         node_context_score = odf[odf['kg_id'] == 'Q102395995'][self.output_column_name].values.tolist()[0]
         self.assertTrue(node_property[1] == 'P577')
         self.assertTrue(node_similarity[1] == "1.0")
-        self.assertTrue(node_context_score == 0.9986)
+        self.assertTrue(node_context_score == 1.0)
 
       
 
