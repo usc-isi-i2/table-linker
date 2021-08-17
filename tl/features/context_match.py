@@ -564,12 +564,11 @@ class MatchContext(object):
                 self.data['context_property_similarity_q_node']):
             # property_list = properties_str.split("|")
             # similarity_list = similarity_str.split("|")
-            property_list_dict = {property_list[i]: i for i in range(0, len(property_list))}
+            property_list_dict = {(property_list[i], i): i for i in range(0, len(property_list))}
             # context_property_similarity_q_node_list = context_property_similarity_q_node_str.split("|")
             is_change = False
-            for p_property in property_list_dict:
+            for (p_property, p_l) in property_list_dict:
                 # If we have any property for that position
-                p_l = property_list_dict[p_property]
                 if str(p_l + 1) in unique_positions_dict:
                     ind = unique_positions_dict[str(p_l + 1)]
                     imp_prop = important_properties[ind]
