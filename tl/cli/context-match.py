@@ -70,7 +70,7 @@ def run(**kwargs):
         ignore_column_name = kwargs.pop("ignore_column_name")
         obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold,
                            string_separator, missing_property_replacement_factor, ignore_column_name,
-                           output_column_name, context_file_path, custom_context_file_path)
+                           output_column_name, context_file_path, custom_context_file_path, use_cpus)
         start = time.time()
         result_df = obj.process_data_by_column()
         end = time.time()

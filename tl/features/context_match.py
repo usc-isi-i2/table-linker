@@ -528,7 +528,7 @@ class MatchContext(object):
         """
         self.final_property_similarity_list = []
         cpus = self.use_cpus
-        batch = self.data.shape[0]//4
+        batch = self.data.shape[0]//cpus
         if cpus > 1:
             pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
                                 collector=self.collector, batch_size=batch)
