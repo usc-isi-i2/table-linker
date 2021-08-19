@@ -5,7 +5,6 @@ from tl.exceptions import RequiredInputParameterMissingException
 from statistics import mode
 import gzip
 from pyrallel import ParallelProcessor
-import sys
 from multiprocessing import cpu_count
 import itertools
 import collections
@@ -21,12 +20,13 @@ class MatchContext(object):
         self.final_property_similarity_list = []
         self.value_debug_list = []
         self.result_data = pd.DataFrame()
+        self.inverse_context_dict = {}
         self.is_custom = False
         self.missing_property_replacement_factor = missing_property_replacement_factor
         if context_path is None and custom_context_path is None:
             raise RequiredInputParameterMissingException(
                 'One of the input parameters is required: {} or {}'.format("context_path", "custom_context_path"))
-        self.final_data['index'] = self.final_data.index
+        self.final_data['index_1'] = self.final_data.index
         if ignore_column_name in self.final_data.columns:
             self.final_data[ignore_column_name] = self.final_data[ignore_column_name].astype('float')
             self.final_data_subset = self.final_data[self.final_data[ignore_column_name] == 0]
@@ -290,6 +290,104 @@ class MatchContext(object):
         max_sim = round(sim, 4)
         return p_val, max_sim, value_matched_to, q_node_matched_to
 
+    def inverse_property_calculation_and_score_calculation(self):
+        columns = ["column", "row", "property", "number_of_occurrences", 'min_sim']
+        properties_set = pd.DataFrame(columns=columns)
+        self.properties_with_score_metric = pd.DataFrame(columns=['property', 'value', 'min_sim'])
+        # counter is the index for the properties_set
+        counter = 0
+        for value_of_row, value_of_column, list_of_properties, list_of_sim in zip(self.data['row'], self.data['column'],
+                                                                                  self.data['reverse_context_property'],
+                                                                                  self.data[
+                                                                                      'reverse_context_similarity']):
+            dict_of_properties = {(list_of_properties[i], i): i for i in range(len(list_of_properties))}
+            for (d_property, j) in dict_of_properties:
+                if d_property != "":
+                    if d_property not in properties_set.property.values:
+                        # Add a new row
+                        properties_set.loc[counter] = [value_of_column, value_of_row, d_property, "1", list_of_sim[j]]
+                        counter = counter + 1
+                    else:
+                        # Increment the count if same position, else add another row with the new position
+                        ind = properties_set[(properties_set['property'] == d_property) & (
+                                properties_set['row'] == value_of_row)].index.values
+                        if len(ind) != 0:
+                            old_count = properties_set['number_of_occurrences'].values[ind]
+                            new_count = float(old_count[0]) + 1
+                            old_sim = properties_set['min_sim'].values[ind]
+                            new_sim = str(max(float(old_sim), float(list_of_sim[j])))
+                            properties_set.iloc[ind, properties_set.columns.get_loc('number_of_occurrences')] = str(
+                                new_count)
+                            properties_set.iloc[ind, properties_set.columns.get_loc('min_sim')] = new_sim
+                        else:
+                            properties_set.loc[counter] = [value_of_column, value_of_row, d_property, "1",
+                                                           list_of_sim[j]]
+                            counter = counter + 1
+                            # Part 1 - b - Calculating each individual property's value (also considers position)
+        property_value_list = []
+        for occurrences in zip(properties_set['number_of_occurrences']):
+            # Record the occurrences of a particular property.
+            if float(occurrences[0]) > 0:
+                value = round(1 / float(occurrences[0]), 4)
+            else:
+                value = 0
+            property_value_list.append(value)
+        properties_set['prop_val'] = property_value_list
+
+        properties_l_df = properties_set['property']
+        properties_list = properties_l_df.values.tolist()
+        c_prop_set = dict.fromkeys(properties_list).keys()
+        row_list = properties_set['row']
+        row_l = row_list.values.tolist()
+        c_row_set = dict.fromkeys(row_l).keys()
+        counter = 0
+        for prop in c_prop_set:
+            # Update : Added the minimum similarity values for each property
+            ind = properties_set[
+                (properties_set['property'] == prop)].index.values
+            if len(ind) != 0:
+                min_values_list = []
+                property_cal = 0
+                for i in ind:
+                    prop_val = properties_set['prop_val'].values[i]
+                    property_cal = round((property_cal + float(prop_val)), 4)
+                    min_values_list.append(properties_set['min_sim'].values[i])
+                min_sim_value = min(min_values_list)
+                f_prop_cal = round(property_cal / len(c_row_set), 4)
+                self.properties_with_score_metric.loc[counter] = [prop, f_prop_cal, min_sim_value]
+                counter = counter + 1
+        self.properties_with_score_metric = self.properties_with_score_metric.sort_values(['value'], ascending=False)
+        final_scores_list = []
+        final_value_debug_str_list = []
+        for properties_list, sim_list, value_debug_str_list, current_score, current_actual_score in zip(
+                self.data['reverse_context_property'],
+                self.data['reverse_context_similarity'],
+                self.data[
+                    'reverse_context_property_similarity_q_node'],
+                self.data[self.output_column_name], self.data['actual_' + self.output_column_name]):
+            sum_prop = 0
+            property_values_list = []
+            for i in range(len(properties_list)):
+                curr_property = properties_list[i]
+                if curr_property != "":
+                    sim_value = sim_list[i].split("$$")[0]
+
+                    ind_df = self.properties_with_score_metric[
+                        (self.properties_with_score_metric['property'] == curr_property)]
+                    value = ind_df['value'].tolist()
+                    prop_value = value[0]
+                    sum_prop = round(sum_prop + (float(prop_value) * float(sim_value)), 4)
+                    property_values_list.append(prop_value)
+                    value_debug_str_list[i] = value_debug_str_list[i].replace(curr_property,
+                                                                              curr_property + "(" + str(
+                                                                                  prop_value) + ")")
+            final_value_debug_str_list.append("|".join(value_debug_str_list))
+            final_scores_list.append(sum_prop + current_actual_score)
+        self.data['reverse_context_property_similarity_q_node'] = final_value_debug_str_list
+        self.data['actual_' + self.output_column_name] = final_scores_list
+        final_scores_list = [1 if score > 1 else score for score in final_scores_list]
+        self.data[self.output_column_name] = final_scores_list
+
     def calculate_property_value(self):
         """
         Purpose: Calculates the score by using the properties and the similarity with which they matched.
@@ -411,14 +509,32 @@ class MatchContext(object):
         Returns: A Dataframe with the given column name containing the score with which the context matched
         to properties.
         """
+        # Identify the major important columns in all the columns present.
+        corresponding_num_labels = {}
+        self.final_data_subset['column_row'] = list(
+            zip(self.final_data_subset['column'], self.final_data_subset['row']))
         grouped_object = self.final_data_subset.groupby(['column'])
         for cell, group in grouped_object:
+            number_of_rows = len(group['label'].unique())
+            corresponding_num_labels[cell] = number_of_rows
+        max_value = max(corresponding_num_labels.values())
+        major_column = [k for k, v in corresponding_num_labels.items() if v == max_value]
+        all_labels = dict(zip(self.final_data_subset.column_row,
+                              self.final_data_subset.label))
+        for cell, group in grouped_object:
             self.data = group.reset_index(drop=True)
-            self.process_data_context()
+            current_labels = dict(zip(self.data.column_row, self.data.label))
+            if cell in major_column:
+                labels_to_process_for_infer_context = {k: all_labels[k] for k in all_labels
+                                                       if k not in current_labels}
+                self.process_data_context(labels_to_process_for_infer_context)
+            else:
+                self.process_data_context([])
             self.result_data = pd.concat([self.result_data, self.data])
         self.result_data = pd.concat([self.result_data, self.to_result_data])
-        self.result_data = self.result_data.sort_values(by='index')
-        self.result_data = self.result_data.drop(columns='index')
+        self.result_data = self.result_data.sort_values(by='index_1')
+        self.result_data = self.result_data.reset_index(drop=True)
+        self.result_data = self.result_data.drop(columns='index_1')
         if self.output_column_name not in self.result_data.columns:
             self.result_data = self.result_data.reindex(columns=self.result_data.columns.tolist() + [
                 self.output_column_name, 'context_property', 'actual_' + self.output_column_name, 'context_similarity',
@@ -426,14 +542,125 @@ class MatchContext(object):
         self.result_data[self.output_column_name] = self.result_data[self.output_column_name].fillna(0.0)
         self.result_data['actual_' + self.output_column_name] = self.result_data[
             'actual_' + self.output_column_name].fillna(0.0)
+        self.result_data = self.result_data.astype(object)
+        self.result_data['reverse_context_property'] = ""
+        self.result_data['reverse_context_similarity'] = ""
+        self.result_data['reverse_context_property_similarity_q_node'] = ""
+        for q_node_1 in self.inverse_context_dict:
+            q_node_val = self.inverse_context_dict[q_node_1]
+            property_list = []
+            similarity_list = []
+            q_node_matched_from_list = []
+            q_node_value_list = []
+            debug_value = []
+            for property_l in q_node_val:
+                [q_node_value, sim, q_node_matched_from] = q_node_val[property_l]
+                q_node_matched_from_list.append(q_node_matched_from)
+                q_node_value_list.append(q_node_value)
+                property_list.append(property_l)
+                similarity_list.append(sim)
+                debug_value.append("/".join([property_l, q_node_matched_from, str(sim), q_node_value]))
+            try:
 
-        return self.result_data
+                index_val = self.result_data[self.result_data['kg_id'] == q_node_1].index.values[0]
+                self.result_data.iloc[
+                    index_val, self.result_data.columns.get_loc('reverse_context_similarity')] = similarity_list
+                self.result_data.iloc[
+                    index_val, self.result_data.columns.get_loc('reverse_context_property')] = property_list
+                self.result_data.iloc[index_val, self.result_data.columns.get_loc(
+                    'reverse_context_property_similarity_q_node')] = debug_value
+            except IndexError:
+                continue
+        grouped_object = self.result_data.groupby(['column'])
+        result_data_2 = pd.DataFrame()
+        for cell, group in grouped_object:
+            self.data = group.reset_index(drop=True)
+            if cell not in major_column:
+                self.inverse_property_calculation_and_score_calculation()
+                result_data_2 = pd.concat([result_data_2, self.data])
+            else:
+                result_data_2 = pd.concat([result_data_2, self.data])
+        return result_data_2
 
-    def mapper(self, idx, q_node, val):
+    def matches_to_check_for(self, v, q_node, all_property_set):
+        # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
+        new_v = v.replace('"', '')
+        to_match_1 = new_v.replace(",", "")
+        to_match_2 = to_match_1.replace(".", "0")
+
+        num_v = None
+
+        if " " in to_match_2:
+            split_v = to_match_1.split(" ")
+            for s in split_v:
+                if not s == ".":
+                    new_s = s.replace(".", "0")
+                    if new_s.isnumeric():
+                        num_v = s
+
+        if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
+            property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
+                to_match_1, q_node, all_property_set, context_data_type="d")
+            if (property_v == "") and (to_match_1.count(".") <= 1):
+                # Number of decimals shouldn't be greater than one.
+                if to_match_1.isnumeric() or to_match_2.isnumeric():
+                    property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
+                        to_match_1, q_node,
+                        all_property_set,
+                        context_data_type="q")
+                elif num_v is not None:
+                    property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
+                        num_v, q_node, all_property_set, context_data_type="q")
+                    property_v_2, sim_2, value_matched_to_2, q_node_matched_to_2 = self.process_context_string(
+                        v, q_node,
+                        all_property_set)
+                    if sim_2 > sim:
+                        property_v = property_v_2
+                        sim = sim_2
+                        value_matched_to = value_matched_to_2
+                        q_node_matched_to = q_node_matched_to_2
+        else:
+            property_v, sim, value_matched_to, q_node_matched_to = self.process_context_string(
+                v, q_node, all_property_set
+            )
+        return property_v, sim, value_matched_to, q_node_matched_to
+
+    def match_for_inverse_context(self, q_node, all_property_set, labels_for_inverse_context):
+        context_data_type = 'i'
+        property_set = {prop for prop in all_property_set if prop.lower().startswith(context_data_type.lower())}
+        prop = ""
+        matched_to = ""
+        max_sim = 0
+        q_node_matched = ""
+        from_q_node_matched = ""
+        for property_l in property_set:
+            split_list = property_l.split(":")
+            label_val = split_list[0]
+            label_val_clean = label_val[1:]
+            label_val_clean_list = label_val_clean.split(" ")
+            property_value = split_list[1]
+            q_node_val = split_list[2]
+            for m in labels_for_inverse_context:
+                label_value_row = labels_for_inverse_context[m]
+                label_value_list = label_value_row.split(" ")
+                sim = similarity.hybrid.symmetric_monge_elkan_similarity(label_value_list, label_val_clean_list)
+                if sim >= self.similarity_string_threshold:
+                    if sim > max_sim:
+                        prop = property_value
+                        max_sim = sim
+                        matched_to = label_value_row
+                        q_node_matched = q_node_val
+                        from_q_node_matched = q_node
+        max_sim = round(max_sim, 4)
+        result_list = [q_node_matched, prop, matched_to, str(max_sim), from_q_node_matched]
+        return result_list
+
+    def mapper(self, idx, q_node, val, labels_for_inverse_context):
         """
         Purpose: Mapper to the parallel processor to process each row parallely
         Returns: The index of row, property string and the context similarity
                  string
+        :param labels_for_inverse_context:
         :param idx:
         :param q_node:
         :param val:
@@ -457,71 +684,45 @@ class MatchContext(object):
                 all_property_list[-1] = all_property_list[-1][:-1]
         else:
             # return idx, "", "", "0.0"
-            return idx, [], [], ["0.0"]
+            return idx, [], [], ["0.0"], []
         all_property_set = set(all_property_list)
         val_set = dict.fromkeys(val_list).keys()
         for v in val_set:
             # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
+
             if self.remove_punctuation(v) != "":
-                new_v = v.replace('"', '')
-                to_match_1 = new_v.replace(",", "")
-                to_match_2 = to_match_1.replace(".", "0")
-
-                num_v = None
-
-                if " " in to_match_2:
-                    split_v = to_match_1.split(" ")
-                    for s in split_v:
-                        if not s == ".":
-                            new_s = s.replace(".", "0")
-                            if new_s.isnumeric():
-                                num_v = s
-
-                if to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None:
-                    property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
-                        to_match_1, q_node, all_property_set, context_data_type="d")
-                    if (property_v == "") and (to_match_1.count(".") <= 1):
-                        # Number of decimals shouldn't be greater than one.
-                        if to_match_1.isnumeric() or to_match_2.isnumeric():
-                            property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
-                                to_match_1, q_node,
-                                all_property_set,
-                                context_data_type="q")
-                        elif num_v is not None:
-                            property_v, sim, value_matched_to, q_node_matched_to = self.match_context_with_type(
-                                num_v, q_node, all_property_set, context_data_type="q")
-                            property_v_2, sim_2, value_matched_to_2, q_node_matched_to_2 = self.process_context_string(
-                                v, q_node,
-                                all_property_set)
-                            if sim_2 > sim:
-                                property_v = property_v_2
-                                sim = sim_2
-                                value_matched_to = value_matched_to_2
-                                q_node_matched_to = q_node_matched_to_2
-                else:
-                    property_v, sim, value_matched_to, q_node_matched_to = self.process_context_string(
-                        v, q_node, all_property_set
-                    )
-
+                property_v, sim, value_matched_to, q_node_matched_to = self.matches_to_check_for(v,
+                                                                                                 q_node,
+                                                                                                 all_property_set)
                 prop_list.append(property_v)
                 sim_list.append(str(sim))
                 value_for_debug = "/".join([property_v, q_node_matched_to, str(sim), value_matched_to])
                 matched_to_list.append(value_for_debug)
 
-        return idx, matched_to_list, prop_list, sim_list
+        results = self.match_for_inverse_context(q_node, all_property_set, labels_for_inverse_context)
+        return idx, matched_to_list, prop_list, sim_list, results
 
-    def collector(self, idx, value_debug_str, prop_str, sim_str):
+    def collector(self, idx, value_debug_str, prop_str, sim_str, results):
         """
         Purpose: collects the output of the mapper and appends to
                  final_property_list.
+        :param results:
         :param sim_str:
         :param prop_str:
         :param value_debug_str:
         :param idx:
         """
         self.final_property_similarity_list.append([idx, prop_str, sim_str, value_debug_str])
+        if results:
+            if not results[0] == "":
+                if results[0] in self.inverse_context_dict:
+                    current_element = self.inverse_context_dict.get(results[0])
+                    current_element[results[1]] = results[2:]
+                else:
+                    current_element = {results[1]: results[2:]}
+                    self.inverse_context_dict[results[0]] = current_element
 
-    def process_data_context(self):
+    def process_data_context(self, labels_to_process_for_inverse_context):
         """
         Purpose: Processes the dataframe, reads each context_value separated by
         "|" and tries to match them to either
@@ -529,19 +730,24 @@ class MatchContext(object):
         """
         self.final_property_similarity_list = []
         cpus = self.use_cpus
-        batch = self.data.shape[0]//cpus
+
+        batch = self.data.shape[0] // cpus
         if cpus > 1:
             pp = ParallelProcessor(cpus, mapper=lambda args: self.mapper(*args),
-                                collector=self.collector, batch_size=batch)
+                                   collector=self.collector, batch_size=batch)
             pp.start()
-            pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"],
-                    self.data["context"]))
+            range_len = len(self.data.index.values)
+            label_list = [labels_to_process_for_inverse_context] * range_len
+            pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"], self.data["context"],
+                       label_list))
             pp.task_done()
             pp.join()
         else:
             for idx, q_node, val in zip(self.data.index.values.tolist(), self.data["kg_id"], self.data["context"]):
-                idx, value_debug_str, prop_str, sim_str = self.mapper(idx, q_node, val)
-                self.collector(idx, value_debug_str, prop_str, sim_str)
+                idx, value_debug_str, prop_str, sim_str, results = self.mapper(idx, q_node, val,
+                                                                               labels_to_process_for_inverse_context)
+                self.collector(idx, value_debug_str, prop_str, sim_str, results)
+
         property_sim_df = pd.DataFrame(self.final_property_similarity_list,
                                        columns=["idx", "context_property",
                                                 "context_similarity", "context_property_similarity_q_node"])
