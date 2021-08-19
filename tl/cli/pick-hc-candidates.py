@@ -45,6 +45,8 @@ def add_arguments(parser):
     parser.add_argument('--filter-above', action='store', dest='filter_above', required=False, default='mean',
                         help="{mean|median}, filter out all the candidates with equal sim above the equal sim mean or "
                              "median for a column. Default is mean")
+    parser.add_argument('--keep-ones', action='store_true', dest='keep_ones', default=False,
+                        help="keep the candidates with best string similarity = 1.0 even if equal sim > --filter-above")
 
 
 def run(**kwargs):
@@ -60,7 +62,8 @@ def run(**kwargs):
                                 str_sim_threshold=kwargs['str_sim_threshold'],
                                 str_sim_threshold_backup=kwargs['str_sim_threshold_backup'],
                                 output_column_name=kwargs['output_column_name'],
-                                filter_above=kwargs['filter_above'])
+                                filter_above=kwargs['filter_above'],
+                                keep_ones=kwargs['keep_ones'])
 
         odf = phcc.process()
         end = time.time()

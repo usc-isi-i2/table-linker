@@ -16,7 +16,8 @@ class PickHCCandidates(object):
                  str_sim_threshold: float = 0.9,
                  str_sim_threshold_backup: float = 0.8,
                  output_column_name: str = 'ignore_candidate',
-                 filter_above: str = 'mean'):
+                 filter_above: str = 'mean',
+                 keep_ones: bool = False):
         """
         Initializes the PickHCCanddidates class with the following parameters.
         Args:
@@ -53,6 +54,7 @@ class PickHCCandidates(object):
         self.str_sim_threshold_backup = str_sim_threshold_backup
         self.output_column_name = output_column_name
         self.filter_above = filter_above.lower().strip()
+        self.keep_ones = keep_ones
 
     def max_string_similarity(self):
         best_str_sims = []
@@ -83,9 +85,8 @@ class PickHCCandidates(object):
 
             num_cells = len(grouped_row)
             cell_count_dict[column]['total_cells'] = num_cells
-            min_cells = min(num_cells, self.minimum_cells)
             desired_cells = num_cells * self.desired_cell_factor
-            smc_cells = min(max(desired_cells, min_cells), self.maximum_cells)
+            smc_cells = min(max(desired_cells, self.minimum_cells), self.maximum_cells)
             cell_count_dict[column]['smc_cells'] = smc_cells
 
             for row, gpr in grouped_row:
@@ -133,7 +134,7 @@ class PickHCCandidates(object):
 
                 if str_sim >= threshold and \
                         (seen_label.get(label) is None or cell_bucket_key == seen_label[label]) and \
-                        equal_sim < mean_equal_sim:
+                        (equal_sim < mean_equal_sim or (self.keep_ones and str_sim == 1.0)):
                     if cell_bucket_key not in cell_bucket:
                         cell_bucket[cell_bucket_key] = {
                             'qnodes': set()
