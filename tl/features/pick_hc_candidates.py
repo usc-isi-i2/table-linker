@@ -116,7 +116,7 @@ class PickHCCandidates(object):
         cell_bucket_list = []
         for column, gdf in data.groupby(['column']):
             cell_bucket = {}
-            seen_labels = set()
+            seen_label = dict()
             threshold = self.str_sim_threshold
             mean_equal_sim = gdf[EQUAL_SIM].mean() if self.filter_above == 'mean' else gdf[EQUAL_SIM].median()
 
@@ -132,19 +132,25 @@ class PickHCCandidates(object):
                 cell_bucket_key = f"{column}_{row}"
 
                 if str_sim >= threshold and \
-                        cell_bucket_key not in cell_bucket and \
-                        label not in seen_labels and \
+                        (seen_label.get(label) is None or cell_bucket_key == seen_label[label]) and \
                         equal_sim < mean_equal_sim:
-                    cell_bucket[cell_bucket_key] = kg_id
-                    seen_labels.add(label)
+                    if cell_bucket_key not in cell_bucket:
+                        cell_bucket[cell_bucket_key] = {
+                            'qnodes': set()
+                        }
+                    cell_bucket[cell_bucket_key]['qnodes'].add(kg_id)
+                    if label not in seen_label:
+                        seen_label[label] = cell_bucket_key
             cell_bucket_list.append(cell_bucket)
 
         for cell_bucket in cell_bucket_list:
-            for key, kg_id in cell_bucket.items():
+            for key, cell_bucket_content in cell_bucket.items():
                 _ = key.split('_')
                 column = int(_[0])
                 row = int(_[1])
+                qnodes = cell_bucket_content['qnodes']
 
-                data.loc[(data['column'] == column) & (data['row'] == row) & (
-                        data['kg_id'] == kg_id), self.output_column_name] = 0
+                for kg_id in qnodes:
+                    data.loc[(data['column'] == column) & (data['row'] == row) & (
+                            data['kg_id'] == kg_id), self.output_column_name] = 0
         return data
