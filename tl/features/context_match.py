@@ -625,7 +625,7 @@ class MatchContext(object):
             )
         return property_v, sim, value_matched_to, q_node_matched_to
 
-    def match_for_inverse_context(self, q_node, all_property_set, labels_for_inverse_context):
+    def match_for_inverse_context(self, q_node, all_property_set, labels_for_inverse_context, q_label):
         context_data_type = 'i'
         property_set = {prop for prop in all_property_set if prop.lower().startswith(context_data_type.lower())}
         prop = ""
@@ -648,14 +648,14 @@ class MatchContext(object):
                     if sim > max_sim:
                         prop = property_value
                         max_sim = sim
-                        matched_to = label_value_row
+                        matched_to = q_label
                         q_node_matched = q_node_val
                         from_q_node_matched = q_node
         max_sim = round(max_sim, 4)
         result_list = [q_node_matched, prop, matched_to, str(max_sim), from_q_node_matched]
         return result_list
 
-    def mapper(self, idx, q_node, val, labels_for_inverse_context):
+    def mapper(self, idx, q_node, q_node_label,  val, labels_for_inverse_context):
         """
         Purpose: Mapper to the parallel processor to process each row parallely
         Returns: The index of row, property string and the context similarity
@@ -699,7 +699,7 @@ class MatchContext(object):
                 value_for_debug = "/".join([property_v, q_node_matched_to, str(sim), value_matched_to])
                 matched_to_list.append(value_for_debug)
 
-        results = self.match_for_inverse_context(q_node, all_property_set, labels_for_inverse_context)
+        results = self.match_for_inverse_context(q_node, all_property_set, labels_for_inverse_context, q_node_label)
         return idx, matched_to_list, prop_list, sim_list, results
 
     def collector(self, idx, value_debug_str, prop_str, sim_str, results):
@@ -738,13 +738,14 @@ class MatchContext(object):
             pp.start()
             range_len = len(self.data.index.values)
             label_list = [labels_to_process_for_inverse_context] * range_len
-            pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"], self.data["context"],
+            pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"], self.data['label'], self.data["context"],
                        label_list))
             pp.task_done()
             pp.join()
         else:
-            for idx, q_node, val in zip(self.data.index.values.tolist(), self.data["kg_id"], self.data["context"]):
-                idx, value_debug_str, prop_str, sim_str, results = self.mapper(idx, q_node, val,
+            for idx, q_node, q_node_label, val in zip(self.data.index.values.tolist(), self.data["kg_id"],
+                                                      self.data['label'], self.data["context"]):
+                idx, value_debug_str, prop_str, sim_str, results = self.mapper(idx, q_node, q_node_label,  val,
                                                                                labels_to_process_for_inverse_context)
                 self.collector(idx, value_debug_str, prop_str, sim_str, results)
 
