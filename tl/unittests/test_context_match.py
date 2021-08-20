@@ -91,7 +91,7 @@ class TestContextMatch(unittest.TestCase):
         node_context_score = odf[odf['kg_id'] == 'Q30'][self.output_column_name].values.tolist()[0]
         self.assertTrue(node_property[0] == 'P3529')
         self.assertTrue(node_similarity[0] == "1.0")
-        self.assertTrue(node_context_score == 0.5)
+        self.assertTrue(node_context_score == 1.0)
 
     def test_for_item_match(self):
         similarity_string_threshold = 0.85
