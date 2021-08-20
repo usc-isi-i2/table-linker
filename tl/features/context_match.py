@@ -27,6 +27,8 @@ class MatchContext(object):
             raise RequiredInputParameterMissingException(
                 'One of the input parameters is required: {} or {}'.format("context_path", "custom_context_path"))
         self.final_data['index_1'] = self.final_data.index
+        self.final_data['column_row'] = list(
+            zip(self.final_data['column'], self.final_data['row']))
         if ignore_column_name in self.final_data.columns:
             self.final_data[ignore_column_name] = self.final_data[ignore_column_name].astype('float')
             self.final_data_subset = self.final_data[self.final_data[ignore_column_name] == 0]
@@ -511,8 +513,6 @@ class MatchContext(object):
         """
         # Identify the major important columns in all the columns present.
         corresponding_num_labels = {}
-        self.final_data_subset['column_row'] = list(
-            zip(self.final_data_subset['column'], self.final_data_subset['row']))
         grouped_object = self.final_data_subset.groupby(['column'])
         for cell, group in grouped_object:
             number_of_rows = len(group['label'].unique())
@@ -580,6 +580,7 @@ class MatchContext(object):
                 result_data_2 = pd.concat([result_data_2, self.data])
             else:
                 result_data_2 = pd.concat([result_data_2, self.data])
+        result_data_2 = result_data_2.drop(columns = ['column_row'])
         return result_data_2
 
     def matches_to_check_for(self, v, q_node, all_property_set):
