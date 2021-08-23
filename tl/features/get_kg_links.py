@@ -35,7 +35,7 @@ def get_kg_links(score_column, file_path=None, df=None, label_column='label', to
         new_top_k = top_k
         gt_rank = -1
         if is_gt_present:
-            gt_rank_values = grouped[grouped['evaluation_label'] == 1]['rank'].values
+            gt_rank_values = grouped[grouped['evaluation_label'].astype(int) == 1]['rank'].values
             if len(gt_rank_values) > 0:
                 gt_rank = gt_rank_values[0]
             if gt_rank > top_k:
