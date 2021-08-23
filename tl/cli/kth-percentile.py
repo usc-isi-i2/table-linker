@@ -28,6 +28,8 @@ def add_arguments(parser):
                              'indicating whether this candidate belongs to k percenters. Default is kth_percenter')
     parser.add_argument('--ignore-column', action='store', type=str, dest='ignore_column', required=False,
                         help='the column which marks candidates to be ignored or not')
+    parser.add_argument('--minimum-cells', action='store', type=int, dest='minimum_cells', required=False,
+                        help='minimum number of cells which should have a kth percenter candidate')
     parser.add_argument('--k-percentile', action='store', dest='k_percentile', type=str, required=False, default='mean',
                         help="The value for kth percentile. The values to this option should either be any number "
                              "between [0.0, 1.0], or a string ∈ {mean, median}")
@@ -43,7 +45,8 @@ def run(**kwargs):
                            column=column,
                            output_column=kwargs['output_column_name'],
                            k_percentile=kwargs['k_percentile'],
-                           ignore_column=kwargs['ignore_column'])
+                           ignore_column=kwargs['ignore_column'],
+                           minimum_cells=kwargs['minimum_cells'])
 
         odf = kp.process(column)
         end = time.time()
