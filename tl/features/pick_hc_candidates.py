@@ -15,9 +15,7 @@ class PickHCCandidates(object):
                  minimum_cells: int = 10,
                  str_sim_threshold: float = 0.9,
                  str_sim_threshold_backup: float = 0.8,
-                 output_column_name: str = 'ignore_candidate',
-                 filter_above: str = 'mean',
-                 keep_ones: bool = False):
+                 output_column_name: str = 'ignore_candidate'):
         """
         Initializes the PickHCCanddidates class with the following parameters.
         Args:
@@ -53,8 +51,6 @@ class PickHCCandidates(object):
         self.str_sim_threshold = str_sim_threshold
         self.str_sim_threshold_backup = str_sim_threshold_backup
         self.output_column_name = output_column_name
-        self.filter_above = filter_above.lower().strip()
-        self.keep_ones = keep_ones
 
     def max_string_similarity(self):
         best_str_sims = []
@@ -119,7 +115,6 @@ class PickHCCandidates(object):
             cell_bucket = {}
             seen_label = dict()
             threshold = self.str_sim_threshold
-            mean_equal_sim = gdf[EQUAL_SIM].mean() if self.filter_above == 'mean' else gdf[EQUAL_SIM].median()
 
             for row, label, kg_id, str_sim, equal_sim in zip(gdf['row'], gdf['label_clean'], gdf['kg_id'],
                                                              gdf[BEST_STR_SIMILARITY], gdf[EQUAL_SIM]):
@@ -133,8 +128,7 @@ class PickHCCandidates(object):
                 cell_bucket_key = f"{column}_{row}"
 
                 if str_sim >= threshold and \
-                        (seen_label.get(label) is None or cell_bucket_key == seen_label[label]) and \
-                        (equal_sim < mean_equal_sim or (self.keep_ones and str_sim == 1.0)):
+                        (seen_label.get(label) is None or cell_bucket_key == seen_label[label]):
                     if cell_bucket_key not in cell_bucket:
                         cell_bucket[cell_bucket_key] = {
                             'qnodes': set()
