@@ -42,9 +42,6 @@ def add_arguments(parser):
                         help="a second string similarity threshold to fall back on, in case there are not sufficient "
                              "candidates with string similarity greater than or equal to --string-similarity-threshold."
                              "Default 0.8")
-    parser.add_argument('--filter-above', action='store', dest='filter_above', required=False, default='mean',
-                        help="{mean|median}, filter out all the candidates with equal sim above the equal sim mean or "
-                             "median for a column. Default is mean")
 
 
 def run(**kwargs):
@@ -59,8 +56,7 @@ def run(**kwargs):
                                 minimum_cells=kwargs['min_cells'],
                                 str_sim_threshold=kwargs['str_sim_threshold'],
                                 str_sim_threshold_backup=kwargs['str_sim_threshold_backup'],
-                                output_column_name=kwargs['output_column_name'],
-                                filter_above=kwargs['filter_above'])
+                                output_column_name=kwargs['output_column_name'])
 
         odf = phcc.process()
         end = time.time()

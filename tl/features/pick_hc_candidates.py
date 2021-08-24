@@ -15,8 +15,7 @@ class PickHCCandidates(object):
                  minimum_cells: int = 10,
                  str_sim_threshold: float = 0.9,
                  str_sim_threshold_backup: float = 0.8,
-                 output_column_name: str = 'ignore_candidate',
-                 filter_above: str = 'mean'):
+                 output_column_name: str = 'ignore_candidate'):
         """
         Initializes the PickHCCanddidates class with the following parameters.
         Args:
@@ -52,7 +51,6 @@ class PickHCCandidates(object):
         self.str_sim_threshold = str_sim_threshold
         self.str_sim_threshold_backup = str_sim_threshold_backup
         self.output_column_name = output_column_name
-        self.filter_above = filter_above.lower().strip()
 
     def max_string_similarity(self):
         best_str_sims = []
@@ -83,9 +81,8 @@ class PickHCCandidates(object):
 
             num_cells = len(grouped_row)
             cell_count_dict[column]['total_cells'] = num_cells
-            min_cells = min(num_cells, self.minimum_cells)
             desired_cells = num_cells * self.desired_cell_factor
-            smc_cells = min(max(desired_cells, min_cells), self.maximum_cells)
+            smc_cells = min(max(desired_cells, self.minimum_cells), self.maximum_cells)
             cell_count_dict[column]['smc_cells'] = smc_cells
 
             for row, gpr in grouped_row:
@@ -116,9 +113,8 @@ class PickHCCandidates(object):
         cell_bucket_list = []
         for column, gdf in data.groupby(['column']):
             cell_bucket = {}
-            seen_labels = set()
+            seen_label = dict()
             threshold = self.str_sim_threshold
-            mean_equal_sim = gdf[EQUAL_SIM].mean() if self.filter_above == 'mean' else gdf[EQUAL_SIM].median()
 
             for row, label, kg_id, str_sim, equal_sim in zip(gdf['row'], gdf['label_clean'], gdf['kg_id'],
                                                              gdf[BEST_STR_SIMILARITY], gdf[EQUAL_SIM]):
@@ -132,19 +128,24 @@ class PickHCCandidates(object):
                 cell_bucket_key = f"{column}_{row}"
 
                 if str_sim >= threshold and \
-                        cell_bucket_key not in cell_bucket and \
-                        label not in seen_labels and \
-                        equal_sim < mean_equal_sim:
-                    cell_bucket[cell_bucket_key] = kg_id
-                    seen_labels.add(label)
+                        (seen_label.get(label) is None or cell_bucket_key == seen_label[label]):
+                    if cell_bucket_key not in cell_bucket:
+                        cell_bucket[cell_bucket_key] = {
+                            'qnodes': set()
+                        }
+                    cell_bucket[cell_bucket_key]['qnodes'].add(kg_id)
+                    if label not in seen_label:
+                        seen_label[label] = cell_bucket_key
             cell_bucket_list.append(cell_bucket)
 
         for cell_bucket in cell_bucket_list:
-            for key, kg_id in cell_bucket.items():
+            for key, cell_bucket_content in cell_bucket.items():
                 _ = key.split('_')
                 column = int(_[0])
                 row = int(_[1])
+                qnodes = cell_bucket_content['qnodes']
 
-                data.loc[(data['column'] == column) & (data['row'] == row) & (
-                        data['kg_id'] == kg_id), self.output_column_name] = 0
+                for kg_id in qnodes:
+                    data.loc[(data['column'] == column) & (data['row'] == row) & (
+                            data['kg_id'] == kg_id), self.output_column_name] = 0
         return data

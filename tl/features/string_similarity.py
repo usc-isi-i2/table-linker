@@ -65,25 +65,32 @@ class StringSimilarity:
     def get_all_similarity_models():
         pass
 
-    def get_similarity_score(self):
+    def get_similarity_score(self, threshold=0.0):
         self.df['concatenated_targets'] = list(zip(self.df[self.candidate_label_column_name],
-                                                   self.df[self.target_label_column_name]))
-        self.df[self.compared_column_names] = self.df['concatenated_targets'].map(lambda x: self.string_similarity(x))
+                                                   self.df[self.target_label_column_name],
+                                                   self.df['label'],
+                                                   self.df['method']))
+        self.df[self.compared_column_names] = self.df['concatenated_targets'].map(
+            lambda x: self.string_similarity(x, threshold))
         self.df.drop(columns=['concatenated_targets'], inplace=True)
 
         return self.df
 
-    def string_similarity(self, pair: tuple) -> float:
-
+    def string_similarity(self, pair: tuple, threshold) -> float:
+        method = pair[3].strip()
         og_labels = pair[0].split("|")
         target_labels = pair[1].split("|")
+        original_label = pair[2]
+        if method == 'exact-match' and original_label != target_labels:
+            target_labels.extend(original_label.split("|"))
         max_score = 0.0
 
         for each_similarity_unit in self.similarity_units:
             # get max score amount all labels of candidate node and use the highest one
             for each_label in og_labels:
                 for target_label in target_labels:
-                    each_similarity_score = each_similarity_unit.similarity(str(target_label), str(each_label))
+                    each_similarity_score = each_similarity_unit.similarity(str(target_label), str(each_label),
+                                                                            threshold=threshold)
                     if each_similarity_score > max_score:
                         max_score = each_similarity_score
         return max_score

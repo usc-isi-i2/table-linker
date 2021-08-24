@@ -54,9 +54,9 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
     if not (ffv.is_candidates_file(df)):
         raise UnsupportTypeError("The input file is not a candidate file!")
 
-    if not (ranking_model) and not (normalization_factor):
+    if not (ranking_model) and not (min_max_scaler_path):
         raise RequiredInputParameterMissingException(
-            'One of the input parameters is required: {} or {}'.format("ranking_model", "normalization_factor"))
+            'One of the input parameters is required: {} or {}'.format("ranking_model", "min_max_scaler_path"))
 
     normalize_features = features.split(",")
 
@@ -82,5 +82,6 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
         pred.extend(scores) if isinstance(scores, list) else pred.append(scores)
     out_df = pd.concat(new_df_list)
     out_df[output_column] = pred
+    out_df[output_column].fillna(0.0, inplace=True)
 
     return out_df
