@@ -36,6 +36,9 @@ def add_arguments(parser):
     parser.add_argument('-o', '--output-column-name', action='store', dest='output_column',
                         help='The output column is the named column of string similarity computed')
 
+    parser.add_argument('--threshold', action='store', dest='threshold', type=float, default=0.0,
+                        help='str threshold')
+
 
 def run(**kwargs):
     from tl.features.string_similarity import StringSimilarity
@@ -48,12 +51,12 @@ def run(**kwargs):
         method = kwargs["similarity_method"]
         kwargs["df"] = df
         similarity_calculation_unit = StringSimilarity(similarity_method=kwargs.pop("similarity_method"), **kwargs)
-        odf = similarity_calculation_unit.get_similarity_score()
+        odf = similarity_calculation_unit.get_similarity_score(threshold=kwargs['threshold'])
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
-            "command": "string-similarity-"+str(method),
-            "time": end-start
+            "command": "string-similarity-" + str(method),
+            "time": end - start
         })
         odf.to_csv(sys.stdout, index=False)
 
