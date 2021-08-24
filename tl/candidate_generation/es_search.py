@@ -3,7 +3,10 @@ import copy
 import hashlib
 import logging
 import re
+
+import json
 import requests
+import sys
 import typing
 from requests.auth import HTTPBasicAuth
 from typing import List
@@ -47,23 +50,27 @@ class Search(object):
 
         return self.query_cache[cache_key]
 
-    def create_exact_match_query(self, search_term: str, lower_case: bool, size: int, properties: List[str],
-                                 extra_musts: dict = None):
+    def create_exact_match_query(self,
+                                 search_term: str,
+                                 lower_case: bool,
+                                 size: int,
+                                 properties: List[str],
+                                 extra_musts: dict = None,
+                                 search_term_original: str = None):
         must = list()
-        search_term = search_term.strip()
+        search_terms = list()
+        search_terms.append(search_term.strip())
+        if search_term_original != search_term:
+            search_terms.append(search_term_original)
         for property in properties:
             query_part = {
-                "term": {
-                    "{}.keyword_lower".format(property): {
-                        "value": search_term.lower()
-                    }
+                "terms": {
+                    "{}.keyword_lower".format(property): [x.lower() for x in search_terms]
                 }
             } if lower_case else \
                 {
                     "term": {
-                        "{}.keyword".format(property): {
-                            "value": search_term
-                        }
+                        "{}.keyword".format(property): search_terms
                     }
                 }
             must.append(query_part)
@@ -189,9 +196,16 @@ class Search(object):
 
         return hits
 
-    def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
-                               lower_case: bool = True, auxiliary_fields: List[str] = None, ignore_cache=False,
-                               extra_musts: dict = None):
+    def search_term_candidates(self,
+                               search_term_str: str,
+                               size: int,
+                               properties,
+                               query_type: str,
+                               lower_case: bool = True,
+                               auxiliary_fields: List[str] = None,
+                               ignore_cache=False,
+                               extra_musts: dict = None,
+                               search_term_original: str = None):
         candidate_dict = {}
         candidate_aux_dict = {}
 
@@ -203,11 +217,13 @@ class Search(object):
                 hits = None
                 if query_type == 'exact-match':
                     hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties,
-                                                                        extra_musts=extra_musts))
+                                                                        extra_musts=extra_musts,
+                                                                        search_term_original=search_term_original))
                     if not hits:
                         hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size,
                                                                             ['all_labels_aliases'],
-                                                                            extra_musts=extra_musts))
+                                                                            extra_musts=extra_musts,
+                                                                            search_term_original=search_term_original))
 
                 elif query_type == 'phrase-match':
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
