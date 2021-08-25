@@ -9,6 +9,7 @@ from multiprocessing import cpu_count
 import itertools
 import collections
 import os
+import sys
 
 
 class MatchContext(object):
@@ -29,7 +30,7 @@ class MatchContext(object):
         self.final_data['index_1'] = self.final_data.index
         self.final_data['column_row'] = list(
             zip(self.final_data['column'], self.final_data['row']))
-        self.final_data['label'] = self.final_data['label'].fillna("")
+        self.final_data['label_clean'] = self.final_data['label_clean'].fillna("")
         if ignore_column_name in self.final_data.columns:
             self.final_data[ignore_column_name] = self.final_data[ignore_column_name].astype('float')
             self.final_data_subset = self.final_data[self.final_data[ignore_column_name] == 0]
@@ -516,15 +517,15 @@ class MatchContext(object):
         corresponding_num_labels = {}
         grouped_object = self.final_data_subset.groupby(['column'])
         for cell, group in grouped_object:
-            number_of_rows = len(group['label'].unique())
+            number_of_rows = len(group['label_clean'].unique())
             corresponding_num_labels[cell] = number_of_rows
         max_value = max(corresponding_num_labels.values())
         major_column = [k for k, v in corresponding_num_labels.items() if v == max_value]
         all_labels = dict(zip(self.final_data_subset.column_row,
-                              self.final_data_subset.label))
+                              self.final_data_subset.label_clean))
         for cell, group in grouped_object:
             self.data = group.reset_index(drop=True)
-            current_labels = dict(zip(self.data.column_row, self.data.label))
+            current_labels = dict(zip(self.data.column_row, self.data.label_clean))
             if cell in major_column:
                 labels_to_process_for_infer_context = {k: all_labels[k] for k in all_labels
                                                        if k not in current_labels}
@@ -644,7 +645,10 @@ class MatchContext(object):
             q_node_val = split_list[2]
             for m in labels_for_inverse_context:
                 label_value_row = labels_for_inverse_context[m]
-                label_value_list = label_value_row.split(" ")
+                try:
+                    label_value_list = label_value_row.split(" ")
+                except:
+                    print(label_value_row, file=sys.stderr)
                 sim = similarity.hybrid.symmetric_monge_elkan_similarity(label_value_list, label_val_clean_list)
                 if sim >= self.similarity_string_threshold:
                     if sim > max_sim:
@@ -740,13 +744,13 @@ class MatchContext(object):
             pp.start()
             range_len = len(self.data.index.values)
             label_list = [labels_to_process_for_inverse_context] * range_len
-            pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"], self.data['label'], self.data["context"],
+            pp.map(zip(self.data.index.values.tolist(), self.data["kg_id"], self.data['label_clean'], self.data["context"],
                        label_list))
             pp.task_done()
             pp.join()
         else:
             for idx, q_node, q_node_label, val in zip(self.data.index.values.tolist(), self.data["kg_id"],
-                                                      self.data['label'], self.data["context"]):
+                                                      self.data['label_clean'], self.data["context"]):
                 idx, value_debug_str, prop_str, sim_str, results = self.mapper(idx, q_node, q_node_label,  val,
                                                                                labels_to_process_for_inverse_context)
                 self.collector(idx, value_debug_str, prop_str, sim_str, results)
