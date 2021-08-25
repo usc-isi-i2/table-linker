@@ -9,7 +9,6 @@ from multiprocessing import cpu_count
 import itertools
 import collections
 import os
-import sys
 
 
 class MatchContext(object):
@@ -515,6 +514,7 @@ class MatchContext(object):
         """
         # Identify the major important columns in all the columns present.
         corresponding_num_labels = {}
+        subset_join_list = []
         grouped_object = self.final_data_subset.groupby(['column'])
         for cell, group in grouped_object:
             number_of_rows = len(group['label_clean'].unique())
@@ -528,12 +528,14 @@ class MatchContext(object):
             current_labels = dict(zip(self.data.column_row, self.data.label_clean))
             if cell in major_column:
                 labels_to_process_for_infer_context = {k: all_labels[k] for k in all_labels
-                                                       if k not in current_labels}
+                                                       if k not in current_labels if k != ""}
                 self.process_data_context(labels_to_process_for_infer_context)
             else:
                 self.process_data_context([])
+            subset_join_list.append(self.data)
             self.result_data = pd.concat([self.result_data, self.data])
-        self.result_data = pd.concat([self.result_data, self.to_result_data])
+        subset_join_list.append(self.to_result_data)
+        self.result_data = pd.concat(subset_join_list)
         self.result_data = self.result_data.sort_values(by='index_1')
         self.result_data = self.result_data.reset_index(drop=True)
         self.result_data = self.result_data.drop(columns='index_1')
@@ -575,13 +577,13 @@ class MatchContext(object):
                 continue
         grouped_object = self.result_data.groupby(['column'])
         result_data_2 = pd.DataFrame()
+        subset_join_list = []
         for cell, group in grouped_object:
             self.data = group.reset_index(drop=True)
             if cell not in major_column:
                 self.inverse_property_calculation_and_score_calculation()
-                result_data_2 = pd.concat([result_data_2, self.data])
-            else:
-                result_data_2 = pd.concat([result_data_2, self.data])
+            subset_join_list.append(self.data)
+        result_data_2 = pd.concat(subset_join_list)
         result_data_2 = result_data_2.drop(columns = ['column_row'])
         return result_data_2
 
@@ -645,10 +647,7 @@ class MatchContext(object):
             q_node_val = split_list[2]
             for m in labels_for_inverse_context:
                 label_value_row = labels_for_inverse_context[m]
-                try:
-                    label_value_list = label_value_row.split(" ")
-                except:
-                    print(label_value_row, file=sys.stderr)
+                label_value_list = label_value_row.split(" ")
                 sim = similarity.hybrid.symmetric_monge_elkan_similarity(label_value_list, label_val_clean_list)
                 if sim >= self.similarity_string_threshold:
                     if sim > max_sim:
