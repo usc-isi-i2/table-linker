@@ -29,6 +29,7 @@ class MatchContext(object):
         self.final_data['index_1'] = self.final_data.index
         self.final_data['column_row'] = list(
             zip(self.final_data['column'], self.final_data['row']))
+        self.final_data['label'] = self.final_data['label'].fillna("")
         if ignore_column_name in self.final_data.columns:
             self.final_data[ignore_column_name] = self.final_data[ignore_column_name].astype('float')
             self.final_data_subset = self.final_data[self.final_data[ignore_column_name] == 0]
