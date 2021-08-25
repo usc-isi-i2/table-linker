@@ -9,6 +9,7 @@ from multiprocessing import cpu_count
 import itertools
 import collections
 import os
+import sys
 
 
 class MatchContext(object):
@@ -521,10 +522,10 @@ class MatchContext(object):
         max_value = max(corresponding_num_labels.values())
         major_column = [k for k, v in corresponding_num_labels.items() if v == max_value]
         all_labels = dict(zip(self.final_data_subset.column_row,
-                              self.final_data_subset.label))
+                              self.final_data_subset.label_clean))
         for cell, group in grouped_object:
             self.data = group.reset_index(drop=True)
-            current_labels = dict(zip(self.data.column_row, self.data.label))
+            current_labels = dict(zip(self.data.column_row, self.data.label_clean))
             if cell in major_column:
                 labels_to_process_for_infer_context = {k: all_labels[k] for k in all_labels
                                                        if k not in current_labels}
@@ -644,7 +645,10 @@ class MatchContext(object):
             q_node_val = split_list[2]
             for m in labels_for_inverse_context:
                 label_value_row = labels_for_inverse_context[m]
-                label_value_list = label_value_row.split(" ")
+                try:
+                    label_value_list = label_value_row.split(" ")
+                except:
+                    print(label_value_row, file=sys.stderr)
                 sim = similarity.hybrid.symmetric_monge_elkan_similarity(label_value_list, label_val_clean_list)
                 if sim >= self.similarity_string_threshold:
                     if sim > max_sim:
