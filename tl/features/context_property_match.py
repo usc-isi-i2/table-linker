@@ -9,14 +9,12 @@ from multiprocessing import cpu_count
 import itertools
 import collections
 import os
-import sys
 
 
 class MatchContextProperty(object):
     def __init__(self, final_data_subset, to_result_data, similarity_string_threshold, similarity_quantity_threshold,
                  string_separator, missing_property_replacement_factor, output_column_name,
                  context_path=None, custom_context_path=None, use_cpus=None, save_property_scores = None):
-        print(context_path, custom_context_path, file = sys.stderr)
         self.equal_matched_properties = {}
         self.string_separator = string_separator
         self.similarity_string_threshold = similarity_string_threshold
