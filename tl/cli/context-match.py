@@ -33,8 +33,8 @@ def add_arguments(parser):
                         help='The minimum threshold for similarity with input context for quantity matching. '
                              'Default: 0.85')
     parser.add_argument('--custom-context-file', type=str, dest='custom_context_file', required=False,
-                        help="The file is used to look up context values for matching.") 
-    parser.add_argument('--string-separator', action = 'store', type=str, dest = 'string_separator', default = ",", 
+                        help="The file is used to look up context values for matching.")
+    parser.add_argument('--string-separator', action = 'store', type=str, dest = 'string_separator', default = ",",
                         help = "Any separators to separate from in the context substrings.")
     parser.add_argument('--use-cpus', action='store', type=int,
                         dest='use_cpus', required=False, default = cpu_count(),
@@ -72,7 +72,7 @@ def run(**kwargs):
                            string_separator, missing_property_replacement_factor, ignore_column_name,
                            output_column_name, context_file_path, custom_context_file_path, use_cpus = use_cpus)
         start = time.time()
-        result_df = obj.process_data_by_column()
+        result_df = obj.call_for_context()
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
