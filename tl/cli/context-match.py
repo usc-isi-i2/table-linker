@@ -46,8 +46,14 @@ def add_arguments(parser):
                         help='This factor is multiplied with the minimum similarity with which the '
                              'most significant property matched')
     parser.add_argument('--ignore-column-name', action='store',
-                        dest='ignore_column_name', default="ignore",
+                        dest='ignore_column_name', default=None,
                         help='This column is used to consider only few rows by setting to 1.')
+    parser.add_argument('--pseudo-gt-column-name', action='store',
+                        dest='pseudo_gt_column_name', default=None,
+                        help='This column is used to consider only few rows by setting to 1.')
+    parser.add_argument('--save-property-scores-path', action='store',
+                        dest='save_property_scores_path', default=None,
+                        help="The path where scores are to be stored. It can be directory or filename. ")
 
     # output
     parser.add_argument('-o', '--output-column-name', action='store', dest='output_column', default="context_score",
@@ -68,11 +74,14 @@ def run(**kwargs):
         use_cpus = kwargs.pop("use_cpus")
         missing_property_replacement_factor = kwargs.pop("missing_property_replacement_factor")
         ignore_column_name = kwargs.pop("ignore_column_name")
+        pseudo_gt_column_name = kwargs.pop("pseudo_gt_column_name")
+        save_property_scores = kwargs.pop("save_property_scores_path")
         obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold,
                            string_separator, missing_property_replacement_factor, ignore_column_name,
-                           output_column_name, context_file_path, custom_context_file_path, use_cpus = use_cpus)
+                           pseudo_gt_column_name, output_column_name, context_file_path, custom_context_file_path,
+                           use_cpus = use_cpus, save_property_scores = save_property_scores)
         start = time.time()
-        result_df = obj.call_for_context()
+        result_df = obj.process_data_by_column()
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
