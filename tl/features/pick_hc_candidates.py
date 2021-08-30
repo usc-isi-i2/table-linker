@@ -115,12 +115,14 @@ class PickHCCandidates(object):
             cell_bucket = {}
             seen_label = dict()
             threshold = self.str_sim_threshold
+            is_bucket_full = False
 
             for row, label, kg_id, str_sim, equal_sim in zip(gdf['row'], gdf['label_clean'], gdf['kg_id'],
                                                              gdf[BEST_STR_SIMILARITY], gdf[EQUAL_SIM]):
+
                 if len(cell_bucket) >= self.cell_count_dict[column]['smc_cells'] or \
                         str_sim < self.str_sim_threshold_backup:
-                    break
+                    is_bucket_full = True
 
                 if len(cell_bucket) < self.cell_count_dict[column]['smc_cells'] and str_sim < threshold:
                     threshold = self.str_sim_threshold_backup
@@ -129,13 +131,19 @@ class PickHCCandidates(object):
 
                 if str_sim >= threshold and \
                         (seen_label.get(label) is None or cell_bucket_key == seen_label[label]):
-                    if cell_bucket_key not in cell_bucket:
-                        cell_bucket[cell_bucket_key] = {
-                            'qnodes': set()
-                        }
-                    cell_bucket[cell_bucket_key]['qnodes'].add(kg_id)
-                    if label not in seen_label:
-                        seen_label[label] = cell_bucket_key
+                    if not is_bucket_full:
+                        if cell_bucket_key not in cell_bucket:
+                            cell_bucket[cell_bucket_key] = {
+                                'qnodes': set(),
+                                'best_str_match': str_sim
+                            }
+
+                        if label not in seen_label:
+                            seen_label[label] = cell_bucket_key
+
+                    if cell_bucket_key in cell_bucket and str_sim >= cell_bucket[cell_bucket_key]['best_str_match']:
+                        cell_bucket[cell_bucket_key]['qnodes'].add(kg_id)
+
             cell_bucket_list.append(cell_bucket)
 
         for cell_bucket in cell_bucket_list:
