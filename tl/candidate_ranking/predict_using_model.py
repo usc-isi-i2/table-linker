@@ -65,23 +65,32 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
     scaler = pickle.load(open(min_max_scaler_path, 'rb'))
 
     df[normalize_features] = df[normalize_features].astype('float64')
+
     grouped_obj = df.groupby(['column', 'row'])
     new_df_list = []
-    pred = []
+    
     for cell in grouped_obj:
         cell[1][normalize_features] = scaler.transform(cell[1][normalize_features])
         df_copy = cell[1].copy()
-        df_features = df_copy[normalize_features]
-        new_df_list.append(df_copy)
-        arr = df_features.to_numpy()
-        test_inp = []
-        for a in arr:
-            test_inp.append(a)
-        test_tensor = torch.tensor(test_inp).float()
-        scores = torch.squeeze(model.predict(test_tensor)).tolist()
-        pred.extend(scores) if isinstance(scores, list) else pred.append(scores)
+        df_ni = df_copy[df_copy['ignore_candidate'].astype(float) == 0]
+        df_i = df_copy[df_copy['ignore_candidate'].astype(float) == 1]
+        if len(df_ni) > 0:
+            df_features = df_ni[normalize_features]
+            arr = df_features.to_numpy()
+            test_inp = []
+            for a in arr:
+                test_inp.append(a)
+            test_tensor = torch.tensor(test_inp).float()
+            scores = torch.squeeze(model.predict(test_tensor)).tolist()
+            _ = df_ni.copy()
+            _[output_column] = scores if isinstance(scores, list) else [scores]
+            new_df_list.append(_)
+        _dfi = df_i.copy()
+        _dfi[output_column] = 0.0
+
+        new_df_list.append(_dfi)
+        # pred.extend(scores) if isinstance(scores, list) else pred.append(scores)
     out_df = pd.concat(new_df_list)
-    out_df[output_column] = pred
     out_df[output_column].fillna(0.0, inplace=True)
 
     return out_df
