@@ -34,10 +34,10 @@ def add_arguments(parser):
                              'Default: 0.85')
     parser.add_argument('--custom-context-file', type=str, dest='custom_context_file', required=False,
                         help="The file is used to look up context values for matching.")
-    parser.add_argument('--string-separator', action = 'store', type=str, dest = 'string_separator', default = ",",
-                        help = "Any separators to separate from in the context substrings.")
+    parser.add_argument('--string-separator', action='store', type=str, dest='string_separator', default=",",
+                        help="Any separators to separate from in the context substrings.")
     parser.add_argument('--use-cpus', action='store', type=int,
-                        dest='use_cpus', required=False, default = cpu_count(),
+                        dest='use_cpus', required=False, default=cpu_count(),
                         help="Number of CPUs to be used for ParallelProcessor."
                              " If unspecified, number of CPUs in system will"
                              " be used.")
@@ -53,6 +53,9 @@ def add_arguments(parser):
                         help='This column is used to consider only few rows by setting to 1.')
     parser.add_argument('--save-property-scores-path', action='store',
                         dest='save_property_scores_path', default=None,
+                        help="The path where scores are to be stored. It can be directory or filename. ")
+    parser.add_argument('--use-saved-property-scores-path', action='store',
+                        dest='use_saved_property_scores_path', default=None,
                         help="The path where scores are to be stored. It can be directory or filename. ")
 
     # output
@@ -76,17 +79,19 @@ def run(**kwargs):
         ignore_column_name = kwargs.pop("ignore_column_name")
         pseudo_gt_column_name = kwargs.pop("pseudo_gt_column_name")
         save_property_scores = kwargs.pop("save_property_scores_path")
+        use_saved_property_scores = kwargs.pop("use_saved_property_scores_path")
         obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold,
                            string_separator, missing_property_replacement_factor, ignore_column_name,
                            pseudo_gt_column_name, output_column_name, context_file_path, custom_context_file_path,
-                           use_cpus = use_cpus, save_property_scores = save_property_scores)
+                           use_cpus=use_cpus, save_property_scores=save_property_scores,
+                           use_saved_property_scores=use_saved_property_scores)
         start = time.time()
         result_df = obj.process_data_by_column()
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
             "command": "context-match",
-            "time": end-start,
+            "time": end - start,
         })
         result_df.to_csv(sys.stdout, index=False)
     except:
