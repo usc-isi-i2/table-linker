@@ -38,7 +38,7 @@ class MatchContext(object):
         if pseudo_gt_column_name is not None and pseudo_gt_column_name in self.final_data.columns:
             self.final_data[pseudo_gt_column_name] = self.final_data[pseudo_gt_column_name].astype('float')
             self.final_data_subset = self.final_data[self.final_data[pseudo_gt_column_name] == 1]
-            self.to_result_data = self.final_data[self.final_data[pseudo_gt_column_name] == 0]
+            self.to_result_data = self.final_data[self.final_data[pseudo_gt_column_name] == -1]
             self.context_property_column = "pseudo_gt_context_property"
             self.context_similarity_column = "pseudo_gt_context_similarity"
             self.context_debug_column = "pseudo_gt_context_prop_sim_q_node"
