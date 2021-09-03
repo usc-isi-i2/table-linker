@@ -42,7 +42,7 @@ class PairwiseNetwork(nn.Module):
         return test_out
 
 
-def predict(features, output_column, ranking_model, min_max_scaler_path, file_path=None, df=None):
+def predict(features, output_column, ranking_model, min_max_scaler_path, ignore_column=None, file_path=None, df=None):
     if file_path is None and df is None:
         raise RequiredInputParameterMissingException(
             'One of the input parameters is required: {} or {}'.format("file_path", "df"))
@@ -68,12 +68,16 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
 
     grouped_obj = df.groupby(['column', 'row'])
     new_df_list = []
-    
+
     for cell in grouped_obj:
         cell[1][normalize_features] = scaler.transform(cell[1][normalize_features])
         df_copy = cell[1].copy()
-        df_ni = df_copy[df_copy['ignore_candidate'].astype(float) == 0]
-        df_i = df_copy[df_copy['ignore_candidate'].astype(float) == 1]
+        if ignore_column is not None:
+            df_ni = df_copy[df_copy[ignore_column].astype(float) == 0]
+            df_i = df_copy[df_copy[ignore_column].astype(float) == 1]
+        else:
+            df_ni = df_copy
+            df_i = None
         if len(df_ni) > 0:
             df_features = df_ni[normalize_features]
             arr = df_features.to_numpy()
@@ -82,14 +86,13 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
                 test_inp.append(a)
             test_tensor = torch.tensor(test_inp).float()
             scores = torch.squeeze(model.predict(test_tensor)).tolist()
-            _ = df_ni.copy()
-            _[output_column] = scores if isinstance(scores, list) else [scores]
-            new_df_list.append(_)
-        _dfi = df_i.copy()
-        _dfi[output_column] = 0.0
+            df_ni[output_column] = scores if isinstance(scores, list) else [scores]
+            new_df_list.append(df_ni)
 
-        new_df_list.append(_dfi)
-        # pred.extend(scores) if isinstance(scores, list) else pred.append(scores)
+        if df_i:
+            df_i[output_column] = 0.0
+            new_df_list.append(df_i)
+
     out_df = pd.concat(new_df_list)
     out_df[output_column].fillna(0.0, inplace=True)
 
