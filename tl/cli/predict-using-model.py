@@ -32,6 +32,9 @@ def add_arguments(parser):
                         help='path of global normalization factor that is computed during data generation for model '
                              'training')
 
+    parser.add_argument('--ignore-column', action='store', type=str, dest='ignore_column', required=False, default=None,
+                        help='')
+
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
@@ -46,6 +49,7 @@ def run(**kwargs):
                                           output_column=kwargs['output_column'],
                                           ranking_model=kwargs['ranking_model'],
                                           min_max_scaler_path=kwargs['min_max_scaler_path'],
+                                          ignore_column=kwargs['ignore_column'],
                                           df=df)
         end = time.time()
         logger = Logger(kwargs["logfile"])
