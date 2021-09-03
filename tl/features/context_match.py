@@ -9,7 +9,6 @@ from multiprocessing import cpu_count
 import itertools
 import collections
 import os
-from tl.features import context_property_match
 
 
 class MatchContext(object):
@@ -22,6 +21,7 @@ class MatchContext(object):
         self.final_property_similarity_list = []
         self.value_debug_list = []
         self.result_data = pd.DataFrame()
+        self.only_inverse = False
         self.inverse_context_dict = {}
         self.save_property_scores = save_property_scores
         self.use_saved_property_scores = use_saved_property_scores
@@ -416,7 +416,7 @@ class MatchContext(object):
                                                                               curr_property + "(" + str(
                                                                                   prop_value) + ")")
             final_value_debug_str_list.append("|".join(value_debug_str_list))
-            final_scores_list.append(sum_prop + current_actual_score)
+            final_scores_list.append(float(sum_prop) + float(current_actual_score))
         self.data['reverse_context_property_similarity_q_node'] = final_value_debug_str_list
         self.data['actual_' + self.output_column_name] = final_scores_list
         final_scores_list = [1 if score > 1 else score for score in final_scores_list]
@@ -577,7 +577,19 @@ class MatchContext(object):
             all_columns_properties_values_df = pd.concat([all_columns_properties_values_df,
                                                           self.properties_with_score_metric])
             self.result_data = pd.concat([self.result_data, self.data])
-        self.result_data = pd.concat([self.result_data, self.to_result_data])
+        if self.to_result_data is not None:
+            only_inverse_context_data = self.to_result_data.groupby(['column'])
+            for cell, group in only_inverse_context_data:
+                self.data = group.reset_index(drop=True)
+                if cell in major_column:
+
+                    labels_to_process_for_infer_context = {k: all_labels[k] for k in all_labels
+                                                           if k not in current_labels if k != ""}
+                    self.process_data_context(cell, labels_to_process_for_infer_context, None, only_inverse = True)
+
+                self.result_data = pd.concat([self.result_data, self.data])
+
+        # self.result_data = pd.concat([self.result_data, self.to_result_data])
         self.result_data = self.result_data.sort_values(by='index_1')
         self.result_data = self.result_data.reset_index(drop=True)
         self.result_data = self.result_data.drop(columns='index_1')
@@ -609,13 +621,14 @@ class MatchContext(object):
                 debug_value.append("/".join([property_l, q_node_matched_from, str(sim), q_node_value]))
             try:
 
-                index_val = self.result_data[self.result_data['kg_id'] == q_node_1].index.values[0]
-                self.result_data.iloc[
-                    index_val, self.result_data.columns.get_loc('reverse_context_similarity')] = similarity_list
-                self.result_data.iloc[
-                    index_val, self.result_data.columns.get_loc('reverse_context_property')] = property_list
-                self.result_data.iloc[index_val, self.result_data.columns.get_loc(
-                    'reverse_context_property_similarity_q_node')] = debug_value
+                index_values = self.result_data[self.result_data['kg_id'] == q_node_1].index.values
+                for index_val in index_values:
+                    self.result_data.iloc[
+                        index_val, self.result_data.columns.get_loc('reverse_context_similarity')] = similarity_list
+                    self.result_data.iloc[
+                        index_val, self.result_data.columns.get_loc('reverse_context_property')] = property_list
+                    self.result_data.iloc[index_val, self.result_data.columns.get_loc(
+                        'reverse_context_property_similarity_q_node')] = debug_value
             except IndexError:
                 continue
         grouped_object = self.result_data.groupby(['column'])
@@ -724,43 +737,42 @@ class MatchContext(object):
         sim_list = []
         matched_to_list = []
         # if there is empty context in the data file
-        try:
-            val_list = val.split("|")
-        except AttributeError:
-            val_list = ""
-
-        # In some of the files, there is no context for a particular q-node. Removed during context file generation.
         context_value = self.context.get(q_node, None)
-
         if context_value:
             all_property_list = re.split(r'(?<!\\)\|', context_value)
             if not self.is_custom:
                 all_property_list[0] = all_property_list[0][1:]
                 all_property_list[-1] = all_property_list[-1][:-1]
         else:
-            # return idx, "", "", "0.0"
             return idx, [], [], ["0.0"], []
         all_property_set = set(all_property_list)
-        # val_set = dict.fromkeys(val_list).keys()
-        val_positions = list(range(0, len(val_list)))
-        val_dict = dict(zip(val_positions, val_list))
-        for p in val_dict:
-            v = val_dict[p]
-            # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
-            if important_properties_per_observation is not None:
-                property_check = important_properties_per_observation.get(p+1, None)
-            else:
-                property_check = None
-            if self.remove_punctuation(v) != "":
-                property_v, sim, value_matched_to, q_node_matched_to = self.matches_to_check_for(v,
-                                                                                                 q_node,
-                                                                                                 all_property_set,
-                                                                                                 property_check)
-                prop_list.append(property_v)
-                sim_list.append(str(sim))
-                value_for_debug = "/".join([property_v, q_node_matched_to, str(sim), value_matched_to])
-                matched_to_list.append(value_for_debug)
-
+        if not self.only_inverse:
+            try:
+                val_list = val.split("|")
+            except AttributeError:
+                val_list = ""
+            val_positions = list(range(0, len(val_list)))
+            val_dict = dict(zip(val_positions, val_list))
+            for p in val_dict:
+                v = val_dict[p]
+                # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
+                if important_properties_per_observation is not None:
+                    property_check = important_properties_per_observation.get(p+1, None)
+                else:
+                    property_check = None
+                if self.remove_punctuation(v) != "":
+                    property_v, sim, value_matched_to, q_node_matched_to = self.matches_to_check_for(v,
+                                                                                                     q_node,
+                                                                                                     all_property_set,
+                                                                                                     property_check)
+                    prop_list.append(property_v)
+                    sim_list.append(str(sim))
+                    value_for_debug = "/".join([property_v, q_node_matched_to, str(sim), value_matched_to])
+                    matched_to_list.append(value_for_debug)
+        else:
+            matched_to_list = []
+            prop_list = []
+            sim_list = []
         results = self.match_for_inverse_context(q_node, all_property_set, labels_for_inverse_context, q_node_label)
         return idx, matched_to_list, prop_list, sim_list, results
 
@@ -784,17 +796,19 @@ class MatchContext(object):
                     current_element = {results[1]: results[2:]}
                     self.inverse_context_dict[results[0]] = current_element
 
-    def process_data_context(self, column_val, labels_to_process_for_inverse_context, current_saved_properties_df):
+    def process_data_context(self, column_val, labels_to_process_for_inverse_context, current_saved_properties_df,
+                             only_inverse = False):
         """
         Purpose: Processes the dataframe, reads each context_value separated by
         "|" and tries to match them to either
         date, string or quantity depending upon the structure of the context.
         """
+        self.only_inverse = only_inverse
         self.final_property_similarity_list = []
         cpus = self.use_cpus
         if current_saved_properties_df is not None:
             important_properties_per_observation = dict(
-                zip(current_saved_properties_df['position'], current_saved_properties_df['property']))
+                zip(current_saved_properties_df['position'].values, current_saved_properties_df['property'].values))
         else:
             important_properties_per_observation = None
         batch = self.data.shape[0] // cpus
