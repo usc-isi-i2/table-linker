@@ -748,7 +748,7 @@ class MatchContext(object):
             v = val_dict[p]
             # For quantity matching, we will give multiple tries to handle cases where numbers are separated with
             if important_properties_per_observation is not None:
-                property_check = important_properties_per_observation.get(p, None)
+                property_check = important_properties_per_observation.get(p+1, None)
             else:
                 property_check = None
             if self.remove_punctuation(v) != "":
