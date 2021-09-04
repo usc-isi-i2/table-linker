@@ -89,7 +89,7 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, ignore_
             df_ni[output_column] = scores if isinstance(scores, list) else [scores]
             new_df_list.append(df_ni)
 
-        if df_i:
+        if len(df_i) > 0:
             df_i[output_column] = 0.0
             new_df_list.append(df_i)
 
