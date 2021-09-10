@@ -110,12 +110,14 @@ class Search(object):
                                          properties,
                                          identifier_property):
         must = list()
-
+        search_value = f"{identifier_property.upper()}:{search_term}" \
+            if identifier_property is not None \
+            else search_term
         for property in properties:
             query_part = {
                 "term": {
                     "{}.keyword".format(property.lower()): {
-                        "value": f"{identifier_property.upper()}:{search_term}"
+                        "value": search_value
                     }
                 }
             }
