@@ -79,11 +79,63 @@ class Search(object):
             must.append(extra_musts)
 
         must_not = [
-            {"term": {
-                "descriptions.en.keyword_lower": {
-                    "value": "wikimedia disambiguation page"
+            {
+                "terms": {
+                    "descriptions.en.keyword_lower": [
+                        "wikimedia disambiguation page",
+                        "wikimedia category",
+                        "wikimedia kml file",
+                        "wikimedia list article",
+                        "wikimedia template",
+                        "wikimedia module",
+                        "wikinews article",
+                        "wikimedia template page"
+                    ]
                 }
-            }}
+            }
+        ]
+
+        return {
+            "query": {
+                "bool": {
+                    "must": must,
+                    "must_not": must_not
+                }
+            },
+            "size": size
+        }
+
+    def create_external_identifier_query(self, search_term,
+                                         size,
+                                         properties,
+                                         identifier_property):
+        must = list()
+
+        for property in properties:
+            query_part = {
+                "term": {
+                    "{}.keyword".format(property.lower()): {
+                        "value": f"{identifier_property.upper()}:{search_term}"
+                    }
+                }
+            }
+            must.append(query_part)
+
+        must_not = [
+            {
+                "terms": {
+                    "descriptions.en.keyword_lower": [
+                        "wikimedia disambiguation page",
+                        "wikimedia category",
+                        "wikimedia kml file",
+                        "wikimedia list article",
+                        "wikimedia template",
+                        "wikimedia module",
+                        "wikinews article",
+                        "wikimedia template page"
+                    ]
+                }
+            }
         ]
 
         return {
@@ -205,7 +257,8 @@ class Search(object):
                                auxiliary_fields: List[str] = None,
                                ignore_cache=False,
                                extra_musts: dict = None,
-                               search_term_original: str = None):
+                               search_term_original: str = None,
+                               identifier_property: str = None):
         candidate_dict = {}
         candidate_aux_dict = {}
 
@@ -224,6 +277,11 @@ class Search(object):
                                                                             ['all_labels_aliases'],
                                                                             extra_musts=extra_musts,
                                                                             search_term_original=search_term_original))
+                elif query_type == 'ex-id-match':
+                    hits = self.search_es(self.create_external_identifier_query(search_term,
+                                                                                size,
+                                                                                properties,
+                                                                                identifier_property))
 
                 elif query_type == 'phrase-match':
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
