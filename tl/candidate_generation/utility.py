@@ -16,7 +16,7 @@ class Utility(object):
     def create_candidates_df(self, df, column, size, properties, method,
                              lower_case=False, auxiliary_fields=None,
                              auxiliary_folder=None, auxiliary_file_prefix='',
-                             extra_musts: dict = None, max_threads=50):
+                             extra_musts: dict = None, max_threads=50, identifier_property=None):
         properties = [_.strip() for _ in properties.split(',')]
         candidates_format = list()
         df_columns = df.columns
@@ -30,7 +30,7 @@ class Utility(object):
                         self.create_candidates, rows, repeat(df_columns),
                         repeat(column), repeat(size), repeat(properties),
                         repeat(method), repeat(lower_case),
-                        repeat(auxiliary_fields), repeat(extra_musts)):
+                        repeat(auxiliary_fields), repeat(extra_musts), repeat(identifier_property)):
                     all_candidates_aux_dict = {**all_candidates_aux_dict,
                                                **candidates_aux_dict}
                     candidates_format.extend(_candidates_format)
@@ -72,7 +72,7 @@ class Utility(object):
 
     def create_candidates(self, row, relevant_columns, column, size,
                           properties, method, lower_case,
-                          auxiliary_fields=None, extra_musts=None):
+                          auxiliary_fields=None, extra_musts=None, identifier_property=None):
         candidates_format = list()
 
         _ = {}
@@ -89,7 +89,8 @@ class Utility(object):
             method, lower_case=lower_case,
             auxiliary_fields=auxiliary_fields,
             extra_musts=extra_musts,
-            search_term_original=search_term_original)
+            search_term_original=search_term_original,
+            identifier_property=identifier_property)
 
         if not candidate_dict:
             cf_dict = {}
