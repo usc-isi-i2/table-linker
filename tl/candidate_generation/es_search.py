@@ -105,6 +105,52 @@ class Search(object):
             "size": size
         }
 
+    def create_trigram_query(self, search_term,
+                             size,
+                             properties,
+                             extra_musts=None):
+        must = list()
+        search_term = search_term.lower()
+
+        for property in properties:
+            query_part = {
+                "query_string": {
+                    "fields": [properties],
+                    "query": search_term
+                }
+            }
+            must.append(query_part)
+
+        if extra_musts:
+            must.append(extra_musts)
+
+        must_not = [
+            {
+                "terms": {
+                    "descriptions.en.keyword_lower": [
+                        "wikimedia disambiguation page",
+                        "wikimedia category",
+                        "wikimedia kml file",
+                        "wikimedia list article",
+                        "wikimedia template",
+                        "wikimedia module",
+                        "wikinews article",
+                        "wikimedia template page"
+                    ]
+                }
+            }
+        ]
+
+        return {
+            "query": {
+                "bool": {
+                    "must": must,
+                    "must_not": must_not
+                }
+            },
+            "size": size
+        }
+
     def create_external_identifier_query(self, search_term,
                                          size,
                                          properties,
@@ -284,6 +330,11 @@ class Search(object):
                                                                                 size,
                                                                                 properties,
                                                                                 identifier_property))
+                elif query_type == 'trigram-match':
+                    hits = self.search_es(self.create_trigram_query(search_term,
+                                                                    size,
+                                                                    properties,
+                                                                    extra_musts=extra_musts))
 
                 elif query_type == 'phrase-match':
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
