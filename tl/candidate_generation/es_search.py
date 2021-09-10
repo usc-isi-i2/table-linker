@@ -112,14 +112,13 @@ class Search(object):
         must = list()
         search_term = search_term.lower()
 
-        for property in properties:
-            query_part = {
-                "query_string": {
-                    "fields": [properties],
-                    "query": search_term
-                }
+        query_part = {
+            "query_string": {
+                "fields": properties,
+                "query": search_term
             }
-            must.append(query_part)
+        }
+        must.append(query_part)
 
         if extra_musts:
             must.append(extra_musts)
