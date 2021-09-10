@@ -16,7 +16,7 @@ class Utility(object):
     def create_candidates_df(self, df, column, size, properties, method,
                              lower_case=False, auxiliary_fields=None,
                              auxiliary_folder=None, auxiliary_file_prefix='',
-                             extra_musts: dict = None, max_threads=50, identifier_property=None):
+                             extra_musts=None, max_threads=50, identifier_property=None):
         properties = [_.strip() for _ in properties.split(',')]
         candidates_format = list()
         df_columns = df.columns
