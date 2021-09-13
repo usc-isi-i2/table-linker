@@ -121,7 +121,7 @@ class Search(object):
         must.append(query_part)
 
         if extra_musts:
-            must.append(extra_musts)
+            must.extend(extra_musts) if isinstance(extra_musts, list) else must.append(extra_musts)
 
         must_not = [
             {
