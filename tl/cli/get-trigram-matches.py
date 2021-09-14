@@ -46,6 +46,10 @@ def add_arguments(parser):
     parser.add_argument('--isa', action='store', type=str, dest='isa', default=None,
                         help='matching candidates must be isntance of this qnode')
 
+    parser.add_argument('--pseudo-gt-column', action='store', type=str, dest='pgt_column', default=None,
+                        help='column which specifies whether a candidate is part of pseudo ground truth or not. '
+                             'if specified, the trigram search will be performed on all non pseudo ground truth cells')
+
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
 
 
@@ -71,7 +75,8 @@ def run(**kwargs):
                              es_index=kwargs['index'],
                              es_user=kwargs['user'],
                              es_pass=kwargs['password'],
-                             output_column_name=kwargs['output_column_name'])
+                             output_column_name=kwargs['output_column_name'],
+                             pgt_column=kwargs['pgt_column'])
         odf = tgm.get_trigram_matches(kwargs['column'],
                                       size=kwargs['size'], df=df,
                                       auxiliary_fields=auxiliary_fields,
