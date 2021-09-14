@@ -6,9 +6,16 @@ from tl.exceptions import RequiredInputParameterMissingException
 
 
 class TriGramMatches(object):
-    def __init__(self, es_url, es_index, es_user=None, es_pass=None, output_column_name: str = "retrieval_score"):
+    def __init__(self,
+                 es_url,
+                 es_index,
+                 es_user=None,
+                 es_pass=None,
+                 output_column_name: str = "retrieval_score",
+                 pgt_column: str = None):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
         self.utility = Utility(self.es, output_column_name)
+        self.pgt_column = pgt_column
 
     def get_trigram_matches(self,
                             column: str,
@@ -40,7 +47,11 @@ class TriGramMatches(object):
         if file_path:
             df = pd.read_csv(file_path, dtype=object)
 
-        df.fillna(value="", inplace=True)
+        df_filtered = df.fillna(value="")
+
+        if self.pgt_column:
+            # only run for cells which are not part of pseudo gt
+            df_filtered = df[df[self.pgt_column] == 0]
 
         extra_musts = list()
         if isa:
@@ -61,13 +72,16 @@ class TriGramMatches(object):
             })
 
         properties = "all_labels.*.trigram"
-
-        return self.utility.create_candidates_df(df,
-                                                 column,
-                                                 size,
-                                                 properties,
-                                                 'trigram-match',
-                                                 auxiliary_fields=auxiliary_fields,
-                                                 auxiliary_folder=auxiliary_folder,
-                                                 auxiliary_file_prefix='trigram_matches_',
-                                                 extra_musts=extra_musts)
+        result_df = self.utility.create_candidates_df(df_filtered,
+                                                      column,
+                                                      size,
+                                                      properties,
+                                                      'trigram-match',
+                                                      auxiliary_fields=auxiliary_fields,
+                                                      auxiliary_folder=auxiliary_folder,
+                                                      auxiliary_file_prefix='trigram_matches_',
+                                                      extra_musts=extra_musts)
+        if self.pgt_column:
+            df_pgt = df[df[self.pgt_column] == 1]
+            return pd.concat(df_pgt, result_df)
+        return result_df
