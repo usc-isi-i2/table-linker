@@ -4,10 +4,12 @@ from tl.exceptions import RequiredInputParameterMissingException
 
 EQUAL_SIM = 'equal_sim'
 BEST_STR_SIMILARITY = 'best_str_similarity'
+BEST_LABEL_STR_SIMILARITY = 'best_label_str_similarity'
 
 
 class PickHCCandidates(object):
-    def __init__(self, string_sim_cols: List[str],
+    def __init__(self, string_sim_label_cols: List[str],
+                 string_sim_alias_cols: List[str],
                  df: pd.DataFrame = None,
                  input_file: str = None,
                  desired_cell_factor: float = 0.25,
@@ -41,26 +43,40 @@ class PickHCCandidates(object):
             self.input_df = df
 
         assert all(
-            c in self.input_df.columns for c in string_sim_cols), f"one or more provided string similarity columns: " \
-                                                                  f"{','.join(string_sim_cols)} not found in the file"
+            c in self.input_df.columns for c in
+            string_sim_label_cols), f"one or more provided string similarity columns: " \
+                                    f"{','.join(string_sim_label_cols)} not found in the file"
+
+        assert all(
+            c in self.input_df.columns for c in
+            string_sim_alias_cols), f"one or more provided string similarity columns: " \
+                                    f"{','.join(string_sim_alias_cols)} not found in the file"
 
         self.desired_cell_factor = desired_cell_factor
         self.maximum_cells = maximum_cells
         self.minimum_cells = minimum_cells
-        self.string_sim_cols = string_sim_cols
+        self.string_sim_label_cols = string_sim_label_cols
+        self.string_sim_alias_cols = string_sim_alias_cols
         self.str_sim_threshold = str_sim_threshold
         self.str_sim_threshold_backup = str_sim_threshold_backup
         self.output_column_name = output_column_name
 
     def max_string_similarity(self):
         best_str_sims = []
+        best_str_label_sims = []
 
         data = self.input_df.copy()
 
-        for str_sim_tup in zip(*[data[c] for c in self.string_sim_cols]):
+        string_sim_cols = self.string_sim_alias_cols + self.string_sim_label_cols
+
+        for str_sim_tup in zip(*[data[c] for c in string_sim_cols]):
             best_str_sims.append(max(str_sim_tup))
 
+        for str_sim_tup in zip(*[data[c] for c in self.string_sim_label_cols]):
+            best_str_label_sims.append(max(str_sim_tup))
+
         data[BEST_STR_SIMILARITY] = best_str_sims
+        data[BEST_LABEL_STR_SIMILARITY] = best_str_label_sims
         self.input_df = data
 
     def calculate_equal_sim(self):
