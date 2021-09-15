@@ -73,8 +73,8 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, ignore_
         cell[1][normalize_features] = scaler.transform(cell[1][normalize_features])
         df_copy = cell[1].copy()
         if ignore_column is not None:
-            df_ni = df_copy[df_copy[ignore_column].astype(float) == 0]
-            df_i = df_copy[df_copy[ignore_column].astype(float) == 1]
+            df_ni = df_copy[df_copy[ignore_column].astype(float) == 0].copy()
+            df_i = df_copy[df_copy[ignore_column].astype(float) == 1].copy()
         else:
             df_ni = df_copy
             df_i = None
