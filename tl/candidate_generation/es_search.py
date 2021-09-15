@@ -360,7 +360,10 @@ class Search(object):
                             all_labels, all_aliases = self.get_all_labels_aliases(_source.get('labels', {}),
                                                                                   _source.get('aliases', {}),
                                                                                   _source.get('ascii_labels', []),
-                                                                                  _source.get('abbreviated_name', {}))
+                                                                                  _source.get('abbreviated_name', {}),
+                                                                                  _source.get('extra_aliases', []),
+                                                                                  _source.get('external_identifiers', []
+                                                                                              ))
 
                             if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
                                 description = "|".join(_source['descriptions']['en'])
@@ -429,7 +432,9 @@ class Search(object):
     def get_all_labels_aliases(labels: dict,
                                aliases: dict,
                                ascii_labels: List[str],
-                               abbreviated_name: dict) -> (List[str], List[str]):
+                               abbreviated_name: dict,
+                               extra_aliases: List[str],
+                               external_identifiers: List[str]) -> (List[str], List[str]):
         all_labels = set()
         all_aliases = set()
 
@@ -445,6 +450,12 @@ class Search(object):
 
         if ascii_labels:
             all_aliases.update(x for x in ascii_labels if x.strip())
+
+        if extra_aliases:
+            all_aliases.update(x for x in extra_aliases if x.strip())
+
+        if external_identifiers:
+            all_aliases.update(x for x in extra_aliases if x.strip())
 
         if abbreviated_name:
             for lang in abbreviated_name:
