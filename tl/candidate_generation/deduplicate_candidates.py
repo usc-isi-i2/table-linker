@@ -24,7 +24,7 @@ class DedupCandidates(object):
         df.fillna(value="", inplace=True)
 
         # remove all blank cells
-        df = df[df[column] != ""]
+        df = df[df[column] != ""].copy()
 
         df['is_exact_match'] = 0
         df.loc[df['method'] == 'exact-match', 'is_exact_match'] = 1
@@ -43,5 +43,5 @@ class DedupCandidates(object):
                 if len(fgdf) == 1:
                     out.append(fgdf)
                 else:
-                    out.append(gdf.iloc[0])
-        return pd.DataFrame(out)
+                    out.append(gdf.head(1))
+        return pd.concat(out).astype({'column': int, 'row': int})
