@@ -62,17 +62,29 @@ class Search(object):
         search_terms.append(search_term.strip())
         if search_term_original != search_term:
             search_terms.append(search_term_original)
+
+        highlight_fields = {
+            "fields": {}
+        }
+
         for property in properties:
-            query_part = {
-                "terms": {
-                    "{}.keyword_lower".format(property): [x.lower() for x in search_terms]
-                }
-            } if lower_case else \
-                {
-                    "term": {
-                        "{}.keyword".format(property): search_terms
+
+            if lower_case:
+                _field = "{}.keyword_lower".format(property)
+                query_part = {
+                    "terms": {
+                        _field: [x.lower() for x in search_terms]
                     }
                 }
+                highlight_fields['fields'][_field] = {}
+            else:
+                _field = "{}.keyword".format(property)
+                query_part = {
+                    "term": {
+                        _field: search_terms
+                    }
+                }
+                highlight_fields['fields'][_field] = {}
             must.append(query_part)
 
         if extra_musts:
@@ -102,6 +114,7 @@ class Search(object):
                     "must_not": must_not
                 }
             },
+            "highlight": highlight_fields,
             "size": size
         }
 
@@ -111,6 +124,12 @@ class Search(object):
                              extra_musts=None):
         must = list()
         search_term = search_term.lower()
+
+        highlight = {
+            'fields': {}
+        }
+        for p in properties:
+            highlight['fields'][p] = {}
 
         query_part = {
             "query_string": {
@@ -147,7 +166,8 @@ class Search(object):
                     "must_not": must_not
                 }
             },
-            "size": size
+            "size": size,
+            "highlight": highlight
         }
 
     def create_external_identifier_query(self, search_term,
@@ -242,6 +262,13 @@ class Search(object):
                                      extra_musts: dict = None):
         if lower_case:
             properties = [prop + '.keyword_lower' for prop in properties]
+
+        highlight = {
+            'fields': {}
+        }
+        for prop in properties:
+            _f = prop + '.keyword_lower' if lower_case else prop
+            highlight['fields'][_f] = {}
         query = {
             "query": {
                 "bool": {
@@ -277,7 +304,7 @@ class Search(object):
         }
         if extra_musts:
             query['query']['bool']['must'].append(extra_musts)
-
+        query['highlight'] = highlight
         return query
 
     def create_fuzzy_augmented_union(self, fuzzy_augmented_hits, fuzzy_augmented_keyword_lower_hits):
@@ -355,6 +382,7 @@ class Search(object):
                         if re.match(r'Q\d+', hit['_id']):
                             _source = hit['_source']
                             _id = hit['_id']
+                            highlight = hit.get('highlight', None)
                             description = ""
                             pagerank = 0.0
                             all_labels, all_aliases = self.get_all_labels_aliases(_source.get('labels', {}),
@@ -362,8 +390,16 @@ class Search(object):
                                                                                   _source.get('ascii_labels', []),
                                                                                   _source.get('abbreviated_name', {}),
                                                                                   _source.get('extra_aliases', []),
-                                                                                  _source.get('external_identifiers', []
-                                                                                              ))
+                                                                                  _source.get('external_identifiers',
+                                                                                              []),
+                                                                                  _source.get('redirect_text',
+                                                                                              {}),
+                                                                                  _source.get('wikipedia_anchor_text',
+                                                                                              {}),
+                                                                                  _source.get('wikitable_anchor_text',
+                                                                                              {}),
+                                                                                  highlight=highlight
+                                                                                  )
 
                             if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
                                 description = "|".join(_source['descriptions']['en'])
@@ -434,18 +470,29 @@ class Search(object):
                                ascii_labels: List[str],
                                abbreviated_name: dict,
                                extra_aliases: List[str],
-                               external_identifiers: List[str]) -> (List[str], List[str]):
+                               external_identifiers: List[str],
+                               redirect_text: dict,
+                               wikipedia_anchor_text: dict,
+                               wikitable_anchor_text: dict,
+                               highlight: dict = None) -> (List[str], List[str]):
         all_labels = set()
         all_aliases = set()
 
+        relevant_languages = set()
+        if highlight is not None:
+            for k in highlight:
+                relevant_languages.add(k.split(".")[1])
+        if len(relevant_languages) == 0:
+            relevant_languages = romance_languages
+
         if labels:
             for lang in labels:
-                if lang in romance_languages:
+                if lang in relevant_languages:
                     all_labels.update(x for x in labels[lang] if x.strip())
 
         if aliases:
             for lang in aliases:
-                if lang in romance_languages:
+                if lang in relevant_languages:
                     all_aliases.update(x for x in aliases[lang] if x.strip())
 
         if ascii_labels:
@@ -455,12 +502,27 @@ class Search(object):
             all_aliases.update(x for x in extra_aliases if x.strip())
 
         if external_identifiers:
-            all_aliases.update(x for x in extra_aliases if x.strip())
+            all_aliases.update(x for x in external_identifiers if x.strip())
 
         if abbreviated_name:
             for lang in abbreviated_name:
-                if lang in romance_languages:
+                if lang in relevant_languages:
                     all_aliases.update(x for x in abbreviated_name[lang] if x.strip())
+
+        if redirect_text:
+            for lang in redirect_text:
+                if lang in relevant_languages:
+                    all_aliases.update(x for x in redirect_text[lang] if x.strip())
+
+        if wikipedia_anchor_text:
+            for lang in wikipedia_anchor_text:
+                if lang in relevant_languages:
+                    all_aliases.update(x for x in wikipedia_anchor_text[lang] if x.strip())
+
+        if wikitable_anchor_text:
+            for lang in wikitable_anchor_text:
+                if lang in relevant_languages:
+                    all_aliases.update(x for x in wikitable_anchor_text[lang] if x.strip())
 
         return list(all_labels), list(all_aliases)
 
@@ -493,5 +555,11 @@ class Search(object):
             ngrams_query['query']['function_score']['query']['bool']['must'].append(extra_musts)
 
         ngrams_query['size'] = size
+        ngrams_query['highlight'] = {
+            'fields': {
+                search_field: {},
+                exact_match_field: {}
+            }
+        }
 
         return ngrams_query
