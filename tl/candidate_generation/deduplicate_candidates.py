@@ -26,22 +26,26 @@ class DedupCandidates(object):
         # remove all blank cells
         df = df[df[column] != ""].copy()
 
-        df['is_exact_match'] = 0
-        df.loc[df['method'] == 'exact-match', 'is_exact_match'] = 1
+        if len(df) > 0:
 
-        grouped = df.groupby(by=['column', 'row', 'kg_id'])
+            df['is_exact_match'] = 0
+            df.loc[df['method'] == 'exact-match', 'is_exact_match'] = 1
 
-        out = []
+            grouped = df.groupby(by=['column', 'row', 'kg_id'])
 
-        for key, gdf in grouped:
-            if len(gdf) == 1:
-                gdf['num_occurences'] = 1
-                out.append(gdf)
-            else:
-                gdf['num_occurences'] = len(gdf)
-                fgdf = gdf[gdf['method'] == 'exact-match']
-                if len(fgdf) == 1:
-                    out.append(fgdf)
+            out = []
+
+            for key, gdf in grouped:
+                if len(gdf) == 1:
+                    gdf['num_occurences'] = 1
+                    out.append(gdf)
                 else:
-                    out.append(gdf.head(1))
-        return pd.concat(out).astype({'column': int, 'row': int})
+                    gdf['num_occurences'] = len(gdf)
+                    fgdf = gdf[gdf['method'] == 'exact-match']
+                    if len(fgdf) == 1:
+                        out.append(fgdf)
+                    else:
+                        out.append(gdf.head(1))
+            return pd.concat(out).astype({'column': int, 'row': int})
+        else:
+            return pd.DataFrame()
