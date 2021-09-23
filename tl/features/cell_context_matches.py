@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 from typing import List, Tuple
 
@@ -305,7 +306,7 @@ class TableContextMatches:
                 for prop_val in prop_val_list:
                     _type = prop_val[0]
 
-                    values, property, item = ElasticsearchManager.parse_prop_val(qnode, prop_val)
+                    values, property, item = TableContextMatches.parse_prop_val(qnode, prop_val)
 
                     if item is None:
                         key = property
