@@ -1,11 +1,13 @@
 import re
-
-import math
+import json
 import pandas as pd
 from typing import List, Tuple
+from tl.exceptions import TLException
 
 ccm_columns = ['type', 'score', 'property', 'row',
                'col1', 'col1_item', 'col1_string', 'col2', 'col2_string', 'col2_item']
+
+valid_property_types = {'i', 'd', 'q', 'e'}
 
 
 class CellContextMatches:
@@ -138,7 +140,8 @@ class TableContextMatches:
                  input_df: pd.DataFrame = None,
                  input_path: str = None,
                  context_matches_path=None,
-                 label_column: str = 'label_clean'
+                 label_column: str = 'label_clean',
+                 parsed_context: bool = True
                  ):
         """
         Maybe better to have a set of columns
@@ -152,7 +155,7 @@ class TableContextMatches:
         """
 
         if context_path is not None:
-            context_dict = self.read_context_file(context_path)
+            context_dict = self.read_context_file(context_path, parsed_context=parsed_context)
 
         self.ccm_dict = {}
 
@@ -334,6 +337,10 @@ class TableContextMatches:
 
                 for prop_val in prop_val_list:
                     _type = prop_val[0]
+                    if _type not in valid_property_types:
+                        raise TLException(
+                            f"Invalid property data type, prop_val_string: {prop_val}, invalid type: {_type}. Should be "
+                            f"one of the {list(valid_property_types)}")
 
                     values, property, item = TableContextMatches.parse_prop_val(qnode, prop_val)
 
@@ -398,14 +405,14 @@ class TableContextMatches:
         property = rem_vals[0]
 
         if not property.startswith('P'):
-            raise Exception(
+            raise TLException(
                 f"Unexpected format of the context string, Qnode: {qnode}, context string: {property_value_string}. "
                 f"Property does not starts with 'P'")
 
         if len(rem_vals) == 2:
             item = rem_vals[1]
             if not item.startswith('Q'):
-                raise Exception(
+                raise TLException(
                     f"Unexpected format of the context string, Qnode: {qnode}, context string: {property_value_string}"
                     f". Item does not start with 'Q'")
             return string_val, rem_vals[0], item
@@ -414,11 +421,11 @@ class TableContextMatches:
             return string_val, property, None
 
         if len(rem_vals) > 2:
-            raise Exception(
+            raise TLException(
                 f"Unexpected format of the context string, Qnode: {qnode}, context string: {property_value_string}")
 
     @staticmethod
-    def read_context_file(context_file: str) -> dict:
+    def read_context_file(context_file: str, parsed_context: bool = True) -> dict:
         f = open(context_file)
         context_dict = {}
         for line in f:
@@ -427,7 +434,9 @@ class TableContextMatches:
             vals = line.split("\t")
             qnode = vals[0]
             context = vals[1]
-
-            context_dict.update(TableContextMatches.parse_context_string(qnode, context))
+            if parsed_context:
+                context_dict[qnode] = json.loads(context)
+            else:
+                context_dict.update(TableContextMatches.parse_context_string(qnode, context))
 
         return context_dict
