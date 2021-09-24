@@ -1,4 +1,6 @@
 import re
+
+import math
 import pandas as pd
 from typing import List, Tuple
 
@@ -22,7 +24,9 @@ class CellContextMatches:
         self.row = row
         self.col = col
 
-        self.ccm = pd.DataFrame(columns=ccm_columns)
+        # self.ccm = pd.DataFrame(columns=ccm_columns)
+        self.ccm = dict()
+        self.col1_items = set()
 
     def add_triple(self,
                    row: str,
@@ -50,25 +54,29 @@ class CellContextMatches:
             'col2_string': col2_string,
             'col2_item': col2_item
         }
-        self.ccm = pd.concat([self.ccm, pd.DataFrame(triple)], ignore_index=True)
+        if col2 not in self.ccm:
+            self.ccm[col2] = list()
+        # self.ccm = pd.concat([self.ccm, pd.DataFrame(triple)], ignore_index=True)
+        # self.ccm = pd.concat([self.ccm, pd.DataFrame(triple, index=[i])])
+        self.ccm[col2].append(triple)
+        self.col1_items.add(col1_item)
 
     def has_candidate(self, col1_item: str):
         """
         Returns true of the CellContextMatches contains information for a given q_node.
         """
-        return len(self.ccm[self.ccm['col1_item'] == col1_item]) > 0
+        return col1_item in self.col1_items
 
     def get_triples(self):
         """
         Return a list of all the triples
         """
-        return self.ccm.to_dict('records')  # returns a list of dicts
+        out = []
+        for k in self.ccm:
+            triples = self.ccm[k]
+            out.extend(triples)
 
-    def get_triples_df(self):
-        """
-        Return a list of all the triples
-        """
-        return self.ccm
+        return out
 
     def get_triples_to_column(self, col2: str):
         """
@@ -76,7 +84,7 @@ class CellContextMatches:
         """
         if self.col == col2:
             raise Exception(f'Cannot find context for a column with itself. col1: {self.col}, col2: {col2}')
-        return self.ccm[self.ccm.col2 == col2].to_dict('records')
+        return self.ccm.get(col2, [])
 
     def get_properties(self, col2: str) -> List[Tuple[str, str, float, int]]:
         """
@@ -92,16 +100,29 @@ class CellContextMatches:
         """
         if self.col == col2:
             raise Exception(f'Cannot find context for a column with itself. col1: {self.col}, col2: {col2}')
-        df = self.ccm[self.ccm.col2 == col2].copy()
-        grouped_df = df.groupby(by=['property', 'type'])
 
         result = []
-        for key, pdf in grouped_df:
-            property = key[0]
-            type = key[1]
-            best_score = pdf['score'].max()
-            count_appears = len(pdf)
-            result.append((property, type, best_score, count_appears))
+        col2_records = self.ccm.get(col2, [])
+        prop_count = {}
+        for record in col2_records:
+            property = record['property']
+            score = record['score']
+            if property not in prop_count:
+                prop_count[property] = {
+                    'count': 0,
+                    'max_score': -1.0,
+                    'type': record['type']
+                }
+            prop_count[property]['count'] += 1
+            if score > prop_count[property]['max_score']:
+                prop_count[property]['max_score'] = score
+
+        for property in prop_count:
+            result.append((property,
+                           prop_count[property]['type'],
+                           prop_count[property]['max_score'],
+                           prop_count[property]['count']))
+
         return result
 
 
@@ -116,6 +137,7 @@ class TableContextMatches:
                  context_dict: dict = None,
                  input_df: pd.DataFrame = None,
                  input_path: str = None,
+                 context_matches_path=None,
                  label_column: str = 'label_clean'
                  ):
         """
@@ -138,11 +160,16 @@ class TableContextMatches:
             self.initialize(input_df, context_dict, label_column)
 
         if input_path is not None:
-            self.load_from_disk(input_path)
+            input_df = pd.read_csv(input_path)
+            self.initialize(input_df, context_dict, label_column)
+
+        if context_matches_path is not None:
+            self.load_from_disk(context_matches_path)
 
     def initialize(self, input_df, context_dict, label_column):
         columns = set(input_df['column'].unique())
-
+        input_df['kg_labels'].fillna("", inplace=True)
+        input_df['kg_aliases'].fillna("", inplace=True)
         row_col_label_dict = {}
 
         for row, col, label in zip(input_df['row'], input_df['column'], input_df[label_column]):
@@ -193,7 +220,7 @@ class TableContextMatches:
             return result
 
         for prop_val_dict in kg_id_context:
-            score, best_str_match = self.computes_string_similarity(prop_val_dict['values'], col2_string)
+            score, best_str_match = self.computes_string_similarity(prop_val_dict['v'], col2_string)
             result.append({
                 "type": prop_val_dict['t'],
                 "col2_string": best_str_match,
@@ -257,8 +284,10 @@ class TableContextMatches:
 
         out = list()
         for key in self.ccm_dict:
-            out.append(self.ccm_dict[key].get_triples_df())
-        pd.concat(out).to_csv(output_path, index=False)
+            triples = self.ccm_dict[key].get_triples()
+            out.extend(triples)
+
+        pd.DataFrame(out).to_csv(output_path, index=False)
 
     def load_from_disk(self, path):
         """
@@ -341,7 +370,14 @@ class TableContextMatches:
         line_started = False
         string_value = list()
 
-        property_value_string = property_value_string[1:]
+        # property_value_string = property_value_string[1:]
+
+        if property_value_string.startswith('"'):
+            property_value_string = property_value_string[2:]
+
+        else:
+            property_value_string = property_value_string[1:]
+        property_value_string = property_value_string.replace('""', '"')
 
         for i, c in enumerate(property_value_string):
             if i == 0 and c == '"':  # start of the string value:
@@ -386,9 +422,12 @@ class TableContextMatches:
         f = open(context_file)
         context_dict = {}
         for line in f:
+            if 'qnode' in line:  # first line
+                continue
             vals = line.split("\t")
             qnode = vals[0]
-            context = vals[2]
+            context = vals[1]
 
             context_dict.update(TableContextMatches.parse_context_string(qnode, context))
+
         return context_dict
