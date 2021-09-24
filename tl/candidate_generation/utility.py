@@ -1,4 +1,7 @@
+import json
 import pandas as pd
+import sys
+
 from tl.file_formats_validator import FFV
 from tl.exceptions import UnsupportTypeError
 from concurrent.futures import ThreadPoolExecutor
@@ -136,15 +139,26 @@ class Utility(object):
                 for aux_field in auxiliary_fields:
                     if aux_field in qnode_dict:
                         _val = qnode_dict[aux_field]
-                        if isinstance(_val, list):
-                            _val = ','.join([str(x) for x in _val])
-                        _[aux_field].append({
-                            'qnode': qnode,
-                            aux_field: _val
-                        })
+                        if aux_field == 'context':
+                            _[aux_field].append({
+                                qnode: _val
+                            })
+                        else:
+                            if isinstance(_val, list):
+                                _val = ','.join([str(x) for x in _val])
+                            _[aux_field].append({
+                                'qnode': qnode,
+                                aux_field: _val
+                            })
 
             for key in _:
-                df = pd.DataFrame(_[key])
-                if len(df) > 0:
-                    df.to_csv(f"{auxiliary_folder}/{prefix}{key}.tsv",
-                              sep='\t', index=False)
+                if key == 'context':
+                    json_lines = _[key]
+                    output_f = open(f"{auxiliary_folder}/{prefix}{key}.jl", 'w')
+                    for jl in json_lines:
+                        output_f.write(json.dumps(jl))
+                        output_f.write('\n')
+                else:
+                    df = pd.DataFrame(_[key])
+                    if len(df) > 0:
+                        df.to_csv(f"{auxiliary_folder}/{prefix}{key}.tsv", sep='\t', index=False)
