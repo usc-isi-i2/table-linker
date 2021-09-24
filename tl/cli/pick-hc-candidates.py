@@ -24,9 +24,12 @@ def add_arguments(parser):
     parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column_name',
                         default="ignore_candidate",
                         help='the output column name where the value {0/1} will be stored.Default is ignore_candidate')
-    parser.add_argument('-s', '--string-similarity-columns', type=str,
-                        action='store', dest='str_sim_columns', required=True,
-                        help="a comma separated list of columns with string similarity features")
+    parser.add_argument('--string-similarity-label-columns', type=str,
+                        action='store', dest='str_sim_label_columns', required=True,
+                        help="a comma separated list of columns with label string similarity features")
+    parser.add_argument('--string-similarity-alias-columns', type=str,
+                        action='store', dest='str_sim_alias_columns', required=True,
+                        help="a comma separated list of columns with alias string similarity features")
     parser.add_argument('--maximum-cells', action='store', dest='max_cells', type=int, required=False, default=100,
                         help="maximum number of cells that can set to not ignore. Default 100")
     parser.add_argument('--minimum-cells', action='store', dest='min_cells', type=int, required=False, default=10,
@@ -49,7 +52,8 @@ def run(**kwargs):
     import time
     try:
         start = time.time()
-        phcc = PickHCCandidates(string_sim_cols=kwargs['str_sim_columns'].split(","),
+        phcc = PickHCCandidates(string_sim_label_cols=kwargs['str_sim_label_columns'].split(","),
+                                string_sim_alias_cols=kwargs['str_sim_alias_columns'].split(","),
                                 input_file=kwargs['input_file'],
                                 desired_cell_factor=kwargs['desired_cell_factor'],
                                 maximum_cells=kwargs['max_cells'],

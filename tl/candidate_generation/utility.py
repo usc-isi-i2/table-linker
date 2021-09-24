@@ -1,4 +1,7 @@
+import json
 import pandas as pd
+import sys
+
 from tl.file_formats_validator import FFV
 from tl.exceptions import UnsupportTypeError
 from concurrent.futures import ThreadPoolExecutor
@@ -16,7 +19,7 @@ class Utility(object):
     def create_candidates_df(self, df, column, size, properties, method,
                              lower_case=False, auxiliary_fields=None,
                              auxiliary_folder=None, auxiliary_file_prefix='',
-                             extra_musts: dict = None, max_threads=50):
+                             extra_musts=None, max_threads=50, identifier_property=None):
         properties = [_.strip() for _ in properties.split(',')]
         candidates_format = list()
         df_columns = df.columns
@@ -30,7 +33,7 @@ class Utility(object):
                         self.create_candidates, rows, repeat(df_columns),
                         repeat(column), repeat(size), repeat(properties),
                         repeat(method), repeat(lower_case),
-                        repeat(auxiliary_fields), repeat(extra_musts)):
+                        repeat(auxiliary_fields), repeat(extra_musts), repeat(identifier_property)):
                     all_candidates_aux_dict = {**all_candidates_aux_dict,
                                                **candidates_aux_dict}
                     candidates_format.extend(_candidates_format)
@@ -72,7 +75,7 @@ class Utility(object):
 
     def create_candidates(self, row, relevant_columns, column, size,
                           properties, method, lower_case,
-                          auxiliary_fields=None, extra_musts=None):
+                          auxiliary_fields=None, extra_musts=None, identifier_property=None):
         candidates_format = list()
 
         _ = {}
@@ -89,7 +92,8 @@ class Utility(object):
             method, lower_case=lower_case,
             auxiliary_fields=auxiliary_fields,
             extra_musts=extra_musts,
-            search_term_original=search_term_original)
+            search_term_original=search_term_original,
+            identifier_property=identifier_property)
 
         if not candidate_dict:
             cf_dict = {}
@@ -135,15 +139,26 @@ class Utility(object):
                 for aux_field in auxiliary_fields:
                     if aux_field in qnode_dict:
                         _val = qnode_dict[aux_field]
-                        if isinstance(_val, list):
-                            _val = ','.join([str(x) for x in _val])
-                        _[aux_field].append({
-                            'qnode': qnode,
-                            aux_field: _val
-                        })
+                        if aux_field == 'context':
+                            _[aux_field].append({
+                                qnode: _val
+                            })
+                        else:
+                            if isinstance(_val, list):
+                                _val = ','.join([str(x) for x in _val])
+                            _[aux_field].append({
+                                'qnode': qnode,
+                                aux_field: _val
+                            })
 
             for key in _:
-                df = pd.DataFrame(_[key])
-                if len(df) > 0:
-                    df.to_csv(f"{auxiliary_folder}/{prefix}{key}.tsv",
-                              sep='\t', index=False)
+                if key == 'context':
+                    json_lines = _[key]
+                    output_f = open(f"{auxiliary_folder}/{prefix}{key}.jl", 'w')
+                    for jl in json_lines:
+                        output_f.write(json.dumps(jl))
+                        output_f.write('\n')
+                else:
+                    df = pd.DataFrame(_[key])
+                    if len(df) > 0:
+                        df.to_csv(f"{auxiliary_folder}/{prefix}{key}.tsv", sep='\t', index=False)

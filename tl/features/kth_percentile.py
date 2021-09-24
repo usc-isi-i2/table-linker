@@ -55,10 +55,10 @@ class KthPercentile(object):
                                                " or a string ∈ {mean, median}"
                     _k_percentile = float(_gdf[column].quantile(_kth))
 
-                if int(_k_percentile) == 0:
-                    gdf.loc[gdf[column] > 0, self.output_column] = 1
+                if float(_k_percentile) == 0.0:
+                    gdf.loc[gdf[column].astype(float) > 0.0, self.output_column] = 1
                 else:
-                    gdf.loc[gdf[column] >= _k_percentile, self.output_column] = 1
+                    gdf.loc[gdf.index[gdf[column].astype(float) >= _k_percentile], self.output_column] = 1
                 output.append(self.add_more_cells(gdf, column, c))
 
         return pd.concat(output)

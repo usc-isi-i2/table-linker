@@ -169,4 +169,4 @@ def remove_text_inside_brackets(text, brackets="()[]"):
         else:  # character is not a [balanced] bracket
             if not any(count):  # outside brackets
                 saved_chars.append(character)
-    return ''.join(saved_chars)
+    return ''.join(saved_chars).strip()

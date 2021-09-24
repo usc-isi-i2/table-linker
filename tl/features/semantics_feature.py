@@ -128,6 +128,7 @@ class SemanticsFeature(object):
                     alpha_j[column].get(cc, 0.0) *
                     hc_classes_idf[column].get(cc, 0.0)
                     for cc in self.feature_dict.get(_qnode, [])])
+
                 for cc in self.feature_dict.get(_qnode, []):
                     top_5_features_candidate[cc] = hc_classes_idf[column].get(cc, 0.0)
 
@@ -165,22 +166,33 @@ class SemanticsFeature(object):
                     classes_count[column][row][kg_id][cc] = 0
                 classes_count[column][row][kg_id][cc] += 1
 
+        cell_class_count = {}
         for c in classes_count:
             c_d = classes_count[c]
             candidate_x_i[c] = {}
+            if c not in cell_class_count:
+                cell_class_count[c] = {}
             for r in c_d:
+                if r not in cell_class_count[c]:
+                    cell_class_count[c][r] = {}
                 candidate_x_i[c][r] = {}
                 r_d = c_d[r]
-                class_count = {}
                 for candidate in r_d:
                     candidate_x_i[c][r][candidate] = {}
                     classes = r_d[candidate]
                     for classs in classes:
-                        if classs not in class_count:
-                            class_count[classs] = 0
-                        class_count[classs] += 1
+                        if classs not in cell_class_count[c][r]:
+                            cell_class_count[c][r][classs] = 0
+                        cell_class_count[c][r][classs] += 1
+
+        for c in classes_count:
+            c_d = classes_count[c]
+            for r in c_d:
+                r_d = c_d[r]
+                for candidate in r_d:
+                    classes = r_d[candidate]
                     for classs in classes:
-                        candidate_x_i[c][r][candidate][classs] = 1 / class_count[classs]
+                        candidate_x_i[c][r][candidate][classs] = 1 / cell_class_count[c][r][classs]
 
         for c in candidate_x_i:
             c_d = candidate_x_i[c]
