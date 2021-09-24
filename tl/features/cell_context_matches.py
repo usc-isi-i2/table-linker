@@ -58,8 +58,7 @@ class CellContextMatches:
         }
         if col2 not in self.ccm:
             self.ccm[col2] = list()
-        # self.ccm = pd.concat([self.ccm, pd.DataFrame(triple)], ignore_index=True)
-        # self.ccm = pd.concat([self.ccm, pd.DataFrame(triple, index=[i])])
+
         self.ccm[col2].append(triple)
         self.col1_items.add(col1_item)
 
@@ -429,14 +428,14 @@ class TableContextMatches:
         f = open(context_file)
         context_dict = {}
         for line in f:
-            if 'qnode' in line:  # first line
-                continue
-            vals = line.split("\t")
-            qnode = vals[0]
-            context = vals[1]
             if parsed_context:
-                context_dict[qnode] = json.loads(context)
+                context_dict.update(json.loads(line.strip()))
             else:
+                if 'qnode' in line:  # first line
+                    continue
+                vals = line.split("\t")
+                qnode = vals[0]
+                context = vals[1]
                 context_dict.update(TableContextMatches.parse_context_string(qnode, context))
 
         return context_dict
