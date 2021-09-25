@@ -190,12 +190,10 @@ class TableContextMatches:
             kg_id_context = context_dict.get(kg_id, None)
             kg_labels = []
 
-            if not (isinstance(kg_id_label_str, float)):
-                if kg_id_label_str and kg_id_label_str.strip() != "":
-                    kg_labels.append(kg_id_label_str.strip())
-            if not (isinstance(kg_id_alias_str, float)):
-                if kg_id_alias_str and kg_id_alias_str.strip() != "":
-                    kg_labels.append(kg_id_alias_str.strip())
+            if kg_id_label_str and kg_id_label_str.strip() != "":
+                kg_labels.append(kg_id_label_str.strip())
+            if kg_id_alias_str and kg_id_alias_str.strip() != "":
+                kg_labels.append(kg_id_alias_str.strip())
             kg_label_str = "|".join(kg_labels)
 
             ccm_key = f"{row}_{col}"
