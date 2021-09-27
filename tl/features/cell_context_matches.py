@@ -4,6 +4,7 @@ import pandas as pd
 from typing import List, Tuple
 from tl.exceptions import TLException
 from rltk import similarity
+import time
 
 ccm_columns = ['type', 'score', 'property', 'row',
                'col1', 'col1_item', 'col1_string', 'col2', 'col2_string', 'col2_item']
@@ -88,7 +89,7 @@ class CellContextMatches:
             raise Exception(f'Cannot find context for a column with itself. col1: {self.col}, col2: {col2}')
         return self.ccm.get(col2, [])
 
-    def get_properties(self, col2: str, q_node_dependent = False, q_node = None) -> List[Tuple[str, str, float, int]]:
+    def get_properties(self, col2: str, q_node: str =None) -> List[Tuple[str, str, float, int]]:
         """
         list of tuples (property, type, best score, count_appears)
         -> [("P175", "i", 0.95, 4), ...]
@@ -105,10 +106,6 @@ class CellContextMatches:
         col2_records = self.ccm.get(col2, [])
         if q_node:
             col2_records = [s for s in col2_records if s.get('col1_item') == q_node]
-        f_col2_records = {}
-        if q_node_dependent:
-            # For a particular q_node get the property with max_score
-            pass
         prop_count = {}
         for record in col2_records:
             property = record['property']
@@ -216,12 +213,18 @@ class TableContextMatches:
                                            property=context_result['property'],
                                            score=context_result['score']
                                            )
-        context_scores, properties, similarities = self.compute_context_scores(input_df, n_context_columns, row_col_label_dict)
-        print(context_scores)
+        context_scores, properties, similarities = self.compute_context_scores(input_df, n_context_columns,
+                                                                               row_col_label_dict)
+        input_df['context_scores'] = context_scores
+        input_df['context_properties'] = properties
+        input_df['context_similarity'] = similarities
 
-    def compute_context_scores(self, input_df, n_context_columns, row_col_label_dict):
+    def compute_context_scores(self, input_df: pd.DataFrame, n_context_columns: int,
+                               row_col_label_dict: dict) -> (List[int], List[str], List[int]):
         num_rows = input_df['row'].nunique()
-        property_val_df, important_properties = self.compute_property_scores(row_col_label_dict, n_context_columns, num_rows)
+        property_val_df, important_properties = self.compute_property_scores(row_col_label_dict, n_context_columns,
+                                                                             num_rows)
+
         context_score_list = []
         context_property_list = []
         context_similarity_list = []
@@ -233,14 +236,16 @@ class TableContextMatches:
             r_c = f"{row}_{col}"
             for cols in range(n_context_columns):
                 if int(cols) != int(col):
-                    returned_properties = self.ccm_dict[r_c].get_properties(cols, q_node_dependent=True, q_node=q_node)
-                    if returned_properties == []:
+                    returned_properties = self.ccm_dict[r_c].get_properties(cols, q_node=q_node)
+                    if not returned_properties:
                         continue
                     (property_, type, best_score, _) = returned_properties[0]
-                    property_value = property_val_df.loc[(property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (property_val_df['col2'] == cols), 'property_score'].values[0]
+                    property_value = property_val_df.loc[
+                        (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
+                                    property_val_df['col2'] == cols), 'property_score'].values[0]
                     property_value = round(property_value, 4)
                     context_score = context_score + (property_value * best_score)
-                    property_matched.append(property_ + str(property_value))
+                    property_matched.append(property_ + "(" + str(property_value) + ")")
                     similarity_matched.append(best_score)
             context_score_list.append(context_score)
             context_similarity_list.append(similarity_matched)
@@ -249,68 +254,49 @@ class TableContextMatches:
         # input_df['context_similarity'] = context_similarity_list
         return context_score_list, context_property_list, context_similarity_list
 
-    def compute_property_scores(self, row_col_label_dict, n_cntxt_columns, num_rows):
+    def compute_property_scores(self, row_col_label_dict: dict, n_context_columns: int, num_rows: int) -> (
+    pd.DataFrame, pd.DataFrame):
         # To calculate property score
         properties_df = pd.DataFrame()
         for r_c in row_col_label_dict:
             row_col = r_c.split("_")
             row_1 = row_col[0]
             col_1 = row_col[1]
-            for cols in range(n_cntxt_columns):
+            for cols in range(n_context_columns):
                 if int(cols) != int(col_1):
-                    m = self.ccm_dict[r_c].get_properties(cols, q_node_dependent=True)
-                    int_prop = pd.DataFrame(m, columns = ["property_", "type", "best_score", "n_occurences"])
+                    m = self.ccm_dict[r_c].get_properties(cols)
+                    int_prop = pd.DataFrame(m, columns=["property_", "type", "best_score", "n_occurences"])
                     int_prop['row'] = int(row_1)
                     int_prop['column'] = int(col_1)
                     int_prop['col2'] = int(cols)
                     int_prop['inv_occ'] = 1 / (int_prop['n_occurences'])
                     properties_df = pd.concat([properties_df, int_prop])
-        property_value_list= []
-        grouped_obj = properties_df.groupby(['column','col2', 'property_'])
+        property_value_list = []
+        grouped_obj = properties_df.groupby(['column', 'col2', 'property_'])
         for cell, group in grouped_obj:
-            property_score = (group['inv_occ'].sum(axis = 0))/num_rows
+            property_score = (group['inv_occ'].sum(axis=0)) / num_rows
             property_value_list.append([cell[2], cell[0], cell[1], property_score])
-        property_value_df = pd.DataFrame(property_value_list, columns = ['property_', 'column', 'col2', 'property_score'])
+        property_value_df = pd.DataFrame(property_value_list, columns=['property_', 'column', 'col2', 'property_score'])
         property_value_df = property_value_df.sort_values(by=['column', 'property_score'], ascending=[True, False])
-        most_important_property_dict = property_value_df.drop_duplicates(['column', 'col2'], keep = 'first')
+        most_important_property_dict = property_value_df.drop_duplicates(['column', 'col2'], keep='first')
         return property_value_df, most_important_property_dict
 
     def compute_context_similarity(self,
                                    kg_id_context: List[dict],
-                                   col2_string: str) -> List[dict]:
+                                   col2_string: str, string_separator = ",") -> List[dict]:
         result = []
 
         if col2_string is None:
             return result
-        # Determining the type of col2 string
-        new_v = col2_string.replace('"', '')
-        to_match_1 = new_v.replace(",", "")
-        to_match_2 = to_match_1.replace(".", "0")
-        num_v = None
-        if " " in to_match_2:
-            split_v = to_match_1.split(" ")
-            for s in split_v:
-                if not s == ".":
-                    new_s = s.replace(".", "0")
-                    if new_s.isnumeric():
-                        num_v = s
 
-        if (to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None) and (to_match_1.count(".") <= 1):
-            col2_string_datatype = ["d", "q"]
-            if to_match_1.isnumeric() or to_match_2.isnumeric():
-                col2_string_list = [to_match_1]
-            else:
-                col2_string_list = [num_v]
+        if string_separator in col2_string:
+            col2_string_split = col2_string.split(",")
+            col2_string_set = set(col2_string_split)
         else:
-            col2_string_datatype = ["i"]
-            if "," in col2_string:
-                col2_string_list = col2_string.split(",")
-            else:
-                col2_string_list = [col2_string]
+            col2_string_set = {col2_string}
 
         for prop_val_dict in kg_id_context:
-            score, best_str_match = self.computes_string_similarity(prop_val_dict['v'], col2_string_list,
-                                                                    col2_string_datatype, prop_val_dict['t'])
+            score, best_str_match = self.computes_similarity(prop_val_dict['v'], col2_string_set, prop_val_dict['t'])
             result.append({
                 "type": prop_val_dict['t'],
                 "col2_string": best_str_match,
@@ -321,6 +307,23 @@ class TableContextMatches:
 
         return result
 
+    def return_a_number(self, col2_string: str) -> float:
+        col2_string_stripped = col2_string.replace('"', '')
+        to_match_1 = col2_string_stripped.replace(",", "")
+        numeric_col2_value = None
+        try:
+            if " " in to_match_1:
+                split_v = to_match_1.split(" ")
+                for s in split_v:
+                    if self.return_a_number(s):
+                        numeric_col2_value = s
+            else:
+                float(to_match_1)
+                numeric_col2_value = to_match_1
+        except ValueError:
+            return None
+        return numeric_col2_value
+
     def preprocess(self, word: str) -> list:
         word = word.lower()
         preprocessed_word = re.sub(r'[^\w\s]', '', word)
@@ -328,7 +331,7 @@ class TableContextMatches:
         return preprocessed_word
 
     @staticmethod
-    def quantity_score(quantity_1: float, quantity_2: float) -> float:
+    def compute_quantity_similarity(quantity_1: float, quantity_2: float, quantity_threshold: float = 0.5) -> float:
         """
         Purpose: Calculates the score between two quantities by taking the absolute difference between them and
         dividing by the max of both.
@@ -337,39 +340,33 @@ class TableContextMatches:
         """
         if quantity_1 == 0.0 and quantity_2 == 0.0:
             return 1
-        return 1 - (abs(quantity_1 - quantity_2) / max(abs(quantity_1), abs(quantity_2)))
+        quantity_score = 1 - (abs(quantity_1 - quantity_2) / max(abs(quantity_1), abs(quantity_2)))
+        return quantity_score if quantity_score >= quantity_threshold else 0
 
-    def computes_string_similarity(self, values: List[str], col2_string_list: List[str], col2_string_datatype: List[str], values_type: str) -> Tuple[float, str]:
-        # Estimate if there's a match between the types.
-        if values_type not in col2_string_datatype:
-            return 0.0, ""
+    def computes_similarity(self, context_values: List[str], col2_string_set: set, context_values_type: str,  string_similarity_threshold: float = 0.5, quantity_similarity_threshold: float = 0.5) -> Tuple[float, str]:
         max_sim = 0.0
         best_matched = ""
-        if values_type == "i":
-            for col_split in col2_string_list:
-                for val in values:
-                    sim = similarity.hybrid.symmetric_monge_elkan_similarity(self.preprocess(val),
-                                                                             self.preprocess(col_split))
-                    if sim > max_sim:
-                        max_sim = sim
-                        best_matched = val
-                    if max_sim >= 1:
-                        break
-
-        elif (col2_string_datatype == ["d", "q"]) and (values_type == "q" or values_type == "d"):
-            [col2_string] = col2_string_list
-            for val in values:
-                if val == col2_string and values_type == "d":
-                    max_sim = 1.0
-                    best_matched = val
+        for col2_string in col2_string_set:
+            for c_val in context_values:
+                if col2_string == c_val:
+                    max_sim == 1.0
+                    best_matched = c_val
                     break
                 else:
-                    sim = self.quantity_score(float(val), float(col2_string))
-                    if sim > max_sim:
-                        max_sim = sim
-                        best_matched = val
-                if max_sim >= 1:
-                    break
+                    current_sim = 0
+                    if context_values_type == 'q':
+                        col2_num = self.return_a_number(col2_string)
+                        if col2_num:
+                            current_sim = self.compute_quantity_similarity(float(col2_num), float(c_val), quantity_similarity_threshold)
+                    elif context_values_type == 'i':
+                        current_sim = similarity.hybrid.symmetric_monge_elkan_similarity(self.preprocess(c_val),
+                                                                                 self.preprocess(col2_string),
+                                                                                 lower_bound=string_similarity_threshold)
+                    if current_sim > max_sim:
+                        max_sim = current_sim
+                        best_matched = c_val
+                        if max_sim == 1.0:
+                            break
         return max_sim, best_matched
 
     def add_match(self, row, col1, col1_item, col1_string, col2, col2_item, col2_string, type, property, score):
