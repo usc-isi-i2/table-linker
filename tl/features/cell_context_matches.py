@@ -148,7 +148,7 @@ class TableContextMatches:
                  parsed_context: bool = True
                  ):
         """
-        Maybe better to have a set of columns
+      Maybe better to have a set of columns
       Create a ContextMatches datastructure to store the context matches between columns in a row.
       Each entry in the ContextMatches array is a list of dicts, where each dict contains
       row, col1, col2, property, score, col1_item, col2_string and col2_item.
@@ -176,8 +176,8 @@ class TableContextMatches:
         input_df['kg_labels'].fillna("", inplace=True)
         input_df['kg_aliases'].fillna("", inplace=True)
         row_col_label_dict = {}
-        num_rows = input_df['row'].nunique()
-        n_cntxt_columns = len(input_df['context'].values[0].split("|"))
+
+        n_context_columns = len(input_df['context'].values[0].split("|"))
         for row, col, label in zip(input_df['row'], input_df['column'], input_df[label_column]):
             key = f"{row}_{col}"
             row_col_label_dict[key] = label
@@ -189,7 +189,6 @@ class TableContextMatches:
                                                                      input_df['kg_aliases']):
             kg_id_context = context_dict.get(kg_id, None)
             kg_labels = []
-
             if kg_id_label_str and kg_id_label_str.strip() != "":
                 kg_labels.append(kg_id_label_str.strip())
             if kg_id_alias_str and kg_id_alias_str.strip() != "":
@@ -217,8 +216,12 @@ class TableContextMatches:
                                            property=context_result['property'],
                                            score=context_result['score']
                                            )
+        context_scores, properties, similarities = self.compute_context_scores(input_df, n_context_columns, row_col_label_dict)
+        print(context_scores)
 
-        property_val_df, important_properties = self.compute_property_scores(row_col_label_dict, n_cntxt_columns, num_rows)
+    def compute_context_scores(self, input_df, n_context_columns, row_col_label_dict):
+        num_rows = input_df['row'].nunique()
+        property_val_df, important_properties = self.compute_property_scores(row_col_label_dict, n_context_columns, num_rows)
         context_score_list = []
         context_property_list = []
         context_similarity_list = []
@@ -228,13 +231,13 @@ class TableContextMatches:
             property_matched = []
             similarity_matched = []
             r_c = f"{row}_{col}"
-            for cols in range(n_cntxt_columns):
+            for cols in range(n_context_columns):
                 if int(cols) != int(col):
                     returned_properties = self.ccm_dict[r_c].get_properties(cols, q_node_dependent=True, q_node=q_node)
                     if returned_properties == []:
                         continue
                     (property_, type, best_score, _) = returned_properties[0]
-                    property_value = property_val_df.loc[(property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (property_val_df['col_2'] == cols), 'property_score']
+                    property_value = property_val_df.loc[(property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (property_val_df['col2'] == cols), 'property_score'].values[0]
                     property_value = round(property_value, 4)
                     context_score = context_score + (property_value * best_score)
                     property_matched.append(property_ + str(property_value))
@@ -244,7 +247,7 @@ class TableContextMatches:
             context_property_list.append(property_matched)
         # input_df['context_property'] = context_property_list
         # input_df['context_similarity'] = context_similarity_list
-        input_df['context_score'] = context_score_list
+        return context_score_list, context_property_list, context_similarity_list
 
     def compute_property_scores(self, row_col_label_dict, n_cntxt_columns, num_rows):
         # To calculate property score
@@ -259,18 +262,17 @@ class TableContextMatches:
                     int_prop = pd.DataFrame(m, columns = ["property_", "type", "best_score", "n_occurences"])
                     int_prop['row'] = int(row_1)
                     int_prop['column'] = int(col_1)
-                    int_prop['col_2'] = int(cols)
+                    int_prop['col2'] = int(cols)
                     int_prop['inv_occ'] = 1 / (int_prop['n_occurences'])
                     properties_df = pd.concat([properties_df, int_prop])
         property_value_list= []
-        grouped_obj = properties_df.groupby(['column','col_2', 'property_'])
+        grouped_obj = properties_df.groupby(['column','col2', 'property_'])
         for cell, group in grouped_obj:
             property_score = (group['inv_occ'].sum(axis = 0))/num_rows
             property_value_list.append([cell[2], cell[0], cell[1], property_score])
-        #
-        property_value_df = pd.DataFrame(property_value_list, columns = ['property_', 'column', 'col_2', 'property_score'])
+        property_value_df = pd.DataFrame(property_value_list, columns = ['property_', 'column', 'col2', 'property_score'])
         property_value_df = property_value_df.sort_values(by=['column', 'property_score'], ascending=[True, False])
-        most_important_property_dict = property_value_df.drop_duplicates(['column', 'col_2'], keep = 'first')
+        most_important_property_dict = property_value_df.drop_duplicates(['column', 'col2'], keep = 'first')
         return property_value_df, most_important_property_dict
 
     def compute_context_similarity(self,
@@ -280,7 +282,7 @@ class TableContextMatches:
 
         if col2_string is None:
             return result
-        # Determining the type of col_2 string
+        # Determining the type of col2 string
         new_v = col2_string.replace('"', '')
         to_match_1 = new_v.replace(",", "")
         to_match_2 = to_match_1.replace(".", "0")
@@ -295,14 +297,14 @@ class TableContextMatches:
 
         if (to_match_1.isnumeric() or to_match_2.isnumeric() or num_v is not None) and (to_match_1.count(".") <= 1):
             col2_string_datatype = ["d", "q"]
+            if to_match_1.isnumeric() or to_match_2.isnumeric():
+                col2_string_list = [to_match_1]
+            else:
+                col2_string_list = [num_v]
         else:
             col2_string_datatype = ["i"]
-
-        if "i" in col2_string_datatype and "," in col2_string_datatype:
-            col2_string_list = col2_string.split(",")
-        else:
-            if to_match_1.isnumeric() and to_match_1.count(".") <= 1:
-                col2_string_list = [to_match_1]
+            if "," in col2_string:
+                col2_string_list = col2_string.split(",")
             else:
                 col2_string_list = [col2_string]
 
@@ -468,6 +470,8 @@ class TableContextMatches:
                 prop_val_list = re.split(r'(?<!\\)\|', context_string)
 
                 for prop_val in prop_val_list:
+                    if prop_val[0] == '"':
+                        prop_val = prop_val[1:]
                     _type = prop_val[0]
                     if _type not in valid_property_types:
                         raise TLException(
