@@ -1,7 +1,7 @@
 import re
 import json
 import pandas as pd
-from typing import List, Tuple
+from typing import List, Tuple, Set
 from tl.exceptions import TLException
 from rltk import similarity
 import time
@@ -89,7 +89,7 @@ class CellContextMatches:
             raise Exception(f'Cannot find context for a column with itself. col1: {self.col}, col2: {col2}')
         return self.ccm.get(col2, [])
 
-    def get_properties(self, col2: str, q_node: str =None) -> List[Tuple[str, str, float, int]]:
+    def get_properties(self, col2: str, q_node: str = None) -> List[Tuple[str, str, float, int]]:
         """
         list of tuples (property, type, best score, count_appears)
         -> [("P175", "i", 0.95, 4), ...]
@@ -229,7 +229,8 @@ class TableContextMatches:
         context_property_list = []
         context_similarity_list = []
         for row, col, q_node in zip(input_df['row'], input_df['column'], input_df['kg_id']):
-            # Handle equal similarity for different properties by looping over and getting the one with highest similarity.
+            # Handle equal similarity for different properties by looping over and getting
+            # the one with highest similarity.
             context_score = 0.0
             property_matched = []
             similarity_matched = []
@@ -242,7 +243,7 @@ class TableContextMatches:
                     (property_, type, best_score, _) = returned_properties[0]
                     property_value = property_val_df.loc[
                         (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
-                                    property_val_df['col2'] == cols), 'property_score'].values[0]
+                                property_val_df['col2'] == cols), 'property_score'].values[0]
                     property_value = round(property_value, 4)
                     context_score = context_score + (property_value * best_score)
                     property_matched.append(property_ + "(" + str(property_value) + ")")
@@ -255,7 +256,7 @@ class TableContextMatches:
         return context_score_list, context_property_list, context_similarity_list
 
     def compute_property_scores(self, row_col_label_dict: dict, n_context_columns: int, num_rows: int) -> (
-    pd.DataFrame, pd.DataFrame):
+            pd.DataFrame, pd.DataFrame):
         # To calculate property score
         properties_df = pd.DataFrame()
         for r_c in row_col_label_dict:
@@ -283,7 +284,7 @@ class TableContextMatches:
 
     def compute_context_similarity(self,
                                    kg_id_context: List[dict],
-                                   col2_string: str, string_separator = ",") -> List[dict]:
+                                   col2_string: str, string_separator=",") -> List[dict]:
         result = []
 
         if col2_string is None:
@@ -307,7 +308,7 @@ class TableContextMatches:
 
         return result
 
-    def return_a_number(self, col2_string: str) -> float:
+    def return_a_number(self, col2_string: str) -> str:
         col2_string_stripped = col2_string.replace('"', '')
         to_match_1 = col2_string_stripped.replace(",", "")
         numeric_col2_value = None
@@ -324,7 +325,8 @@ class TableContextMatches:
             return None
         return numeric_col2_value
 
-    def preprocess(self, word: str) -> list:
+    @staticmethod
+    def preprocess(word: str) -> list:
         word = word.lower()
         preprocessed_word = re.sub(r'[^\w\s]', '', word)
         preprocessed_word = preprocessed_word.split(" ")
@@ -343,7 +345,9 @@ class TableContextMatches:
         quantity_score = 1 - (abs(quantity_1 - quantity_2) / max(abs(quantity_1), abs(quantity_2)))
         return quantity_score if quantity_score >= quantity_threshold else 0
 
-    def computes_similarity(self, context_values: List[str], col2_string_set: set, context_values_type: str,  string_similarity_threshold: float = 0.5, quantity_similarity_threshold: float = 0.5) -> Tuple[float, str]:
+    def computes_similarity(self, context_values: List[str], col2_string_set: Set[str], context_values_type: str,
+                            string_similarity_threshold: float = 0.5, quantity_similarity_threshold: float = 0.5) -> \
+    Tuple[float, str]:
         max_sim = 0.0
         best_matched = ""
         for col2_string in col2_string_set:
@@ -357,11 +361,12 @@ class TableContextMatches:
                     if context_values_type == 'q':
                         col2_num = self.return_a_number(col2_string)
                         if col2_num:
-                            current_sim = self.compute_quantity_similarity(float(col2_num), float(c_val), quantity_similarity_threshold)
+                            current_sim = self.compute_quantity_similarity(float(col2_num), float(c_val),
+                                                                           quantity_similarity_threshold)
                     elif context_values_type == 'i':
                         current_sim = similarity.hybrid.symmetric_monge_elkan_similarity(self.preprocess(c_val),
-                                                                                 self.preprocess(col2_string),
-                                                                                 lower_bound=string_similarity_threshold)
+                                                                                         self.preprocess(col2_string),
+                                                                                         lower_bound=string_similarity_threshold)
                     if current_sim > max_sim:
                         max_sim = current_sim
                         best_matched = c_val
@@ -472,8 +477,8 @@ class TableContextMatches:
                     _type = prop_val[0]
                     if _type not in valid_property_types:
                         raise TLException(
-                            f"Invalid property data type, prop_val_string: {prop_val}, invalid type: {_type}. Should be "
-                            f"one of the {list(valid_property_types)}")
+                            f"Invalid property data type, prop_val_string: {prop_val}, invalid type: {_type}. Should be"
+                            f" one of the {list(valid_property_types)}")
 
                     values, property, item = TableContextMatches.parse_prop_val(qnode, prop_val)
 
@@ -573,3 +578,4 @@ class TableContextMatches:
                 context_dict.update(TableContextMatches.parse_context_string(qnode, context))
 
         return context_dict
+
