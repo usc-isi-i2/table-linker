@@ -278,8 +278,8 @@ class TableContextMatches:
             property_value_list.append([cell[2], cell[0], cell[1], property_score])
         property_value_df = pd.DataFrame(property_value_list, columns=['property_', 'column', 'col2', 'property_score'])
         property_value_df = property_value_df.sort_values(by=['column', 'property_score'], ascending=[True, False])
-        most_important_property_dict = property_value_df.drop_duplicates(['column', 'col2'], keep='first')
-        return property_value_df, most_important_property_dict
+        most_important_property_df = property_value_df.drop_duplicates(['column', 'col2'], keep='first')
+        return property_value_df, most_important_property_df
 
     def compute_context_similarity(self,
                                    kg_id_context: List[dict],
