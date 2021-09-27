@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from typing import List, Tuple
 from tl.exceptions import TLException
+import random
 
 ccm_columns = ['type', 'score', 'property', 'row',
                'col1', 'col1_item', 'col1_string', 'col2', 'col2_string', 'col2_item']
@@ -40,6 +41,7 @@ class CellContextMatches:
                    property: str,
                    col2: str,
                    col2_string: str,
+                   best_match: str,
                    col2_item: str = None):
         """
         Add a single triple to CellContextMatches.
@@ -54,7 +56,8 @@ class CellContextMatches:
             'col1_string': col1_string,
             'col2': col2,
             'col2_string': col2_string,
-            'col2_item': col2_item
+            'col2_item': col2_item,
+            'best_match': best_match
         }
         if col2 not in self.ccm:
             self.ccm[col2] = list()
@@ -210,7 +213,8 @@ class TableContextMatches:
                                            col2_string=context_result['col2_string'],
                                            type=context_result['type'],
                                            property=context_result['property'],
-                                           score=context_result['score']
+                                           score=context_result['score'],
+                                           best_match=context_result['best_match']
                                            )
 
     def compute_context_similarity(self,
@@ -225,7 +229,8 @@ class TableContextMatches:
             score, best_str_match = self.computes_string_similarity(prop_val_dict['v'], col2_string)
             result.append({
                 "type": prop_val_dict['t'],
-                "col2_string": best_str_match,
+                "col2_string": col2_string,
+                "best_match": best_str_match,
                 "score": score,
                 "property": prop_val_dict['p'],
                 'col2_item': prop_val_dict.get('i', None)
@@ -234,9 +239,11 @@ class TableContextMatches:
         return result
 
     def computes_string_similarity(self, values: List[str], col2_string: str) -> Tuple[float, str]:
-        return 0.0, "best_matched_string"
+        r_index = random.randint(0, len(values) - 1)
+        return random.random(), values[r_index]
 
-    def add_match(self, row, col1, col1_item, col1_string, col2, col2_item, col2_string, type, property, score):
+    def add_match(self, row, col1, col1_item, col1_string, col2, col2_item, col2_string, type, property, score,
+                  best_match):
         """
         Add a context match to the database of context matches. The match represents a triple
         from col1 to col2, nad stores the matching score, property and the value it matcheed to.
@@ -256,7 +263,8 @@ class TableContextMatches:
             property=property,
             col2=col2,
             col2_string=col2_string,
-            col2_item=col2_item
+            col2_item=col2_item,
+            best_match=best_match
 
         )
 
@@ -271,6 +279,7 @@ class TableContextMatches:
                                               col2=col1,
                                               col2_string=col1_string,
                                               col2_item=col1_item,
+                                              best_match=best_match
                                               )
 
         # Create a CellContextMatches if none exists for this cell an dthen call cellcm.add_triple()
