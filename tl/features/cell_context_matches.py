@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from typing import List, Tuple, Set
 from rltk import similarity
+from tl.exceptions import TLException
 
 ccm_columns = ['type', 'score', 'property', 'row',
                'col1', 'col1_item', 'col1_string', 'col2', 'col2_string', 'col2_item']
@@ -142,7 +143,9 @@ class TableContextMatches:
                  input_path: str = None,
                  context_matches_path=None,
                  label_column: str = 'label_clean',
-                 parsed_context: bool = True
+                 ignore_column: str = None,
+                 relevant_properties_file: str = None,
+                 use_relevant_properties: bool = False
                  ):
         """
       Maybe better to have a set of columns
@@ -152,6 +155,7 @@ class TableContextMatches:
       The internal datastructure must return the matches between two columns in a rows in constant time,
       so the backing store must be NumPy array.
         """
+        self.ignore_column = ignore_column
 
         if context_path is not None:
             context_dict = self.read_context_file(context_path)
@@ -168,32 +172,62 @@ class TableContextMatches:
         if context_matches_path is not None:
             self.load_from_disk(context_matches_path)
 
-    def initialize(self, input_df, context_dict, label_column):
-        columns = set(input_df['column'].unique())
-        input_df['kg_labels'].fillna("", inplace=True)
-        input_df['kg_aliases'].fillna("", inplace=True)
-        row_col_label_dict = {}
+        self.row_col_label_dict = {}
 
-        n_context_columns = len(input_df['context'].values[0].split("|"))
-        for row, col, label in zip(input_df['row'], input_df['column'], input_df[label_column]):
+        self.relevant_properties_file = relevant_properties_file
+        self.use_relevant_properties = use_relevant_properties
+
+        if use_relevant_properties:
+            self.relevant_properties = self.read_relevant_properties()
+
+    def read_relevant_properties(self) -> dict:  # or whatever datastructure makes sense
+        if self.relevant_properties_file is None:
+            raise TLException('Please specify a valid path for relevant properties.')
+
+        # TODO HARDI: please fill in this code
+        return {}
+
+    def write_relevant_properties(self):
+        if self.relevant_properties_file is None:
+            raise TLException('Please specify a valid path for relevant properties.')
+
+        # TODO HARDI: fill in this code
+
+    def is_relevant_property(self, col: str, property: str) -> bool:
+        # TODO HARDI: implement this code
+        return True
+
+    def initialize(self, raw_input_df, context_dict, label_column):
+        columns = set(raw_input_df['column'].unique())
+        raw_input_df['kg_labels'].fillna("", inplace=True)
+        raw_input_df['kg_aliases'].fillna("", inplace=True)
+
+        if self.ignore_column is not None:
+            self.input_df = raw_input_df[raw_input_df[self.ignore_column].astype(float) == 0]
+            self.other_input_df = raw_input_df[raw_input_df[self.ignore_column].astype(float) == 1]
+        else:
+            self.input_df = raw_input_df
+            self.other_input_df = None
+
+        for row, col, label in zip(self.input_df['row'], self.input_df['column'], self.input_df[label_column]):
             key = f"{row}_{col}"
-            row_col_label_dict[key] = label
+            self.row_col_label_dict[key] = label
 
-        for row, col, context in zip(input_df['row'], input_df['column'], input_df['context']):
+        for row, col, context in zip(self.input_df['row'], self.input_df['column'], self.input_df['context']):
             if int(col) == 0:
                 context_vals = context.split('|')
                 for i, context_val in enumerate(context_vals):
                     context_column = i + 1
                     row_col_dict_key = f"{row}_{context_column}"
-                    if row_col_dict_key not in row_col_label_dict:
-                        row_col_label_dict[row_col_dict_key] = context_val
+                    if row_col_dict_key not in self.row_col_label_dict:
+                        self.row_col_label_dict[row_col_dict_key] = context_val
                         columns.add(str(context_column))
 
-        for row, col, kg_id, kg_id_label_str, kg_id_alias_str in zip(input_df['row'],
-                                                                     input_df['column'],
-                                                                     input_df['kg_id'],
-                                                                     input_df['kg_labels'],
-                                                                     input_df['kg_aliases']):
+        for row, col, kg_id, kg_id_label_str, kg_id_alias_str in zip(self.input_df['row'],
+                                                                     self.input_df['column'],
+                                                                     self.input_df['kg_id'],
+                                                                     self.input_df['kg_labels'],
+                                                                     self.input_df['kg_aliases']):
             kg_id_context = context_dict.get(kg_id, None)
             kg_labels = []
             if kg_id_label_str and kg_id_label_str.strip() != "":
@@ -210,7 +244,9 @@ class TableContextMatches:
                 for col2 in columns:
                     if col != col2:
                         context_results = self.compute_context_similarity(kg_id_context,
-                                                                          row_col_label_dict.get(f"{row}_{col2}", None))
+                                                                          col2,
+                                                                          self.row_col_label_dict.get(f"{row}_{col2}",
+                                                                                                      None))
                         for context_result in context_results:
                             self.add_match(row=row,
                                            col1=col,
@@ -225,11 +261,17 @@ class TableContextMatches:
                                            best_match=context_result['best_match']
                                            )
 
-        # context_scores, properties, similarities = self.compute_context_scores(input_df, n_context_columns,
-        #                                                                        row_col_label_dict)
-        # input_df['context_scores'] = context_scores
-        # input_df['context_properties'] = properties
-        # input_df['context_similarity'] = similarities
+    def process(self):
+        n_context_columns = len(self.input_df['context'].values[0].split("|"))
+        context_scores, properties, similarities = self.compute_context_scores(self.input_df, n_context_columns,
+                                                                               self.row_col_label_dict)
+        self.input_df['context_scores'] = context_scores
+        self.input_df['context_properties'] = properties
+        self.input_df['context_similarity'] = similarities
+        out = [self.input_df]
+        if self.other_input_df is not None:
+            out.append(self.other_input_df)
+        return pd.concat(out)
 
     def compute_context_scores(self, input_df: pd.DataFrame, n_context_columns: int,
                                row_col_label_dict: dict) -> (List[int], List[str], List[int]):
@@ -296,7 +338,10 @@ class TableContextMatches:
 
     def compute_context_similarity(self,
                                    kg_id_context: List[dict],
-                                   col2_string: str, string_separator=",") -> List[dict]:
+                                   col2: str,
+                                   col2_string: str,
+                                   string_separator: str = ",",
+                                   return_zero_similarity: bool = False) -> List[dict]:
         result = []
 
         if col2_string is None:
@@ -309,19 +354,27 @@ class TableContextMatches:
             col2_string_set = {col2_string}
 
         for prop_val_dict in kg_id_context:
-            score, best_str_match = self.computes_similarity(prop_val_dict['v'], col2_string_set, prop_val_dict['t'])
-            result.append({
-                "type": prop_val_dict['t'],
-                "col2_string": col2_string,
-                "best_match": best_str_match,
-                "score": score,
-                "property": prop_val_dict['p'],
-                'col2_item': prop_val_dict.get('i', None)
-            })
+            property = prop_val_dict['p']
+            if not self.use_relevant_properties or (self.use_relevant_properties
+                                                    and
+                                                    self.is_relevant_property(col2, property)):
+                score, best_str_match = self.computes_similarity(prop_val_dict['v'],
+                                                                 col2_string_set,
+                                                                 prop_val_dict['t'])
+                if score > 0.0 or (score == 0.0 and return_zero_similarity):
+                    result.append({
+                        "type": prop_val_dict['t'],
+                        "col2_string": col2_string,
+                        "best_match": best_str_match,
+                        "score": score,
+                        "property": property,
+                        'col2_item': prop_val_dict.get('i', None)
+                    })
 
         return result
 
     def return_a_number(self, col2_string: str) -> str:
+        # TODO HARDI: return_a_number should return a number and not str
         col2_string_stripped = col2_string.replace('"', '')
         to_match_1 = col2_string_stripped.replace(",", "")
         numeric_col2_value = None
@@ -358,31 +411,34 @@ class TableContextMatches:
         quantity_score = 1 - (abs(quantity_1 - quantity_2) / max(abs(quantity_1), abs(quantity_2)))
         return quantity_score if quantity_score >= quantity_threshold else 0
 
-    def computes_similarity(self, context_values: List[str], col2_string_set: Set[str], context_values_type: str,
-                            string_similarity_threshold: float = 0.5, quantity_similarity_threshold: float = 0.5) -> \
-            Tuple[float, str]:
+    def computes_similarity(self,
+                            context_values: List[str],
+                            col2_string_set: Set[str],
+                            context_values_type: str,
+                            string_similarity_threshold: float = 1.0,
+                            quantity_similarity_threshold: float = 0.5) -> Tuple[float, str]:
         max_sim = 0.0
         best_matched = ""
         for col2_string in col2_string_set:
-            for c_val in context_values:
-                if col2_string == c_val:
+            for context_value in context_values:
+                if col2_string == context_value:
                     max_sim = 1.0
-                    best_matched = c_val
+                    best_matched = context_value
                     break
                 else:
                     current_sim = 0
                     if context_values_type == 'q':
                         col2_num = self.return_a_number(col2_string)
                         if col2_num:
-                            current_sim = self.compute_quantity_similarity(float(col2_num), float(c_val),
+                            current_sim = self.compute_quantity_similarity(float(col2_num), float(context_value),
                                                                            quantity_similarity_threshold)
                     elif context_values_type == 'i':
-                        current_sim = similarity.hybrid.symmetric_monge_elkan_similarity(self.preprocess(c_val),
+                        current_sim = similarity.hybrid.symmetric_monge_elkan_similarity(self.preprocess(context_value),
                                                                                          self.preprocess(col2_string),
                                                                                          lower_bound=string_similarity_threshold)
                     if current_sim > max_sim:
                         max_sim = current_sim
-                        best_matched = c_val
+                        best_matched = context_value
                         if max_sim == 1.0:
                             break
         return max_sim, best_matched
