@@ -1,5 +1,6 @@
 import re
 import json
+import operator
 import pandas as pd
 from typing import List, Tuple, Set
 from rltk import similarity
@@ -180,6 +181,8 @@ class TableContextMatches:
         if use_relevant_properties:
             self.relevant_properties = self.read_relevant_properties()
 
+        self.main_entity_column = self.find_main_entity_column(label_column)
+
     def read_relevant_properties(self) -> dict:  # or whatever datastructure makes sense
         if self.relevant_properties_file is None:
             raise TLException('Please specify a valid path for relevant properties.')
@@ -196,6 +199,16 @@ class TableContextMatches:
     def is_relevant_property(self, col: str, property: str) -> bool:
         # TODO HARDI: implement this code
         return True
+
+    def find_main_entity_column(self, label_column) -> str
+        col_labels_dict = {}
+        for col, gdf in self.input_df.groupby(by=['column']):
+            col_labels_dict[col] = len(gdf[label_column].unique())
+
+        max_cols = [key for (key, value) in col_labels_dict.items() if value == max(col_labels_dict.values())]
+        if len(max_cols) == 1:
+            return max_cols[0]
+        return '0'
 
     def initialize(self, raw_input_df, context_dict, label_column):
         columns = set(raw_input_df['column'].unique())
@@ -242,7 +255,7 @@ class TableContextMatches:
 
             if kg_id_context is not None:
                 for col2 in columns:
-                    if col != col2:
+                    if (col != col2) and (str(col) == self.main_entity_column or str(col2) == self.main_entity_column):
                         context_results = self.compute_context_similarity(kg_id_context,
                                                                           col2,
                                                                           self.row_col_label_dict.get(f"{row}_{col2}",
