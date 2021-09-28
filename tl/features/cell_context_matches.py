@@ -1,9 +1,8 @@
 import re
 import json
 import pandas as pd
-from typing import List, Tuple
-from tl.exceptions import TLException
-import random
+from typing import List, Tuple, Set
+from rltk import similarity
 
 ccm_columns = ['type', 'score', 'property', 'row',
                'col1', 'col1_item', 'col1_string', 'col2', 'col2_string', 'col2_item']
@@ -90,23 +89,23 @@ class CellContextMatches:
             raise Exception(f'Cannot find context for a column with itself. col1: {self.col}, col2: {col2}')
         return self.ccm.get(col2, [])
 
-    def get_properties(self, col2: str) -> List[Tuple[str, str, float, int]]:
+    def get_properties(self, col2: str, q_node: str = None) -> List[Tuple[str, str, float, int]]:
         """
         list of tuples (property, type, best score, count_appears)
         -> [("P175", "i", 0.95, 4), ...]
-
         current_col
         for col in range(0, max_columns):
             for row in range (0, max_rows):
                 cc = tcm.get_cell_context(row, col)
                 props = cc.get_properties(3)
-
         """
         if self.col == col2:
             raise Exception(f'Cannot find context for a column with itself. col1: {self.col}, col2: {col2}')
 
         result = []
         col2_records = self.ccm.get(col2, [])
+        if q_node:
+            col2_records = [s for s in col2_records if s.get('col1_item') == q_node]
         prop_count = {}
         for record in col2_records:
             property = record['property']
@@ -146,18 +145,16 @@ class TableContextMatches:
                  parsed_context: bool = True
                  ):
         """
-        Maybe better to have a set of columns
-
+      Maybe better to have a set of columns
       Create a ContextMatches datastructure to store the context matches between columns in a row.
       Each entry in the ContextMatches array is a list of dicts, where each dict contains
       row, col1, col2, property, score, col1_item, col2_string and col2_item.
-
       The internal datastructure must return the matches between two columns in a rows in constant time,
       so the backing store must be NumPy array.
         """
 
         if context_path is not None:
-            context_dict = self.read_context_file(context_path, parsed_context=parsed_context)
+            context_dict = self.read_context_file(context_path)
 
         self.ccm_dict = {}
 
@@ -177,9 +174,20 @@ class TableContextMatches:
         input_df['kg_aliases'].fillna("", inplace=True)
         row_col_label_dict = {}
 
+        n_context_columns = len(input_df['context'].values[0].split("|"))
         for row, col, label in zip(input_df['row'], input_df['column'], input_df[label_column]):
             key = f"{row}_{col}"
             row_col_label_dict[key] = label
+
+        for row, col, context in zip(input_df['row'], input_df['column'], input_df['context']):
+            if int(col) == 0:
+                context_vals = context.split('|')
+                for i, context_val in enumerate(context_vals):
+                    context_column = i + 1
+                    row_col_dict_key = f"{row}_{context_column}"
+                    if row_col_dict_key not in row_col_label_dict:
+                        row_col_label_dict[row_col_dict_key] = context_val
+                        columns.add(str(context_column))
 
         for row, col, kg_id, kg_id_label_str, kg_id_alias_str in zip(input_df['row'],
                                                                      input_df['column'],
@@ -217,16 +225,91 @@ class TableContextMatches:
                                            best_match=context_result['best_match']
                                            )
 
+        # context_scores, properties, similarities = self.compute_context_scores(input_df, n_context_columns,
+        #                                                                        row_col_label_dict)
+        # input_df['context_scores'] = context_scores
+        # input_df['context_properties'] = properties
+        # input_df['context_similarity'] = similarities
+
+    def compute_context_scores(self, input_df: pd.DataFrame, n_context_columns: int,
+                               row_col_label_dict: dict) -> (List[int], List[str], List[int]):
+        num_rows = input_df['row'].nunique()
+        property_val_df, important_properties = self.compute_property_scores(row_col_label_dict, n_context_columns,
+                                                                             num_rows)
+
+        context_score_list = []
+        context_property_list = []
+        context_similarity_list = []
+        for row, col, q_node in zip(input_df['row'], input_df['column'], input_df['kg_id']):
+            # Handle equal similarity for different properties by looping over and getting
+            # the one with highest similarity.
+            context_score = 0.0
+            property_matched = []
+            similarity_matched = []
+            r_c = f"{row}_{col}"
+            for cols in range(n_context_columns):
+                if int(cols) != int(col):
+                    returned_properties = self.ccm_dict[r_c].get_properties(cols, q_node=q_node)
+                    if not returned_properties:
+                        continue
+                    (property_, type, best_score, _) = returned_properties[0]
+                    property_value = property_val_df.loc[
+                        (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
+                                property_val_df['col2'] == cols), 'property_score'].values[0]
+                    property_value = round(property_value, 4)
+                    context_score = context_score + (property_value * best_score)
+                    property_matched.append(property_ + "(" + str(property_value) + ")")
+                    similarity_matched.append(best_score)
+            context_score_list.append(context_score)
+            context_similarity_list.append(similarity_matched)
+            context_property_list.append(property_matched)
+        # input_df['context_property'] = context_property_list
+        # input_df['context_similarity'] = context_similarity_list
+        return context_score_list, context_property_list, context_similarity_list
+
+    def compute_property_scores(self, row_col_label_dict: dict, n_context_columns: int, num_rows: int) -> (
+            pd.DataFrame, pd.DataFrame):
+        # To calculate property score
+        properties_df = pd.DataFrame()
+        for r_c in row_col_label_dict:
+            row_col = r_c.split("_")
+            row_1 = row_col[0]
+            col_1 = row_col[1]
+            for cols in range(n_context_columns):
+                if int(cols) != int(col_1):
+                    m = self.ccm_dict[r_c].get_properties(cols)
+                    int_prop = pd.DataFrame(m, columns=["property_", "type", "best_score", "n_occurences"])
+                    int_prop['row'] = int(row_1)
+                    int_prop['column'] = int(col_1)
+                    int_prop['col2'] = int(cols)
+                    int_prop['inv_occ'] = 1 / (int_prop['n_occurences'])
+                    properties_df = pd.concat([properties_df, int_prop])
+        property_value_list = []
+        grouped_obj = properties_df.groupby(['column', 'col2', 'property_'])
+        for cell, group in grouped_obj:
+            property_score = (group['inv_occ'].sum(axis=0)) / num_rows
+            property_value_list.append([cell[2], cell[0], cell[1], property_score])
+        property_value_df = pd.DataFrame(property_value_list, columns=['property_', 'column', 'col2', 'property_score'])
+        property_value_df = property_value_df.sort_values(by=['column', 'property_score'], ascending=[True, False])
+        most_important_property_df = property_value_df.drop_duplicates(['column', 'col2'], keep='first')
+        return property_value_df, most_important_property_df
+
     def compute_context_similarity(self,
                                    kg_id_context: List[dict],
-                                   col2_string: str) -> List[dict]:
+                                   col2_string: str, string_separator=",") -> List[dict]:
         result = []
 
         if col2_string is None:
             return result
 
+        if string_separator in col2_string:
+            col2_string_split = col2_string.split(",")
+            col2_string_set = set(col2_string_split)
+        else:
+            col2_string_set = {col2_string}
+
         for prop_val_dict in kg_id_context:
-            score, best_str_match = self.computes_string_similarity(prop_val_dict['v'], col2_string)
+            score, best_str_match = self.computes_similarity(prop_val_dict['v'], col2_string_set, prop_val_dict['t'])
             result.append({
                 "type": prop_val_dict['t'],
                 "col2_string": col2_string,
@@ -238,16 +321,77 @@ class TableContextMatches:
 
         return result
 
-    def computes_string_similarity(self, values: List[str], col2_string: str) -> Tuple[float, str]:
-        r_index = random.randint(0, len(values) - 1)
-        return random.random(), values[r_index]
+    def return_a_number(self, col2_string: str) -> str:
+        col2_string_stripped = col2_string.replace('"', '')
+        to_match_1 = col2_string_stripped.replace(",", "")
+        numeric_col2_value = None
+        try:
+            if " " in to_match_1:
+                split_v = to_match_1.split(" ")
+                for s in split_v:
+                    if self.return_a_number(s):
+                        numeric_col2_value = s
+            else:
+                float(to_match_1)
+                numeric_col2_value = to_match_1
+        except ValueError:
+            return None
+        return numeric_col2_value
+
+    @staticmethod
+    def preprocess(word: str) -> list:
+        word = word.lower()
+        preprocessed_word = re.sub(r'[^\w\s]', '', word)
+        preprocessed_word = preprocessed_word.split(" ")
+        return preprocessed_word
+
+    @staticmethod
+    def compute_quantity_similarity(quantity_1: float, quantity_2: float, quantity_threshold: float = 0.5) -> float:
+        """
+        Purpose: Calculates the score between two quantities by taking the absolute difference between them and
+        dividing by the max of both.
+        It is then subtracted from 1.
+        Returns: score
+        """
+        if quantity_1 == 0.0 and quantity_2 == 0.0:
+            return 1
+        quantity_score = 1 - (abs(quantity_1 - quantity_2) / max(abs(quantity_1), abs(quantity_2)))
+        return quantity_score if quantity_score >= quantity_threshold else 0
+
+    def computes_similarity(self, context_values: List[str], col2_string_set: Set[str], context_values_type: str,
+                            string_similarity_threshold: float = 0.5, quantity_similarity_threshold: float = 0.5) -> \
+            Tuple[float, str]:
+        max_sim = 0.0
+        best_matched = ""
+        for col2_string in col2_string_set:
+            for c_val in context_values:
+                if col2_string == c_val:
+                    max_sim = 1.0
+                    best_matched = c_val
+                    break
+                else:
+                    current_sim = 0
+                    if context_values_type == 'q':
+                        col2_num = self.return_a_number(col2_string)
+                        if col2_num:
+                            current_sim = self.compute_quantity_similarity(float(col2_num), float(c_val),
+                                                                           quantity_similarity_threshold)
+                    elif context_values_type == 'i':
+                        current_sim = similarity.hybrid.symmetric_monge_elkan_similarity(self.preprocess(c_val),
+                                                                                         self.preprocess(col2_string),
+                                                                                         lower_bound=string_similarity_threshold)
+                    if current_sim > max_sim:
+                        max_sim = current_sim
+                        best_matched = c_val
+                        if max_sim == 1.0:
+                            break
+        return max_sim, best_matched
 
     def add_match(self, row, col1, col1_item, col1_string, col2, col2_item, col2_string, type, property, score,
                   best_match):
         """
         Add a context match to the database of context matches. The match represents a triple
         from col1 to col2, nad stores the matching score, property and the value it matcheed to.
-
         In addition, adds a reverse link from col2 to col1, using _ for the reverse property,
         e.g., if the property is P59, the reverse link will record the property as _P59.
         """
@@ -332,119 +476,10 @@ class TableContextMatches:
                                               )
 
     @staticmethod
-    def parse_context_string(qnode, context_string: str) -> dict:
-
-        context_dict = {
-            qnode: []
-        }
-
-        p_v_dict = {}
-        try:
-            if context_string:
-                prop_val_list = re.split(r'(?<!\\)\|', context_string)
-
-                for prop_val in prop_val_list:
-                    _type = prop_val[0]
-                    if _type not in valid_property_types:
-                        raise TLException(
-                            f"Invalid property data type, prop_val_string: {prop_val}, invalid type: {_type}. Should be "
-                            f"one of the {list(valid_property_types)}")
-
-                    values, property, item = TableContextMatches.parse_prop_val(qnode, prop_val)
-
-                    if item is None:
-                        key = property
-                        if key not in p_v_dict:
-                            p_v_dict[key] = {
-                                'p': property,
-                                "t": _type,
-                                'v': []
-                            }
-                        p_v_dict[key]['v'].append(values)
-
-                    else:
-                        key = f"{property}_{item}"
-                        if key not in p_v_dict:
-                            p_v_dict[key] = {
-                                'p': property,
-                                'i': item,
-                                'v': [],
-                                "t": _type
-                            }
-                        p_v_dict[key]['v'].append(values)
-        except Exception as e:
-            raise Exception(e)
-
-        for k in p_v_dict:
-            context_dict[qnode].append(p_v_dict[k])
-
-        return context_dict
-
-    @staticmethod
-    def parse_prop_val(qnode, property_value_string):
-        line_started = False
-        string_value = list()
-
-        # property_value_string = property_value_string[1:]
-
-        if property_value_string.startswith('"'):
-            property_value_string = property_value_string[2:]
-
-        else:
-            property_value_string = property_value_string[1:]
-        property_value_string = property_value_string.replace('""', '"')
-
-        for i, c in enumerate(property_value_string):
-            if i == 0 and c == '"':  # start of the string value:
-                line_started = True
-            if line_started:
-                string_value.append(c)
-            if (i > 0 and c == '"' and property_value_string[i - 1] != "\\") \
-                    or \
-                    (i > 0 and c == '"' and property_value_string[i + 1] == ":" and property_value_string[
-                        i + 2] == "P"):
-                line_started = False
-        string_val = "".join(string_value)
-        length_remove = len(string_val) + 1  # ":" eg i"utc+01:00":P421:Q6655
-        rem_vals = property_value_string[length_remove:].split(":")
-        n = len(string_val)
-        string_val = string_val[1: n - 1]
-
-        property = rem_vals[0]
-
-        if not property.startswith('P'):
-            raise TLException(
-                f"Unexpected format of the context string, Qnode: {qnode}, context string: {property_value_string}. "
-                f"Property does not starts with 'P'")
-
-        if len(rem_vals) == 2:
-            item = rem_vals[1]
-            if not item.startswith('Q'):
-                raise TLException(
-                    f"Unexpected format of the context string, Qnode: {qnode}, context string: {property_value_string}"
-                    f". Item does not start with 'Q'")
-            return string_val, rem_vals[0], item
-
-        if len(rem_vals) == 1:
-            return string_val, property, None
-
-        if len(rem_vals) > 2:
-            raise TLException(
-                f"Unexpected format of the context string, Qnode: {qnode}, context string: {property_value_string}")
-
-    @staticmethod
-    def read_context_file(context_file: str, parsed_context: bool = True) -> dict:
+    def read_context_file(context_file: str) -> dict:
         f = open(context_file)
         context_dict = {}
         for line in f:
-            if parsed_context:
-                context_dict.update(json.loads(line.strip()))
-            else:
-                if 'qnode' in line:  # first line
-                    continue
-                vals = line.split("\t")
-                qnode = vals[0]
-                context = vals[1]
-                context_dict.update(TableContextMatches.parse_context_string(qnode, context))
+            context_dict.update(json.loads(line.strip()))
 
         return context_dict
