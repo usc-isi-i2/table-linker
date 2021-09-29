@@ -200,7 +200,7 @@ class TableContextMatches:
         # TODO HARDI: implement this code
         return True
 
-    def find_main_entity_column(self, label_column) -> str
+    def find_main_entity_column(self, label_column) -> str:
         col_labels_dict = {}
         for col, gdf in self.input_df.groupby(by=['column']):
             col_labels_dict[col] = len(gdf[label_column].unique())
