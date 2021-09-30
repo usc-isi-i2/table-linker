@@ -209,11 +209,8 @@ class TableContextMatches:
         if self.relevant_properties_file is None:
             raise TLException('Please specify a valid path for relevant properties.')
         relevant_properties_df.to_csv(self.relevant_properties_file, index=False)
-        self.relevant_properties = self.read_relevant_properties()
-        # TODO HARDI: fill in this code
 
     def is_relevant_property(self, col1: str, col2:str, property: str) -> bool:
-        # TODO HARDI: implement this code
         column_column_pair = f"{col1}_{col2}"
         # Lookup the dictionary
         if column_column_pair in self.relevant_properties:
@@ -346,7 +343,7 @@ class TableContextMatches:
                     property_value = round(property_value, 4)
                     property_matched.append(property_ + "(" + str(property_value) + ")")
                     similarity_matched.append(best_score)
-                    context_score = (1 - 1 / (2 * max(similarity_matched)))
+                    context_score = (1 - 1 / (2 * len([i for i in similarity_matched if not i == 0])))
             context_score_list.append(context_score)
             context_similarity_list.append(similarity_matched)
             context_property_list.append(property_matched)
@@ -424,7 +421,6 @@ class TableContextMatches:
         return result
 
     def return_a_number(self, col2_string: str) -> float:
-        # TODO HARDI: return_a_number should return a number and not str
         col2_string_stripped = col2_string.replace('"', '')
         to_match_1 = col2_string_stripped.replace(",", "")
         numeric_col2_value = None
