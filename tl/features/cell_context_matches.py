@@ -93,7 +93,7 @@ class CellContextMatches:
             raise Exception(f'Cannot find context for a column with itself. col1: {self.col}, col2: {col2}')
         return self.ccm.get(col2, [])
 
-    def get_properties(self, col2: str, q_node: str = None) -> List[Tuple[str, str, float, int]]:
+    def get_properties(self, col2: str, q_node: str = None) -> Tuple[List[Tuple[str, str, float, int]], List[str, float]]:
         """
         list of tuples (property, type, best score, count_appears)
         -> [("P175", "i", 0.95, 4), ...]
@@ -126,16 +126,22 @@ class CellContextMatches:
             prop_count[property]['sum'] += score
             if score > prop_count[property]['max_score']:
                 prop_count[property]['max_score'] = score
-
+        # This will record the best property with the highest best_score.
+        current_best_property_score = -1
+        current_best_property_and_score = []
         for property in prop_count:
             number_of_occurences = prop_count[property]['count']
             avg_score = prop_count[property]['sum'] / number_of_occurences
+            max_score = prop_count[property]['max_score']
+            if max_score > current_best_property_score:
+                current_best_property_score = max_score
+                current_best_property_and_score = [property, current_best_property_score]
             result.append((property,
                            prop_count[property]['type'],
-                           prop_count[property]['max_score'],
+                           max_score,
                            avg_score,
                            number_of_occurences))
-        return result
+        return (result, current_best_property_and_score)
 
 
 class TableContextMatches:
@@ -180,6 +186,7 @@ class TableContextMatches:
         self.relevant_properties_file = relevant_properties_file
         self.use_relevant_properties = use_relevant_properties
         self.save_relevant_properties = save_relevant_properties
+        self.relevant_properties = {}
         if use_relevant_properties:
             self.relevant_properties = self.read_relevant_properties()
         input_df['row'] = input_df['row'].astype('str')
@@ -207,7 +214,8 @@ class TableContextMatches:
     def write_relevant_properties(self, relevant_properties_df: pd.DataFrame):
         if self.relevant_properties_file is None:
             raise TLException('Please specify a valid path for relevant properties.')
-        relevant_properties_df.to_csv(self.relevant_properties_file, index = False)
+        relevant_properties_df.to_csv(self.relevant_properties_file, index=False)
+        self.relevant_properties = self.read_relevant_properties()
         # TODO HARDI: fill in this code
 
     def is_relevant_property(self, col1: str, col2:str, property: str) -> bool:
@@ -306,33 +314,40 @@ class TableContextMatches:
             out.append(self.other_input_df)
         return pd.concat(out).fillna(0.0)
 
+    def correctness_of_candidate(self):
+        # Number of matches are the number it matched correctly. Number
+        # correctness_score = 1 - (1 / (2 * (matches)))
+        pass
+
     def compute_context_scores(self, n_context_columns: set, row_column_pairs: set) -> (List[int], List[str], List[int]):
         num_rows = self.input_df['row'].nunique()
         property_val_df = self.compute_property_scores(row_column_pairs, n_context_columns,
-                                                                             num_rows)
+                                                                      num_rows)
         context_score_list = []
         context_property_list = []
         context_similarity_list = []
         for row, col, q_node in zip(self.input_df['row'], self.input_df['column'], self.input_df['kg_id']):
             # Handle equal similarity for different properties by looping over and getting
             # the one with highest similarity.
-            context_score = 0.0
             property_matched = []
             similarity_matched = []
+            context_score = 0
             r_c = f"{row}_{col}"
             for col2 in n_context_columns:
                 if col2 != col and (col == self.main_entity_column or col2 == self.main_entity_column):
-                    returned_properties = self.ccm_dict[r_c].get_properties(col2, q_node=q_node)
+                    # current_relevant_properties = self.relevant_properties.get(f"{col}_{col2}")
+                    returned_properties, best_properties_q_node = self.ccm_dict[r_c].get_properties(col2, q_node=q_node)
                     if not returned_properties:
                         continue
-                    (property_, type, best_score, _, _) = returned_properties[0]
+                    [property_, best_score] = best_properties_q_node
+                    # if property_ not in current_relevant_properties: pass
                     property_value = property_val_df.loc[
                         (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
                                 property_val_df['col2'] == col2), 'property_score'].values[0]
                     property_value = round(property_value, 4)
-                    context_score = context_score + (property_value * best_score)
                     property_matched.append(property_ + "(" + str(property_value) + ")")
                     similarity_matched.append(best_score)
+                    context_score = (1 - 1 / (2 * max(similarity_matched)))
             context_score_list.append(context_score)
             context_similarity_list.append(similarity_matched)
             context_property_list.append(property_matched)
@@ -350,7 +365,7 @@ class TableContextMatches:
             col = row_col[1]
             for col2 in n_context_columns:
                 if (col2 != col) and (col2 == self.main_entity_column or col == self.main_entity_column):
-                    m = self.ccm_dict[r_c].get_properties(col2)
+                    m, _ = self.ccm_dict[r_c].get_properties(col2)
                     int_prop = pd.DataFrame(m, columns=["property_", "type", "best_score", "avg_score", "n_occurences"])
                     int_prop['row'] = row
                     int_prop['column'] = col
