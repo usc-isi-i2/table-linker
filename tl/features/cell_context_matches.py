@@ -119,17 +119,22 @@ class CellContextMatches:
                 prop_count[property] = {
                     'count': 0,
                     'max_score': -1.0,
-                    'type': record['type']
+                    'type': record['type'],
+                    'sum': 0
                 }
             prop_count[property]['count'] += 1
+            prop_count[property]['sum'] += score
             if score > prop_count[property]['max_score']:
                 prop_count[property]['max_score'] = score
 
         for property in prop_count:
+            number_of_occurences = prop_count[property]['count']
+            avg_score = prop_count[property]['sum'] / number_of_occurences
             result.append((property,
                            prop_count[property]['type'],
                            prop_count[property]['max_score'],
-                           prop_count[property]['count']))
+                           avg_score,
+                           number_of_occurences))
         return result
 
 
@@ -227,6 +232,7 @@ class TableContextMatches:
 
     def initialize(self, raw_input_df, context_dict, label_column):
         columns = set(raw_input_df['column'].unique())
+        rows = set(raw_input_df['row'].unique())
         raw_input_df['kg_labels'].fillna("", inplace=True)
         raw_input_df['kg_aliases'].fillna("", inplace=True)
 
@@ -241,7 +247,7 @@ class TableContextMatches:
             key = f"{row}_{col}"
             self.row_col_label_dict[key] = label
         # row_column_label_dict stores only the row_column pairs that need to be matched
-        row_column_label_dict = self.row_col_label_dict.copy()
+        row_column_pairs = {f"{row}_{col}" for row in rows for col in columns}
         for row, col, context in zip(self.input_df['row'], self.input_df['column'], self.input_df['context']):
             if col == '0':
                 context_vals = context.split('|')
@@ -288,21 +294,21 @@ class TableContextMatches:
                                            score=context_result['score'],
                                            best_match=context_result['best_match']
                                            )
-        self.process(row_column_label_dict, columns)
+        self.process(row_column_pairs, columns)
 
-    def process(self, row_column_label_dict: dict, n_context_columns: list):
-        context_scores, properties, similarities = self.compute_context_scores(n_context_columns, row_column_label_dict)
+    def process(self, row_column_pairs: set, n_context_columns: set):
+        context_scores, properties, similarities = self.compute_context_scores(n_context_columns, row_column_pairs)
         self.input_df['context_scores'] = context_scores
         self.input_df['context_properties'] = properties
         self.input_df['context_similarity'] = similarities
         out = [self.input_df]
         if self.other_input_df is not None:
             out.append(self.other_input_df)
-        return pd.concat(out)
+        return pd.concat(out).fillna(0.0)
 
-    def compute_context_scores(self, n_context_columns: list, row_column_label_dict: dict) -> (List[int], List[str], List[int]):
+    def compute_context_scores(self, n_context_columns: set, row_column_pairs: set) -> (List[int], List[str], List[int]):
         num_rows = self.input_df['row'].nunique()
-        property_val_df = self.compute_property_scores(row_column_label_dict, n_context_columns,
+        property_val_df = self.compute_property_scores(row_column_pairs, n_context_columns,
                                                                              num_rows)
         context_score_list = []
         context_property_list = []
@@ -319,7 +325,7 @@ class TableContextMatches:
                     returned_properties = self.ccm_dict[r_c].get_properties(col2, q_node=q_node)
                     if not returned_properties:
                         continue
-                    (property_, type, best_score, _) = returned_properties[0]
+                    (property_, type, best_score, _, _) = returned_properties[0]
                     property_value = property_val_df.loc[
                         (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
                                 property_val_df['col2'] == col2), 'property_score'].values[0]
@@ -334,22 +340,22 @@ class TableContextMatches:
         # input_df['context_similarity'] = context_similarity_list
         return context_score_list, context_property_list, context_similarity_list
 
-    def compute_property_scores(self, row_column_label_dict: dict, n_context_columns: list, num_rows: int) -> (
+    def compute_property_scores(self, row_column_pairs: set, n_context_columns: set, num_rows: int) -> (
             pd.DataFrame, pd.DataFrame):
         # To calculate property score
         properties_df = pd.DataFrame(columns = ["property_", "type", "best_score", "n_occurences", "row", "column", "col2"])
-        for r_c in row_column_label_dict:
+        for r_c in row_column_pairs:
             row_col = r_c.split("_")
             row = row_col[0]
             col = row_col[1]
             for col2 in n_context_columns:
                 if (col2 != col) and (col2 == self.main_entity_column or col == self.main_entity_column):
                     m = self.ccm_dict[r_c].get_properties(col2)
-                    int_prop = pd.DataFrame(m, columns=["property_", "type", "best_score", "n_occurences"])
+                    int_prop = pd.DataFrame(m, columns=["property_", "type", "best_score", "avg_score", "n_occurences"])
                     int_prop['row'] = row
                     int_prop['column'] = col
                     int_prop['col2'] = col2
-                    int_prop['inv_occ'] = 1 / (int_prop['n_occurences'])
+                    int_prop['inv_occ'] = (int_prop['avg_score'])/ (int_prop['n_occurences'])
                     properties_df = pd.concat([properties_df, int_prop])
         property_value_list = []
         grouped_obj = properties_df.groupby(['column', 'col2', 'property_'])
