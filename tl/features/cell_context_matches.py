@@ -93,8 +93,7 @@ class CellContextMatches:
             raise Exception(f'Cannot find context for a column with itself. col1: {self.col}, col2: {col2}')
         return self.ccm.get(col2, [])
 
-    def get_properties(self, col2: str, q_node: str = None) -> (List[Tuple[str, str, float, int]], List[str, float]):
-
+    def get_properties(self, col2: str, q_node: str = None) -> List[Tuple[str, str, float, int]]:
         """
         list of tuples (property, type, best score, count_appears)
         -> [("P175", "i", 0.95, 4), ...]
@@ -127,22 +126,16 @@ class CellContextMatches:
             prop_count[property]['sum'] += score
             if score > prop_count[property]['max_score']:
                 prop_count[property]['max_score'] = score
-        # This will record the best property with the highest best_score.
-        current_best_property_score = -1
-        current_best_property_and_score = []
         for property in prop_count:
             number_of_occurences = prop_count[property]['count']
             avg_score = prop_count[property]['sum'] / number_of_occurences
             max_score = prop_count[property]['max_score']
-            if max_score > current_best_property_score:
-                current_best_property_score = max_score
-                current_best_property_and_score = [property, current_best_property_score]
             result.append((property,
                            prop_count[property]['type'],
                            max_score,
                            avg_score,
                            number_of_occurences))
-        return (result, current_best_property_and_score)
+        return result
 
 
 class TableContextMatches:
@@ -337,10 +330,15 @@ class TableContextMatches:
             for col2 in n_context_columns:
                 if col2 != col and (col == self.main_entity_column or col2 == self.main_entity_column):
                     # current_relevant_properties = self.relevant_properties.get(f"{col}_{col2}")
-                    returned_properties, best_properties_q_node = self.ccm_dict[r_c].get_properties(col2, q_node=q_node)
+                    returned_properties = self.ccm_dict[r_c].get_properties(col2, q_node=q_node)
                     if not returned_properties:
                         continue
-                    [property_, best_score] = best_properties_q_node
+                    best_score = -1
+                    property_ = None
+                    for properties in returned_properties:
+                        if properties[2] > best_score:
+                            property_ = properties[0]
+                            best_score = properties[2]
                     # if property_ not in current_relevant_properties: pass
                     property_value = property_val_df.loc[
                         (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
@@ -366,7 +364,7 @@ class TableContextMatches:
             col = row_col[1]
             for col2 in n_context_columns:
                 if (col2 != col) and (col2 == self.main_entity_column or col == self.main_entity_column):
-                    m, _ = self.ccm_dict[r_c].get_properties(col2)
+                    m = self.ccm_dict[r_c].get_properties(col2)
                     int_prop = pd.DataFrame(m, columns=["property_", "type", "best_score", "avg_score", "n_occurences"])
                     int_prop['row'] = row
                     int_prop['column'] = col
