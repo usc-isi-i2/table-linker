@@ -320,14 +320,9 @@ class TableContextMatches:
                     if not returned_properties:
                         continue
                     (property_, type, best_score, _) = returned_properties[0]
-                    try:
-                        property_value = property_val_df.loc[
-                            (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
-                                    property_val_df['col2'] == col2), 'property_score'].values[0]
-                    except:
-                        print(property_val_df, property_, col, col2)
-                        break
-
+                    property_value = property_val_df.loc[
+                        (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
+                                property_val_df['col2'] == col2), 'property_score'].values[0]
                     property_value = round(property_value, 4)
                     context_score = context_score + (property_value * best_score)
                     property_matched.append(property_ + "(" + str(property_value) + ")")
