@@ -93,7 +93,8 @@ class CellContextMatches:
             raise Exception(f'Cannot find context for a column with itself. col1: {self.col}, col2: {col2}')
         return self.ccm.get(col2, [])
 
-    def get_properties(self, col2: str, q_node: str = None) -> Tuple[List[Tuple[str, str, float, int]], List[str, float]]:
+    def get_properties(self, col2: str, q_node: str = None) -> (List[Tuple[str, str, float, int]], List[str, float]):
+
         """
         list of tuples (property, type, best score, count_appears)
         -> [("P175", "i", 0.95, 4), ...]
