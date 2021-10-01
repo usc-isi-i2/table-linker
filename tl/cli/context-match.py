@@ -66,7 +66,7 @@ def add_arguments(parser):
 
 def run(**kwargs):
     try:
-        from tl.features.context_match import MatchContext
+        from tl.features.cell_context_matches import TableContextMatches
         input_file_path = kwargs.pop("input_file")
         context_file_path = kwargs.pop("context_file")
         custom_context_file_path = kwargs.pop("custom_context_file")
@@ -80,13 +80,18 @@ def run(**kwargs):
         pseudo_gt_column_name = kwargs.pop("pseudo_gt_column_name")
         save_property_scores = kwargs.pop("save_property_scores_path")
         use_saved_property_scores = kwargs.pop("use_saved_property_scores_path")
-        obj = MatchContext(input_file_path, similarity_string_threshold, similarity_quantity_threshold,
-                           string_separator, missing_property_replacement_factor, ignore_column_name,
-                           pseudo_gt_column_name, output_column_name, context_file_path, custom_context_file_path,
-                           use_cpus=use_cpus, save_property_scores=save_property_scores,
-                           use_saved_property_scores=use_saved_property_scores)
+        relevant_file_path = None
+        use_relevant_properties = False
+        save_relevant_properties = False
+        if use_saved_property_scores:
+            relevant_file_path = use_saved_property_scores
+            use_relevant_properties = True
+        if save_property_scores:
+            relevant_file_path = save_property_scores
+            save_relevant_properties = True
+        obj = TableContextMatches(context_path = context_file_path, context_dict = None, input_path = input_file_path, context_matches_path = None, label_column = 'label_clean', ignore_column = ignore_column_name, relevant_properties_file = save_property_scores, use_relevant_properties = use_relevant_properties, save_relevant_properties = save_relevant_properties, string_similarity_threshold = similarity_string_threshold, quantity_similarity_threshold = similarity_quantity_threshold)
         start = time.time()
-        result_df = obj.process_data_by_column()
+        result_df = obj.input_df
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
