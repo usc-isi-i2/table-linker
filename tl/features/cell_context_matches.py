@@ -156,7 +156,8 @@ class TableContextMatches:
                  use_relevant_properties: bool = False,
                  save_relevant_properties: bool= False,
                  string_similarity_threshold: float = 0.7,
-                 quantity_similarity_threshold: float = 0.3
+                 quantity_similarity_threshold: float = 0.3,
+                 output_column_name: str = "context_score"
                  ):
         """
       Maybe better to have a set of columns
@@ -167,10 +168,14 @@ class TableContextMatches:
       so the backing store must be NumPy array.
         """
         self.ignore_column = ignore_column
+        if self.ignore_column:
+            self.prefix_column_name = "ignore"
+        else:
+            self.prefix_column_name = ""
         self.row_col_label_dict = {}
         if context_path is not None:
             context_dict = self.read_context_file(context_path)
-
+        self.output_column_name = output_column_name
         self.ccm_dict = {}
         self.string_similarity_threshold = string_similarity_threshold
         self.quantity_similarity_threshold = quantity_similarity_threshold
@@ -247,7 +252,6 @@ class TableContextMatches:
             key = f"{row}_{col}"
             row_column_pairs.add(key)
         # row_column_label_dict stores only the row_column pairs that need to be matched
-        # row_column_pairs = {f"{row}_{col}" for row in rows for col in columns}
         for row, col, context in zip(self.input_df['row'], self.input_df['column'], self.input_df['context']):
             if col == '0':
                 context_vals = context.split('|')
@@ -298,17 +302,16 @@ class TableContextMatches:
 
     def process(self, row_column_pairs: set, n_context_columns: set):
         context_scores, properties, similarities = self.compute_context_scores(n_context_columns, row_column_pairs)
-        self.input_df['context_scores'] = context_scores
-        self.input_df['context_properties'] = properties
-        self.input_df['context_similarity'] = similarities
+        self.input_df[self.output_column_name] = context_scores
+        self.input_df[self.prefix_column_name + 'context_properties'] = properties
+        self.input_df[self.prefix_column_name + 'context_similarity'] = similarities
         out = [self.input_df]
         if self.other_input_df is not None:
             out.append(self.other_input_df)
         return pd.concat(out).fillna(0.0)
 
     def correctness_of_candidate(self):
-        # Number of matches are the number it matched correctly. Number
-        # correctness_score = 1 - (1 / (2 * (matches)))
+        # Number of matches are the number it matched correctly
         pass
 
     def compute_context_scores(self, n_context_columns: set, row_column_pairs: set) -> (List[int], List[str], List[int]):
@@ -327,7 +330,6 @@ class TableContextMatches:
             r_c = f"{row}_{col}"
             for col2 in n_context_columns:
                 if col2 != col and (col == self.main_entity_column or col2 == self.main_entity_column):
-                    # current_relevant_properties = self.relevant_properties.get(f"{col}_{col2}")
                     returned_properties = self.ccm_dict[r_c].get_properties(col2, q_node=q_node)
                     if not returned_properties:
                         continue
@@ -352,8 +354,6 @@ class TableContextMatches:
             context_score_list.append(context_score)
             context_similarity_list.append(similarity_matched)
             context_property_list.append(property_matched)
-        # input_df['context_property'] = context_property_list
-        # input_df['context_similarity'] = context_similarity_list
         return context_score_list, context_property_list, context_similarity_list
 
     def compute_property_scores(self, row_column_pairs: set, n_context_columns: set, num_rows: int) -> (
