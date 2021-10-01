@@ -350,7 +350,7 @@ class TableContextMatches:
             if sum_of_properties == 0:
                 context_score = 0
             else:
-                context_score = (1 - 1 / (2 * sum_of_properties))
+                context_score = (1 - 1 / pow(2, sum_of_properties))
             context_score_list.append(context_score)
             context_similarity_list.append(similarity_matched)
             context_property_list.append(property_matched)
