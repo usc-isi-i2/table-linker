@@ -7,7 +7,6 @@ from rltk import similarity
 from tl.exceptions import TLException
 import numpy as np
 
-
 ccm_columns = ['type', 'score', 'property', 'row',
                'col1', 'col1_item', 'col1_string', 'col2', 'col2_string', 'col2_item']
 
@@ -154,7 +153,7 @@ class TableContextMatches:
                  ignore_column: str = None,
                  relevant_properties_file: str = None,
                  use_relevant_properties: bool = False,
-                 save_relevant_properties: bool= False,
+                 save_relevant_properties: bool = False,
                  string_similarity_threshold: float = 0.7,
                  quantity_similarity_threshold: float = 0.3,
                  output_column_name: str = "context_score"
@@ -215,7 +214,7 @@ class TableContextMatches:
             raise TLException('Please specify a valid path for relevant properties.')
         relevant_properties_df.to_csv(self.relevant_properties_file, index=False)
 
-    def is_relevant_property(self, col1: str, col2:str, property: str) -> bool:
+    def is_relevant_property(self, col1: str, col2: str, property: str) -> bool:
         column_column_pair = f"{col1}_{col2}"
         # Lookup the dictionary
         if column_column_pair in self.relevant_properties:
@@ -314,10 +313,11 @@ class TableContextMatches:
         # Number of matches are the number it matched correctly
         pass
 
-    def compute_context_scores(self, n_context_columns: set, row_column_pairs: set) -> (List[int], List[str], List[int]):
+    def compute_context_scores(self, n_context_columns: set, row_column_pairs: set) -> (
+    List[int], List[str], List[int]):
         num_rows = self.input_df['row'].nunique()
         property_val_df = self.compute_property_scores(row_column_pairs, n_context_columns,
-                                                                      num_rows)
+                                                       num_rows)
         context_score_list = []
         context_property_list = []
         context_similarity_list = []
@@ -359,7 +359,8 @@ class TableContextMatches:
     def compute_property_scores(self, row_column_pairs: set, n_context_columns: set, num_rows: int) -> (
             pd.DataFrame, pd.DataFrame):
         # To calculate property score
-        properties_df = pd.DataFrame(columns = ["property_", "type", "best_score", "n_occurences", "row", "column", "col2"])
+        properties_df = pd.DataFrame(
+            columns=["property_", "type", "best_score", "n_occurences", "row", "column", "col2"])
         for r_c in row_column_pairs:
             row_col = r_c.split("_")
             row = row_col[0]
@@ -371,7 +372,7 @@ class TableContextMatches:
                     int_prop['row'] = row
                     int_prop['column'] = col
                     int_prop['col2'] = col2
-                    int_prop['inv_occ'] = (int_prop['avg_score'])/ (int_prop['n_occurences'])
+                    int_prop['inv_occ'] = (int_prop['avg_score']) / (int_prop['n_occurences'])
                     properties_df = pd.concat([properties_df, int_prop])
         property_value_list = []
         grouped_obj = properties_df.groupby(['column', 'col2', 'property_'])
