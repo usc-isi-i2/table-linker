@@ -322,7 +322,7 @@ class TableContextMatches:
             # the one with highest similarity.
             property_matched = []
             similarity_matched = []
-            context_score = 0
+            sum_of_properties = 0
             r_c = f"{row}_{col}"
             for col2 in n_context_columns:
                 if col2 != col and (col == self.main_entity_column or col2 == self.main_entity_column):
@@ -343,7 +343,11 @@ class TableContextMatches:
                     property_value = round(property_value, 4)
                     property_matched.append(property_ + "(" + str(property_value) + ")")
                     similarity_matched.append(best_score)
-                    context_score = (1 - 1 / (2 * len([i for i in similarity_matched if not i == 0])))
+                    sum_of_properties = sum_of_properties + property_value
+            if sum_of_properties == 0:
+                context_score = 0
+            else:
+                context_score = (1 - 1 / (2 * sum_of_properties))
             context_score_list.append(context_score)
             context_similarity_list.append(similarity_matched)
             context_property_list.append(property_matched)
