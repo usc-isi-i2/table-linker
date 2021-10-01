@@ -230,8 +230,7 @@ class TableContextMatches:
         return '0'
 
     def initialize(self, raw_input_df, context_dict, label_column):
-        columns = set(raw_input_df['column'].unique())
-        rows = set(raw_input_df['row'].unique())
+
         raw_input_df['kg_labels'].fillna("", inplace=True)
         raw_input_df['kg_aliases'].fillna("", inplace=True)
 
@@ -241,12 +240,14 @@ class TableContextMatches:
         else:
             self.input_df = raw_input_df
             self.other_input_df = None
-
+        rows = set(self.input_df['row'].unique())
+        columns = set(self.input_df['column'].unique())
+        row_column_pairs = set()
         for row, col, label in zip(self.input_df['row'], self.input_df['column'], self.input_df[label_column]):
             key = f"{row}_{col}"
-            self.row_col_label_dict[key] = label
+            row_column_pairs.add(key)
         # row_column_label_dict stores only the row_column pairs that need to be matched
-        row_column_pairs = {f"{row}_{col}" for row in rows for col in columns}
+        # row_column_pairs = {f"{row}_{col}" for row in rows for col in columns}
         for row, col, context in zip(self.input_df['row'], self.input_df['column'], self.input_df['context']):
             if col == '0':
                 context_vals = context.split('|')
@@ -293,7 +294,7 @@ class TableContextMatches:
                                            score=context_result['score'],
                                            best_match=context_result['best_match']
                                            )
-        self.process(row_column_pairs, columns)
+        self.input_df = self.process(row_column_pairs, columns)
 
     def process(self, row_column_pairs: set, n_context_columns: set):
         context_scores, properties, similarities = self.compute_context_scores(n_context_columns, row_column_pairs)
