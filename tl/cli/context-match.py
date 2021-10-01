@@ -89,7 +89,11 @@ def run(**kwargs):
         if save_property_scores:
             relevant_file_path = save_property_scores
             save_relevant_properties = True
-        obj = TableContextMatches(context_path = context_file_path, context_dict = None, input_path = input_file_path, context_matches_path = None, label_column = 'label_clean', ignore_column = ignore_column_name, relevant_properties_file = save_property_scores, use_relevant_properties = use_relevant_properties, save_relevant_properties = save_relevant_properties, string_similarity_threshold = similarity_string_threshold, quantity_similarity_threshold = similarity_quantity_threshold, output_column_name = output_column_name)
+        obj = TableContextMatches(context_path = context_file_path, context_dict = None, input_path = input_file_path, 
+                                  context_matches_path = None, label_column = 'label_clean', ignore_column = ignore_column_name, 
+                                  relevant_properties_file = save_property_scores, use_relevant_properties = use_relevant_properties, 
+                                  save_relevant_properties = save_relevant_properties, string_similarity_threshold = similarity_string_threshold, 
+                                  quantity_similarity_threshold = similarity_quantity_threshold, output_column_name = output_column_name)
         start = time.time()
         result_df = obj.input_df
         end = time.time()
