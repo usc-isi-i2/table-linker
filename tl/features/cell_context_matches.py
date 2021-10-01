@@ -1,6 +1,8 @@
 import re
 import json
 import operator
+import sys
+
 import pandas as pd
 from typing import List, Tuple, Set
 from rltk import similarity
@@ -239,8 +241,19 @@ class TableContextMatches:
         raw_input_df['kg_aliases'].fillna("", inplace=True)
 
         if self.ignore_column is not None:
-            self.input_df = raw_input_df[raw_input_df[self.ignore_column].astype(float) == 0]
-            self.other_input_df = raw_input_df[raw_input_df[self.ignore_column].astype(float) == 1]
+            _input_df = raw_input_df[(raw_input_df[self.ignore_column].astype(float) == 0)
+                                     & (raw_input_df['column'] == self.main_entity_column)]
+            not_ignored_rows = set(_input_df['row'].unique())
+            _input_df_2 = raw_input_df[
+                (raw_input_df['row'].isin(not_ignored_rows)) & (raw_input_df["column"] != self.main_entity_column)]
+
+            self.input_df = pd.concat([_input_df, _input_df_2])
+
+            not_ignored_indices = self.input_df.index
+
+            self.other_input_df = raw_input_df[~raw_input_df.index.isin(not_ignored_indices)]
+
+            assert (len(self.input_df) + len(self.other_input_df)) == len(raw_input_df)
         else:
             self.input_df = raw_input_df
             self.other_input_df = None
@@ -274,11 +287,16 @@ class TableContextMatches:
             kg_label_str = "|".join(kg_labels)
 
             ccm_key = f"{row}_{col}"
+
             if ccm_key not in self.ccm_dict:
                 self.ccm_dict[ccm_key] = CellContextMatches(row, col)
             if kg_id_context is not None:
                 for col2 in columns:
                     if (col != col2) and (col == self.main_entity_column or col2 == self.main_entity_column):
+
+                        ccm_key_2 = f"{row}_{col2}"
+                        if ccm_key_2 not in self.ccm_dict:
+                            self.ccm_dict[ccm_key_2] = CellContextMatches(row, col2)
 
                         context_results = self.compute_context_similarity(kg_id_context, col,
                                                                           col2,
@@ -314,7 +332,7 @@ class TableContextMatches:
         pass
 
     def compute_context_scores(self, n_context_columns: set, row_column_pairs: set) -> (
-    List[int], List[str], List[int]):
+            List[int], List[str], List[int]):
         num_rows = self.input_df['row'].nunique()
         property_val_df = self.compute_property_scores(row_column_pairs, n_context_columns,
                                                        num_rows)
@@ -500,6 +518,8 @@ class TableContextMatches:
         """
 
         ccm_key = f'{row}_{col1}'
+        ccm_key_2 = f'{row}_{col2}'
+
         self.ccm_dict[ccm_key].add_triple(
             row=row,
             col1=col1,
@@ -516,18 +536,18 @@ class TableContextMatches:
         )
 
         if type == 'i':  # add reverse context, type is item
-            self.ccm_dict[ccm_key].add_triple(row=row,
-                                              col1=col2,
-                                              col1_item=col2_item,
-                                              col1_string=col2_string,
-                                              type=type,
-                                              score=score,
-                                              property=f"_{property}",
-                                              col2=col1,
-                                              col2_string=col1_string,
-                                              col2_item=col1_item,
-                                              best_match=best_match
-                                              )
+            self.ccm_dict[ccm_key_2].add_triple(row=row,
+                                                col1=col2,
+                                                col1_item=col2_item,
+                                                col1_string=col2_string,
+                                                type=type,
+                                                score=score,
+                                                property=f"_{property}",
+                                                col2=col1,
+                                                col2_string=col1_string,
+                                                col2_item=col1_item,
+                                                best_match=best_match
+                                                )
 
         # Create a CellContextMatches if none exists for this cell an dthen call cellcm.add_triple()
 
