@@ -169,7 +169,7 @@ class TableContextMatches:
         """
         self.ignore_column = ignore_column
         if self.ignore_column:
-            self.prefix_column_name = "ignore"
+            self.prefix_column_name = "ignore_"
         else:
             self.prefix_column_name = ""
         self.row_col_label_dict = {}
