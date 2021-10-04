@@ -2,7 +2,7 @@ import re
 import json
 import operator
 import sys
-
+import dateutil.parser as dp
 import pandas as pd
 from typing import List, Tuple, Set
 from rltk import similarity
@@ -271,7 +271,14 @@ class TableContextMatches:
                     context_column = i + 1
                     row_col_dict_key = f"{row}_{context_column}"
                     if row_col_dict_key not in self.row_col_label_dict:
-                        self.row_col_label_dict[row_col_dict_key] = context_val
+                        type = "i"
+                        try:
+                            date = dp.parse(context_val)
+                            context_val = str(date.year)
+                            type = "d"
+                        except dp._parser.ParserError:
+                            pass
+                        self.row_col_label_dict[row_col_dict_key] = [context_val, type]
                         columns.add(str(context_column))
         for row, col, kg_id, kg_id_label_str, kg_id_alias_str in zip(self.input_df['row'],
                                                                      self.input_df['column'],
@@ -297,11 +304,10 @@ class TableContextMatches:
                         ccm_key_2 = f"{row}_{col2}"
                         if ccm_key_2 not in self.ccm_dict:
                             self.ccm_dict[ccm_key_2] = CellContextMatches(row, col2)
-
                         context_results = self.compute_context_similarity(kg_id_context, col,
                                                                           col2,
                                                                           self.row_col_label_dict.get(f"{row}_{col2}",
-                                                                                                      None))
+                                                                                                      None)[0])
                         for context_result in context_results:
                             self.add_match(row=row,
                                            col1=col,
@@ -316,6 +322,7 @@ class TableContextMatches:
                                            best_match=context_result['best_match']
                                            )
         self.input_df = self.process(row_column_pairs, columns)
+        self.input_df.to_csv('temporary_results.csv')
 
     def process(self, row_column_pairs: set, n_context_columns: set):
         context_scores, properties, similarities = self.compute_context_scores(n_context_columns, row_column_pairs)
@@ -336,6 +343,7 @@ class TableContextMatches:
         num_rows = self.input_df['row'].nunique()
         property_val_df = self.compute_property_scores(row_column_pairs, n_context_columns,
                                                        num_rows)
+        property_val_df.to_csv('property_value.csv', index = False)
         context_score_list = []
         context_property_list = []
         context_similarity_list = []
