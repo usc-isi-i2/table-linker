@@ -206,9 +206,8 @@ class TableContextMatches:
         relevant_properties_dict = {}
         for cell, group in relevant_properties_group:
             column_column_pair = f"{cell[0]}_{cell[1]}"
-            all_properties = set(group['property_'].unique())
-            relevant_properties_dict[column_column_pair] = all_properties
-
+            rel_df = group[['property_'], ['property_score']]
+            relevant_properties_dict[column_column_pair] = dict(zip(rel_df['property_'], rel_df['property_score']))
         return relevant_properties_dict
 
     def write_relevant_properties(self, relevant_properties_df: pd.DataFrame):
@@ -362,9 +361,13 @@ class TableContextMatches:
                             property_ = properties[0]
                             best_score = properties[2]
                     # if property_ not in current_relevant_properties: pass
-                    property_value = property_val_df.loc[
-                        (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
-                                property_val_df['col2'] == col2), 'property_score'].values[0]
+                    if self.use_relevant_properties:
+                        relevant_property_score_pair = self.relevant_properties.get(f"{col}_{col2}")
+                        property_value = relevant_property_score_pair.get(property_)
+                    else:
+                        property_value = property_val_df.loc[
+                            (property_val_df['property_'] == property_) & (property_val_df['column'] == col) & (
+                                    property_val_df['col2'] == col2), 'property_score'].values[0]
                     property_value = round(property_value, 4)
                     property_matched.append(property_ + "(" + str(property_value) + ")")
                     similarity_matched.append(best_score)
