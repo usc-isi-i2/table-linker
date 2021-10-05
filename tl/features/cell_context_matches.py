@@ -322,7 +322,6 @@ class TableContextMatches:
                                            best_match=context_result['best_match']
                                            )
         self.input_df = self.process(row_column_pairs, columns)
-        self.input_df.to_csv('temporary_results.csv')
 
     def process(self, row_column_pairs: set, n_context_columns: set):
         context_scores, properties, similarities = self.compute_context_scores(n_context_columns, row_column_pairs)
@@ -343,7 +342,6 @@ class TableContextMatches:
         num_rows = self.input_df['row'].nunique()
         property_val_df = self.compute_property_scores(row_column_pairs, n_context_columns,
                                                        num_rows)
-        property_val_df.to_csv('property_value.csv', index = False)
         context_score_list = []
         context_property_list = []
         context_similarity_list = []
