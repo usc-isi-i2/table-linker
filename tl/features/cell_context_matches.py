@@ -271,14 +271,12 @@ class TableContextMatches:
                     context_column = i + 1
                     row_col_dict_key = f"{row}_{context_column}"
                     if row_col_dict_key not in self.row_col_label_dict:
-                        type = "i"
                         try:
                             date = dp.parse(context_val)
                             context_val = str(date.year)
-                            type = "d"
                         except dp._parser.ParserError:
                             pass
-                        self.row_col_label_dict[row_col_dict_key] = [context_val, type]
+                        self.row_col_label_dict[row_col_dict_key] = context_val
                         columns.add(str(context_column))
         for row, col, kg_id, kg_id_label_str, kg_id_alias_str in zip(self.input_df['row'],
                                                                      self.input_df['column'],
@@ -307,7 +305,7 @@ class TableContextMatches:
                         context_results = self.compute_context_similarity(kg_id_context, col,
                                                                           col2,
                                                                           self.row_col_label_dict.get(f"{row}_{col2}",
-                                                                                                      None)[0])
+                                                                                                      None))
                         for context_result in context_results:
                             self.add_match(row=row,
                                            col1=col,
