@@ -2,7 +2,7 @@ import re
 import json
 import operator
 import sys
-
+import dateutil.parser as dp
 import pandas as pd
 from typing import List, Tuple, Set
 from rltk import similarity
@@ -271,6 +271,11 @@ class TableContextMatches:
                     context_column = i + 1
                     row_col_dict_key = f"{row}_{context_column}"
                     if row_col_dict_key not in self.row_col_label_dict:
+                        try:
+                            date = dp.parse(context_val)
+                            context_val = str(date.year)
+                        except dp._parser.ParserError:
+                            pass
                         self.row_col_label_dict[row_col_dict_key] = context_val
                         columns.add(str(context_column))
         for row, col, kg_id, kg_id_label_str, kg_id_alias_str in zip(self.input_df['row'],
@@ -297,7 +302,6 @@ class TableContextMatches:
                         ccm_key_2 = f"{row}_{col2}"
                         if ccm_key_2 not in self.ccm_dict:
                             self.ccm_dict[ccm_key_2] = CellContextMatches(row, col2)
-
                         context_results = self.compute_context_similarity(kg_id_context, col,
                                                                           col2,
                                                                           self.row_col_label_dict.get(f"{row}_{col2}",
