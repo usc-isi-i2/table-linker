@@ -2,7 +2,8 @@ import pandas as pd
 from tl.exceptions import RequiredColumnMissingException
 from tl.file_formats_validator import FFV
 from tl.exceptions import UnsupportTypeError
-import numpy as np
+
+pd.set_option('chained_assignment', None)
 
 
 def create_pseudo_gt(df: pd.DataFrame, column_thresholds: str,
