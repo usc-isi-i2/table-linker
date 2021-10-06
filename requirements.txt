@@ -11,7 +11,7 @@ wikipedia-api
 seaborn
 strsim
 pyecharts
-rltk==2.0.0a18
+rltk==2.0.0a20
 kgtk==0.7.1
 Unidecode
 pyrallel.lib==0.0.10
