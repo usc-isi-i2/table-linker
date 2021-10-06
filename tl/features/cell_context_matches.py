@@ -274,7 +274,7 @@ class TableContextMatches:
                         try:
                             date = dp.parse(context_val)
                             context_val = str(date.year)
-                        except dp._parser.ParserError:
+                        except:
                             pass
                         self.row_col_label_dict[row_col_dict_key] = context_val
                         columns.add(str(context_column))
@@ -390,7 +390,7 @@ class TableContextMatches:
         property_value_list = []
         grouped_obj = properties_df.groupby(['column', 'col2', 'property_'])
         for cell, group in grouped_obj:
-            property_score = (group['avg_score'].sum(axis=0)) 
+            property_score = (group['avg_score'].sum(axis=0))
             property_value_list.append([cell[2], cell[0], cell[1], property_score])
         property_value_df = pd.DataFrame(property_value_list, columns=['property_', 'column', 'col2', 'property_score'])
         property_value_df = property_value_df.sort_values(by=['column', 'property_score'], ascending=[True, False])
@@ -426,6 +426,10 @@ class TableContextMatches:
                 score, best_str_match = self.computes_similarity(prop_val_dict['v'],
                                                                  col2_string_set,
                                                                  prop_val_dict['t'])
+                # TODO: remove the following if condition after rltk release: 2.0.0a19
+                if score < self.string_similarity_threshold:
+                    score = 0
+
                 if score > 0.0 or (score == 0.0 and return_zero_similarity):
                     result.append({
                         "type": prop_val_dict['t'],
