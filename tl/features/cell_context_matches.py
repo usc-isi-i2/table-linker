@@ -337,8 +337,7 @@ class TableContextMatches:
 
     def compute_context_scores(self, n_context_columns: set, row_column_pairs: set) -> (
             List[int], List[str], List[int]):
-        num_rows = self.input_df['row'].nunique()
-        self.compute_property_scores(row_column_pairs, n_context_columns, num_rows)
+        self.compute_property_scores(row_column_pairs, n_context_columns)
         context_score_list = []
         context_property_list = []
         context_similarity_list = []
@@ -373,7 +372,7 @@ class TableContextMatches:
             context_property_list.append(property_matched)
         return context_score_list, context_property_list, context_similarity_list
 
-    def compute_property_scores(self, row_column_pairs: set, n_context_columns: set, num_rows: int):
+    def compute_property_scores(self, row_column_pairs: set, n_context_columns: set):
         properties_df_list = []
         for r_c in row_column_pairs:
             row_col = r_c.split("_")
@@ -391,7 +390,7 @@ class TableContextMatches:
         property_value_list = []
         grouped_obj = properties_df.groupby(['column', 'col2', 'property_'])
         for cell, group in grouped_obj:
-            property_score = (group['avg_score'].sum(axis=0)) / num_rows
+            property_score = (group['avg_score'].sum(axis=0)) 
             property_value_list.append([cell[2], cell[0], cell[1], property_score])
         property_value_df = pd.DataFrame(property_value_list, columns=['property_', 'column', 'col2', 'property_score'])
         property_value_df = property_value_df.sort_values(by=['column', 'property_score'], ascending=[True, False])
