@@ -1,7 +1,6 @@
 import pandas as pd
-from tl.exceptions import RequiredInputParameterMissingException
+from tl.exceptions import RequiredInputParameterMissingException, UnsupportTypeError
 from tl.file_formats_validator import FFV
-import sys
 
 
 def get_kg_links(score_column, file_path=None, df=None, label_column='label', top_k=5, k_rows=False):
@@ -15,6 +14,7 @@ def get_kg_links(score_column, file_path=None, df=None, label_column='label', to
 
     if file_path:
         df = pd.read_csv(file_path, dtype=object)
+    df[score_column].fillna(0.0, inplace=True)
     df.fillna("", inplace=True)
     df = df.astype(dtype={score_column: "float64"})
     ffv = FFV()
@@ -35,7 +35,7 @@ def get_kg_links(score_column, file_path=None, df=None, label_column='label', to
         new_top_k = top_k
         gt_rank = -1
         if is_gt_present:
-            gt_rank_values = grouped[grouped['evaluation_label'] == 1]['rank'].values
+            gt_rank_values = grouped[grouped['evaluation_label'].astype(int) == 1]['rank'].values
             if len(gt_rank_values) > 0:
                 gt_rank = gt_rank_values[0]
             if gt_rank > top_k:

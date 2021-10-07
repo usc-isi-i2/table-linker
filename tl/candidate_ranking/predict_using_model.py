@@ -1,3 +1,5 @@
+import sys
+
 import pandas as pd
 from tl.exceptions import RequiredInputParameterMissingException, UnsupportTypeError
 from tl.file_formats_validator import FFV
@@ -40,7 +42,7 @@ class PairwiseNetwork(nn.Module):
         return test_out
 
 
-def predict(features, output_column, ranking_model, min_max_scaler_path, file_path=None, df=None):
+def predict(features, output_column, ranking_model, min_max_scaler_path, ignore_column=None, file_path=None, df=None):
     if file_path is None and df is None:
         raise RequiredInputParameterMissingException(
             'One of the input parameters is required: {} or {}'.format("file_path", "df"))
@@ -52,9 +54,9 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
     if not (ffv.is_candidates_file(df)):
         raise UnsupportTypeError("The input file is not a candidate file!")
 
-    if not (ranking_model) and not (normalization_factor):
+    if not (ranking_model) and not (min_max_scaler_path):
         raise RequiredInputParameterMissingException(
-            'One of the input parameters is required: {} or {}'.format("ranking_model", "normalization_factor"))
+            'One of the input parameters is required: {} or {}'.format("ranking_model", "min_max_scaler_path"))
 
     normalize_features = features.split(",")
 
@@ -63,22 +65,35 @@ def predict(features, output_column, ranking_model, min_max_scaler_path, file_pa
     scaler = pickle.load(open(min_max_scaler_path, 'rb'))
 
     df[normalize_features] = df[normalize_features].astype('float64')
+
     grouped_obj = df.groupby(['column', 'row'])
     new_df_list = []
-    pred = []
+
     for cell in grouped_obj:
         cell[1][normalize_features] = scaler.transform(cell[1][normalize_features])
         df_copy = cell[1].copy()
-        df_features = df_copy[normalize_features]
-        new_df_list.append(df_copy)
-        arr = df_features.to_numpy()
-        test_inp = []
-        for a in arr:
-            test_inp.append(a)
-        test_tensor = torch.tensor(test_inp).float()
-        scores = model.predict(test_tensor)
-        pred.extend(torch.squeeze(scores).tolist())
+        if ignore_column is not None:
+            df_ni = df_copy[df_copy[ignore_column].astype(float) == 0].copy()
+            df_i = df_copy[df_copy[ignore_column].astype(float) == 1].copy()
+        else:
+            df_ni = df_copy
+            df_i = None
+        if len(df_ni) > 0:
+            df_features = df_ni[normalize_features]
+            arr = df_features.to_numpy()
+            test_inp = []
+            for a in arr:
+                test_inp.append(a)
+            test_tensor = torch.tensor(test_inp).float()
+            scores = torch.squeeze(model.predict(test_tensor)).tolist()
+            df_ni[output_column] = scores if isinstance(scores, list) else [scores]
+            new_df_list.append(df_ni)
+
+        if df_i is not None and len(df_i) > 0:
+            df_i[output_column] = 0.0
+            new_df_list.append(df_i)
+
     out_df = pd.concat(new_df_list)
-    out_df[output_column] = pred
+    out_df[output_column].fillna(0.0, inplace=True)
 
     return out_df

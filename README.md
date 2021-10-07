@@ -85,6 +85,8 @@ The `tl` CLI works by pushing CSV data through a series of commands, starting wi
 - [`tee`](#command_tee)<sup>*</sup>: saves the input to disk and echoes the input to the standard output without modification.
 - [`vote-by-classifier`](#command_vote-by-classifier) <sup>*</sup>: generates vote_by_model column as specified classifier's prediction output.
 - [`pgt-semantic-tf-idf`](#command_pgt-semantic-tf-idf) <sup>*</sup>: Identify pseudo GT and then compute tf-idf score using semantic features in the pseudo GT.
+- [`pick-hc-candidates`](#command_pick-hc-candidates) <sup>*</sup>: Identify high confidence candidates based on string similarity and number of candidates with same string similarity.
+- [`kth-percentile`](#command_kth-precentile) <sup>*</sup>: Label the top kth percentile candidates for a column.
 
 
 **Note: only the commands marked with <sup>*</sup> are currently implemented**
@@ -1992,3 +1994,124 @@ $ head candidates_pgt.csv
 |1     |0  |Citigroup|Citigroup  |Q5122510|5.68E-09|16.720482      |9.50E-08|0          |Citigroup Global Markets Japan                                                        |fuzzy-augmented|0           |                                                                        |
 |1     |0  |Citigroup|Citigroup  |Q867663 |4.19E-09|16.564976      |6.94E-08|0          |Citigroup Centre&#124;25 Canada Square&#124;Citigroup Centre (Londra)&#124;Citigroup Centre (Londres)|fuzzy-augmented|0           |                                                                        |
 |1     |0  |Citigroup|Citigroup  |Q5122507|2.84E-09|16.550804      |4.70E-08|0          |Citigroup Tower                                                                       |fuzzy-augmented|0           |                                                                        |
+
+
+<a name="command_pick-hc-candidates" />
+
+### [`pick-hc-candidates`](#command_pick-hc-candidates)` [OPTIONS]`
+
+The `pick-hc-candidates` command picks high confidence candidates based on the algorithm as described below. 
+
+### SMC number of cells
+The desired number of cells that the SMC algorithm will consider,
+
+- `maximum`: 100 by default, specified by a parameter.
+- `mininum`: min { #cells in column, 10 }, can be altered by a parameter.
+- `desired`: #cells in column * 0.25 (by default, also a user parameter).
+- `smc #cells`: `desired`, clipped to `minimum`, `maximum`.
+
+### Select potential candidates
+
+**Defintion**: best string similarity (best_sim):= maximum of string similarities for each cell.
+
+**Definition**: equal_sim(candidate): = # of other candidates for a cell such that best_sim(candidate) = best_sim(other candidates).
+
+Example: if a cell has candidates c<sub>1</sub>,c<sub>2</sub>,c<sub>3</sub> and all have same `best_sim`(c<sub>i</sub>) = 1.0, then `equal_sim`(c<sub>i</sub>) = 3, {i=1,2,3} because there are 3 other candidates with `best_sim` = 1.0
+
+- 1: Rank all column candidates by `best_sim`, breaking ties by smallest `equal_sim`. The idea is to rank less ambiguous candidates higher.
+- 2: Go down the ordered candidate bucket until the threshold T<sub>1</sub>. 
+- 3: Everytime you find a new cell, put it in the cell bucket.
+- 4: Once you reach T<sub>1</sub>, count the number of cells in the cell bucket. **Note**: cells with same lavel count only once.
+- 5: if `||cell bucket||` >= `smc #cells`, stop. Otherwise keep going down the candidate list until  `||cell bucket||` >= `smc #cells` or until `best_sim` >= a lower, backup threshold T<sub>2</sub>.
+- 6: Mark the candidates found in step 1-5 as `ignore = 0`. These marked candidates are the high confidence candidates.
+
+**Options:**
+- `-o / --output-column {string}`: the output column name where the value {0/1} will be stored.Default is `ignore_candidate`
+- `-s / --string-similarity-columns {string}`: a comma separated list of columns with string similarity features
+- `--maximum-cells {int}`: maximum number of cells that can set to not ignore. Default = 100
+- `--minimum-cells {int}`: minimum number of cells that can be set to not ignore. Default = 10
+- `--desired-cell-factor {float}`: fraction of number of cells to be considered. Default = 0.25
+- `--string-similarity-threshold {float}`: string similarity threshold below which cells will be ignored. Default = 0.9
+- `--string-similarity-threshold-2 {float}`: a second string similarity threshold to fall back on, in case there are not sufficient candidates with string similarity greater than or equal to `--string-similarity-threshold`. Default = 0.8
+- `--filter-above {string}`: {mean|median}, filter out all the candidates with equal sim above the equal sim mean or median for a column. Default is mean
+
+**Examples:**
+```bash
+$ tl pick-hc-candidates -s monge_elkan,monge_elkan_aliases,jaro_winkler,levenshtein \
+    -o ignore_candidate \
+    --maximum-cells 50 \
+    --minimum-cells 8 \
+    --desired-cell-factor 0.3 \
+    --string-similarity-threshold 0.95 \
+    --string-similarity-threshold-2 0.87 \
+    --filter-above mean \
+    music_singles_candidates.csv > music_singles_hc_candidates.csv
+```
+
+**File Example:**
+```
+$ head music_singles_hc_candidates.csv
+```
+|column|row|label                |label_clean          |kg_id    |kg_labels            |pagerank|retrieval_score|monge_elkan|monge_elkan_aliases|jaro_winkler|levenshtein|best_str_similarity|equal_sim|ignore_candidate|
+|------|---|---------------------|---------------------|---------|---------------------|--------|---------------|-----------|-------------------|------------|-----------|-------------------|---------|----------------|
+|0     |11 |The King of Pop      |The King of Pop      |Q2831    |Michael Jackson      |5.65E-07|16.442932      |0.174107143|1                  |0.488888889 |0.066666667|1                  |2        |0               |
+|0     |11 |The King of Pop      |The King of Pop      |Q2831    |Michael Jackson      |5.65E-07|25.133442      |0.174107143|1                  |0.488888889 |0.066666667|1                  |2        |0               |
+|0     |5  |The Fab Four         |The Fab Four         |Q7732974 |The Fab Four         |2.84E-09|16.438158      |1          |0                  |1           |1          |1                  |2        |0               |
+|0     |5  |The Fab Four         |The Fab Four         |Q7732974 |The Fab Four         |2.84E-09|30.132828      |1          |0                  |1           |1          |1                  |2        |0               |
+|0     |3  |The King of the Blues|The King of the Blues|Q60786631|The King of the Blues|2.84E-09|16.437386      |1          |0                  |1           |1          |1                  |3        |0               |
+|0     |3  |The King of the Blues|The King of the Blues|Q60786631|The King of the Blues|2.84E-09|27.152079      |1          |0                  |1           |1          |1                  |3        |0               |
+|0     |3  |The King of the Blues|The King of the Blues|Q3197058 |King of the Blues    |2.84E-09|26.890848      |1          |0                  |0.799253035 |0.80952381 |1                  |3        |1               |
+|0     |12 |Slowhand             |Slowhand             |Q48187   |Eric Clapton         |2.23E-07|16.442932      |0.455357143|1                  |0.402777778 |0.083333333|1                  |4        |0               |
+|0     |12 |Slowhand             |Slowhand             |Q549602  |Slowhand             |3.82E-09|15.8904705     |1          |0                  |1           |1          |1                  |4        |1               |
+
+
+<a name="command_kth-precentile" />
+
+### [`kth-percentile`](#command_kth-precentile)` [OPTIONS]`
+
+The `kth-percentile` computes the k<sup>th</sup> percentile for a given column and marks those rows as `1` which are above the k<sup>th</sup> percentile as `1`.
+In addition, if the option `--ignore-column` is specified, k<sup>th</sup> percentile is computed using rows which are marked as `ignore = 0`.
+
+**Options:**
+- `-c / --column {string}`: the input column which has numeric values to compute the k-percentile on
+- `-o / --output-column {string}`: the output column name where the value {0/1} will be stored, indicating whether this candidate
+                        belongs to k percenters. Default is `kth_percenter`
+- `--ignore-column {string}`: the column which marks candidates to be ignored or not
+- `--k-percentile {float|string}`: The value for kth percentile. The values to this option should either be any number between [0.0, 1.0], or a string ∈ {mean, median}
+
+**Examples:**
+```bash
+$ tl kth-percentile -c retrieval_score \
+    -o kth_percenter \
+    --k-percentile 0.05 \
+    music_singles_candidates.csv > music_singles_hc_candidates.csv
+```
+```bash
+$ tl kth-percentile -c retrieval_score \
+    -o kth_percenter \
+    --k-percentile 0.05 \
+    --ignore-column ignore_candidate \
+    music_singles_candidates.csv > music_singles_hc_candidates.csv
+```
+
+**File Example:**
+```
+$ tl kth-percentile -c retrieval_score \
+    -o kth_percenter \
+    --k-percentile 0.05 \
+    music_singles_candidates.csv > music_singles_hc_candidates.csv
+    
+$ head music_singles_hc_candidates.csv
+```
+|column|row|label                     |label_clean              |kg_id   |kg_labels                  |retrieval_score|kth_percenter|
+|------|---|--------------------------|-------------------------|--------|---------------------------|---------------|-------------|
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|        |                           |0              |0            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q303    |Elvis Presley              |45.493786      |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q7744584|The King of Rock \n\ Roll  |35.69553       |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q4319576|Nick Rock\n\Roll           |35.426224      |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q3437721|Rock \n\ Roll Is King      |34.43733       |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q4051146|The King of Rock and Roll  |32.125546      |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q7728602|The Daddy of Rock \n\ Roll |31.09376       |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q7761239|The Rock \n\ Roll Express  |30.621666      |1            |
+|0     |0  |The  King of Rock 'n' Roll|The King of Rock 'n' Roll|Q941904 |Rock ’n’ Roll&#124;Rock \n\ Roll|30.403358      |1            |
+

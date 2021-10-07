@@ -6,8 +6,15 @@ HC_CANDIDATE = 'hc_candidate'
 
 
 class SemanticsFeature(object):
-    def __init__(self, output_column, feature_file, feature_name, total_docs, pagerank_column, retrieval_score_column,
-                 input_file=None, df=None):
+    def __init__(self, output_column: str,
+                 feature_file: str,
+                 feature_name: str,
+                 total_docs: float,
+                 pagerank_column: str,
+                 retrieval_score_column: str,
+                 hc_column: str,
+                 input_file: str = None,
+                 df: pd.DataFrame = None):
 
         if df is None and input_file is None:
             raise RequiredInputParameterMissingException(
@@ -24,7 +31,8 @@ class SemanticsFeature(object):
         self.output_col_name = output_column
         self.pagerank_column = pagerank_column
         self.retrieval_score_column = retrieval_score_column
-        self.N = float(total_docs)
+        self.N = total_docs
+        self.hc_column = hc_column
         self.utils = Utility()
 
         self.multiply_pgr_rts()
@@ -39,6 +47,16 @@ class SemanticsFeature(object):
 
         self.hc_classes = self.create_hc_classes_set()
 
+        grouped = self.input_df.groupby(['column', 'row'])
+        table_lens = {}
+
+        for key, gdf in grouped:
+            if key[0] not in table_lens:
+                table_lens[key[0]] = 0
+            table_lens[key[0]] += 1
+
+        self.table_lengths = table_lens
+
     def create_hc_classes_set(self):
         hc_classes = set()
         for candidate in self.hc_candidates:
@@ -46,8 +64,11 @@ class SemanticsFeature(object):
         return hc_classes
 
     def find_hc_candidates(self):
-        self.label_high_confidence_candidates()
-        data = self.input_df[self.input_df[HC_CANDIDATE] == 1]
+        if self.hc_column is not None:
+            data = self.input_df[self.input_df[self.hc_column].astype(int) == 1]
+        else:
+            self.label_high_confidence_candidates()
+            data = self.input_df[self.input_df[HC_CANDIDATE] == 1]
         hc_candidates = set(data['kg_id'])
         return hc_candidates
 
@@ -88,11 +109,12 @@ class SemanticsFeature(object):
         top_5_col_name = f"top5_{self.output_col_name}"
 
         candidate_x_i, alpha_j = self.compute_xi_alphaj()
-        hc_classes_idf = self.utils.normalize_idf_high_confidence_classes(self.input_df, HC_CANDIDATE,
+        _hc_column = self.hc_column if self.hc_column is not None else HC_CANDIDATE
+        hc_classes_idf = self.utils.normalize_idf_high_confidence_classes(self.input_df, _hc_column,
                                                                           self.feature_dict, self.feature_idf_dict)
 
         for _qnode, column, row, hc_candidate in zip(self.input_df['kg_id'], self.input_df['column'],
-                                                     self.input_df['row'], self.input_df[HC_CANDIDATE]):
+                                                     self.input_df['row'], self.input_df[_hc_column]):
 
             top_5_features_candidate = {}
 
@@ -106,6 +128,7 @@ class SemanticsFeature(object):
                     alpha_j[column].get(cc, 0.0) *
                     hc_classes_idf[column].get(cc, 0.0)
                     for cc in self.feature_dict.get(_qnode, [])])
+
                 for cc in self.feature_dict.get(_qnode, []):
                     top_5_features_candidate[cc] = hc_classes_idf[column].get(cc, 0.0)
 
@@ -118,7 +141,10 @@ class SemanticsFeature(object):
         return self.input_df
 
     def compute_xi_alphaj(self) -> (dict, dict):
-        data = self.input_df[self.input_df[HC_CANDIDATE] == 1]
+        if self.hc_column is not None:
+            data = self.input_df[self.input_df[self.hc_column] == 1]
+        else:
+            data = self.input_df[self.input_df[HC_CANDIDATE] == 1]
 
         classes_count = {}
         candidate_x_i = {}
@@ -140,22 +166,33 @@ class SemanticsFeature(object):
                     classes_count[column][row][kg_id][cc] = 0
                 classes_count[column][row][kg_id][cc] += 1
 
+        cell_class_count = {}
         for c in classes_count:
             c_d = classes_count[c]
             candidate_x_i[c] = {}
+            if c not in cell_class_count:
+                cell_class_count[c] = {}
             for r in c_d:
+                if r not in cell_class_count[c]:
+                    cell_class_count[c][r] = {}
                 candidate_x_i[c][r] = {}
                 r_d = c_d[r]
-                class_count = {}
                 for candidate in r_d:
                     candidate_x_i[c][r][candidate] = {}
                     classes = r_d[candidate]
                     for classs in classes:
-                        if classs not in class_count:
-                            class_count[classs] = 0
-                        class_count[classs] += 1
+                        if classs not in cell_class_count[c][r]:
+                            cell_class_count[c][r][classs] = 0
+                        cell_class_count[c][r][classs] += 1
+
+        for c in classes_count:
+            c_d = classes_count[c]
+            for r in c_d:
+                r_d = c_d[r]
+                for candidate in r_d:
+                    classes = r_d[candidate]
                     for classs in classes:
-                        candidate_x_i[c][r][candidate][classs] = 1 / class_count[classs]
+                        candidate_x_i[c][r][candidate][classs] = 1 / cell_class_count[c][r][classs]
 
         for c in candidate_x_i:
             c_d = candidate_x_i[c]

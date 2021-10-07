@@ -1,5 +1,4 @@
 import pandas as pd
-import typing
 from collections import defaultdict
 from tl.exceptions import RequiredInputParameterMissingException
 from tl.features import normalize_scores
@@ -60,7 +59,7 @@ def assign_evaluation_label(row):
     return -1
 
 
-def metrics(column, file_path=None, df=None, k: typing.Union[int, typing.List[int]] = 1, tag=""):
+def metrics(column, file_path=None, df=None, k: int = 1, tag=""):
     """
     computes the precision, recall and f1 score for the tl pipeline.
 
@@ -74,10 +73,6 @@ def metrics(column, file_path=None, df=None, k: typing.Union[int, typing.List[in
     Returns:
 
     """
-    # always ensure k is a list
-    if isinstance(k, int):
-        k = [k]
-
     if file_path is None and df is None:
         raise RequiredInputParameterMissingException(
             'One of the input parameters is required: {} or {}'.format('file_path', 'df'))
@@ -95,43 +90,44 @@ def metrics(column, file_path=None, df=None, k: typing.Union[int, typing.List[in
     # relevant df
     rdf = df[df['evaluation_label'].astype(float) != 0.0]
 
-    # true positive for precision at 1
-    tp_ps = []
+    col_grouped = rdf.groupby(by=['column'])
+    results = []
+    for col, cgdf in col_grouped:
+        # true positive for precision at 1
+        tp_ps = []
 
-    # true positive for recall at k
-    tp_rs = defaultdict(list)
+        # true positive for recall at k
+        tp_rs = defaultdict(list)
+        grouped = cgdf.groupby(by=['row'])
+        n = len(grouped)
+        for key, gdf in grouped:
+            gdf = gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True]).reset_index()
 
-    grouped = rdf.groupby(by=['column', 'row'])
-    n = len(grouped)
-    for key, gdf in grouped:
-        gdf = gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True]).reset_index()
+            for i, row in gdf.iterrows():
+                if float(row['evaluation_label']) == 1 and row[column] == row['max_score']:
+                    tp_ps.append(key)
 
-        for i, row in gdf.iterrows():
-            if (row['evaluation_label'] == '1' or row['evaluation_label'] == 1.0) and row[column] == row['max_score']:
-                tp_ps.append(key)
+                # this df is sorted by score, so highest ranked candidate is rank 1 and so on...
+                rank = i + 1
+                if rank <= k and (row['evaluation_label'] == '1' or row['evaluation_label'] == 1.0):
+                    tp_rs[k].append(key)
 
-            # this df is sorted by score, so highest ranked candidate is rank 1 and so on...
-            rank = i + 1
-            for each_k in k:
-                # get multiple k in one time
-                if rank <= each_k and (row['evaluation_label'] == '1' or row['evaluation_label'] == 1.0):
-                    tp_rs[each_k].append(key)
+        precision = float(len(tp_ps)) / float(n)
+        recall = {k: float(len(each_tp_rs)) / float(n) for k, each_tp_rs in tp_rs.items()}
+        # sort as k value increasing
+        recall = {k: v for k, v in sorted(recall.items(), key=lambda x: x[0])}
 
-    precision = float(len(tp_ps)) / float(n)
-    recall = {k: float(len(each_tp_rs)) / float(n) for k, each_tp_rs in tp_rs.items()}
-    # sort as k value increasing
-    recall = {k: v for k, v in sorted(recall.items(), key=lambda x: x[0])}
-    result_dict = {}
+        for _k, each_recall in recall.items():
+            if precision == 0 and each_recall == 0:
+                f1_score = 0.0
+            else:
+                f1_score = (2 * precision * each_recall) / (precision + each_recall)
+            results.append({"k": _k,
+                            'f1': f1_score,
+                            'precision': precision,
+                            'recall': each_recall,
+                            'column': col,
+                            'tag': tag})
 
-    # combine all things and output
-    i = 0
-    for k, each_recall in recall.items():
-        if precision == 0 and each_recall == 0:
-            f1_score = 0.0
-        else:
-            f1_score = (2 * precision * each_recall) / (precision + each_recall)
-        result_dict[i] = {"k": k, 'f1': f1_score, 'precision': precision, 'recall': each_recall, 'tag': tag}
-        i += 1
-
-    output_df = pd.DataFrame.from_dict(result_dict, orient="index")
+    output_df = pd.DataFrame(results)
     return output_df

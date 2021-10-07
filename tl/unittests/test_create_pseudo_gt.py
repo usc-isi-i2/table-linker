@@ -19,7 +19,7 @@ class TestCreatePseudoGT(unittest.TestCase):
         in_df = pd.read_csv(self.feat_path)
         out_df = create_pseudo_gt(in_df, self.column_thresholds,
                                   self.output_column)
-        self.assertTrue(out_df[self.output_column].isin([1, 0]).all())
+        self.assertTrue(out_df[self.output_column].isin([1, -1]).all())
 
     def test_missing_columns(self):
         in_df = pd.read_csv(self.feat_path)

@@ -1,11 +1,12 @@
 import ftfy
 import pandas as pd
+from typing import List
 from tl.exceptions import RequiredInputParameterMissingException
 from tl.exceptions import RequiredColumnMissingException
 
 
 def canonicalize(columns, output_column='label', file_path=None, df=None, file_type='csv',
-                 add_context=False, context_column_name="context", file_name=None):
+                 add_context=False, context_column_name="context", file_name=None, skip_columns: List[str] = None):
     """
     translate an input CSV or TSV file to canonical form
 
@@ -33,7 +34,10 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
     for column in columns:
         if column not in df.columns:
             raise RequiredColumnMissingException("The input column {} does not exist in given data.".format(column))
-        remaining_columns.remove(column)
+
+    if skip_columns:
+        for c in skip_columns:
+            remaining_columns.remove(c)
 
     remaining_col_ids = [df.columns.get_loc(x) for x in remaining_columns]
 
@@ -44,13 +48,15 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
     for tup in zip(*[df[col] for col in df]):
         for column in columns:
             column_idx = df.columns.get_loc(column)
+            context_columns = remaining_col_ids.copy()
+            context_columns.remove(column_idx)
             new_row = {
                 'column': column_idx,
                 'row': row_num,
                 output_column: tup[column_idx]
             }
             if add_context:
-                remaining_values = "|".join([tup[x] for x in remaining_col_ids])
+                remaining_values = "|".join([tup[x] for x in context_columns])
                 new_row[context_column_name] = remaining_values
             if file_name is not None:
                 new_row['filename'] = file_name
@@ -163,4 +169,4 @@ def remove_text_inside_brackets(text, brackets="()[]"):
         else:  # character is not a [balanced] bracket
             if not any(count):  # outside brackets
                 saved_chars.append(character)
-    return ''.join(saved_chars)
+    return ''.join(saved_chars).strip()

@@ -67,14 +67,15 @@ class StringSimilarityModule(ABC):
         if hasattr(self, '_tokenize'):
             str1 = self._tokenize(str1)
             str2 = self._tokenize(str2)
-        similarity = self._similarity(str1, str2)
-        # if the score less than some threshold, return 0
+        # the threshold here may only be effective if it is implemented by the underlying function
+        similarity = self._similarity(str1, str2, threshold)
+        # force the score to be 0 if it is less than the threshold
         if threshold > similarity:
-            return 0
+            return 0.0
         return similarity
 
     @abstractmethod
-    def _similarity(self, str1: str, str2: str) -> float:
+    def _similarity(self, str1: str, str2: str, threshold: float) -> float:
         # detail implementation of the method
         raise NotImplementedError
 
@@ -82,8 +83,8 @@ class StringSimilarityModule(ABC):
 class LevenshteinSimilarity(StringSimilarityModule):
     # levenshtein
 
-    def _similarity(self, str1: str, str2: str):
-        return sim.levenshtein_similarity(str1, str2)
+    def _similarity(self, str1: str, str2: str, threshold: float):
+        return sim.levenshtein_similarity(str1, str2, lower_bound=threshold)
 
 
 class JaroWinklerSimilarity(StringSimilarityModule):
@@ -96,7 +97,7 @@ class JaroWinklerSimilarity(StringSimilarityModule):
         super().__init__(tl_args,
                          threshold=threshold, scaling_factor=scaling_factor, prefix_len=prefix_len)
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: str, str2: str, threshold: float):
         return sim.jaro_winkler_similarity(str1, str2,
                                            threshold=self._threshold, scaling_factor=self._scaling_factor,
                                            prefix_len=self._prefix_len)
@@ -112,7 +113,7 @@ class NeedlemanSimilarity(StringSimilarityModule):
         super().__init__(tl_args,
                          match=match, mismatch=mismatch, gap=gap)
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: str, str2: str, threshold: float):
         return sim.needleman_wunsch_similarity(str1, str2,
                                                match=self._match, mismatch=self._mismatch, gap=self._gap)
 
@@ -120,21 +121,21 @@ class NeedlemanSimilarity(StringSimilarityModule):
 class SoundexSimilarity(StringSimilarityModule):
     # soundex
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: str, str2: str, threshold: float):
         return sim.soundex_similarity(str1, str2)
 
 
 class MetaphoneSimilarity(StringSimilarityModule):
     # metaphone
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: str, str2: str, threshold: float):
         return sim.metaphone_similarity(str1, str2)
 
 
 class NysiisSimilarity(StringSimilarityModule):
     # nysiis
 
-    def _similarity(self, str1: str, str2: str):
+    def _similarity(self, str1: str, str2: str, threshold: float):
         return sim.nysiis_similarity(str1, str2)
 
 
@@ -144,7 +145,7 @@ class CosineSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: list, str2: list):
+    def _similarity(self, str1: list, str2: list, threshold: float):
         return sim.string_cosine_similarity(str1, str2)
 
 
@@ -154,7 +155,7 @@ class JaccardSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: list, str2: list):
+    def _similarity(self, str1: list, str2: list, threshold: float):
         return sim.jaccard_index_similarity(set(str1), set(str2))
 
 
@@ -164,8 +165,8 @@ class HybridJaccardSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: list, str2: list):
-        return sim.hybrid_jaccard_similarity(set(str1), set(str2))
+    def _similarity(self, str1: list, str2: list, threshold: float):
+        return sim.hybrid_jaccard_similarity(set(str1), set(str2), lower_bound=threshold)
 
 
 class MongeElkanSimilarity(StringSimilarityModule):
@@ -174,18 +175,22 @@ class MongeElkanSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: list, str2: list):
-        return sim.monge_elkan_similarity(str1, str2)
+    def _similarity(self, str1: list, str2: list, threshold: float):
+        return sim.monge_elkan_similarity(str1, str2, lower_bound=threshold)
 
 
 class SymmetricMongeElkanSimilarity(StringSimilarityModule):
     # symmetric_monge_elkan:tokenizer=word
 
+    @property
+    def support_threshold(self):
+        return True
+
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: list, str2: list):
-        return sim.symmetric_monge_elkan_similarity(str1, str2)
+    def _similarity(self, str1: list, str2: list, threshold: float):
+        return sim.symmetric_monge_elkan_similarity(str1, str2, lower_bound=threshold)
 
 
 class TfidfSimilarity(StringSimilarityModule):
@@ -212,7 +217,7 @@ class TfidfSimilarity(StringSimilarityModule):
                 fake_id += 1
         self._tfidf.pre_compute()
 
-    def _similarity(self, str1: list, str2: list):
+    def _similarity(self, str1: list, str2: list, threshold: float):
         # because doc_id is not available
         # here tf will be re-computed
         tf_x = sim.compute_tf(str1)

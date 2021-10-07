@@ -22,6 +22,8 @@ def add_arguments(parser):
                         help='the columns in the input file to be linked to KG entities. Multiple columns'
                              ' are specified as a comma separated string.')
     parser.add_argument('-o', '--output-column', action='store', type=str, dest='output_column', default='label')
+    parser.add_argument('-s', '--skip-columns', action='store', type=str, dest='skip_columns',
+                        help='a comma separated list of columns, values of which will not be put in context')
     parser.add_argument('--tsv', action='store_true', dest='tsv')
     parser.add_argument('--csv', action='store_true', dest='csv')
 
@@ -40,13 +42,17 @@ def run(**kwargs):
     file_type = 'tsv' if kwargs['tsv'] else 'csv'
     try:
         i_file = kwargs['input_file']
+        skip_columns = kwargs.get('skip_columns', None)
+        if skip_columns:
+            skip_columns = skip_columns.split(',')
         df = pd.read_csv(i_file, sep=',' if file_type == 'csv' else '\t', dtype=object)
         file_name = i_file.name.split("/")[-1]
 
         start = time.time()
         odf = preprocess.canonicalize(kwargs['columns'], output_column=kwargs['output_column'], df=df,
                                       file_type=file_type, add_context=kwargs['add_context'],
-                                      file_name=file_name)
+                                      file_name=file_name,
+                                      skip_columns=skip_columns)
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={

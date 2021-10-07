@@ -31,6 +31,9 @@ def add_arguments(parser):
                         help="a tsv file with feature on which to compute tf idf score")
     parser.add_argument('--feature-name', action='store', dest='feature_name', required=True,
                         help="name of the column in the feature file")
+    parser.add_argument('--high-confidence-column', action='store', dest='hc_column', required=False,
+                        help="name of the column indicating a candidate is high confidence. It not provided, the"
+                             "command will identify high confidence candidates based on pagerank and retrieval score")
     parser.add_argument('--N', action='store', dest='total_docs', required=False, default=52546967,
                         help="total number of documents in ES index, used to compute IDF. Default: 52546967")
 
@@ -43,9 +46,10 @@ def run(**kwargs):
         tfidf_unit = SemanticsFeature(kwargs['output_column_name'],
                                       kwargs['feature_file'],
                                       kwargs['feature_name'],
-                                      kwargs['total_docs'],
+                                      float(kwargs['total_docs']),
                                       kwargs['pagerank_column'],
                                       kwargs['retrieval_score_column'],
+                                      hc_column=kwargs['hc_column'],
                                       input_file=kwargs['input_file'])
 
         odf = tfidf_unit.compute_semantic_feature()

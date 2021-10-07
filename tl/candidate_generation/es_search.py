@@ -3,7 +3,10 @@ import copy
 import hashlib
 import logging
 import re
+
+import json
 import requests
+import sys
 import typing
 from requests.auth import HTTPBasicAuth
 from typing import List
@@ -47,36 +50,159 @@ class Search(object):
 
         return self.query_cache[cache_key]
 
-    def create_exact_match_query(self, search_term: str, lower_case: bool, size: int, properties: List[str],
-                                 extra_musts: dict = None):
+    def create_exact_match_query(self,
+                                 search_term: str,
+                                 lower_case: bool,
+                                 size: int,
+                                 properties: List[str],
+                                 extra_musts: dict = None,
+                                 search_term_original: str = None):
         must = list()
-        search_term = search_term.strip()
+        search_terms = list()
+        search_terms.append(search_term.strip())
+        if search_term_original != search_term:
+            search_terms.append(search_term_original)
+
+        highlight_fields = {
+            "fields": {}
+        }
+
         for property in properties:
-            query_part = {
-                "term": {
-                    "{}.keyword_lower".format(property): {
-                        "value": search_term.lower()
+
+            if lower_case:
+                _field = "{}.keyword_lower".format(property)
+                query_part = {
+                    "terms": {
+                        _field: [x.lower() for x in search_terms]
                     }
                 }
-            } if lower_case else \
-                {
+                highlight_fields['fields'][_field] = {}
+            else:
+                _field = "{}.keyword".format(property)
+                query_part = {
                     "term": {
-                        "{}.keyword".format(property): {
-                            "value": search_term
-                        }
+                        _field: search_terms
                     }
                 }
+                highlight_fields['fields'][_field] = {}
             must.append(query_part)
 
         if extra_musts:
             must.append(extra_musts)
 
         must_not = [
-            {"term": {
-                "descriptions.en.keyword_lower": {
-                    "value": "wikimedia disambiguation page"
+            {
+                "terms": {
+                    "descriptions.en.keyword_lower": [
+                        "wikimedia disambiguation page",
+                        "wikimedia category",
+                        "wikimedia kml file",
+                        "wikimedia list article",
+                        "wikimedia template",
+                        "wikimedia module",
+                        "wikinews article",
+                        "wikimedia template page"
+                    ]
                 }
-            }}
+            }
+        ]
+
+        return {
+            "query": {
+                "bool": {
+                    "must": must,
+                    "must_not": must_not
+                }
+            },
+            "highlight": highlight_fields,
+            "size": size
+        }
+
+    def create_trigram_query(self, search_term,
+                             size,
+                             properties,
+                             extra_musts=None):
+        must = list()
+        search_term = search_term.lower()
+
+        highlight = {
+            'fields': {}
+        }
+        for p in properties:
+            highlight['fields'][p] = {}
+
+        query_part = {
+            "query_string": {
+                "fields": properties,
+                "query": search_term
+            }
+        }
+        must.append(query_part)
+
+        if extra_musts:
+            must.extend(extra_musts) if isinstance(extra_musts, list) else must.append(extra_musts)
+
+        must_not = [
+            {
+                "terms": {
+                    "descriptions.en.keyword_lower": [
+                        "wikimedia disambiguation page",
+                        "wikimedia category",
+                        "wikimedia kml file",
+                        "wikimedia list article",
+                        "wikimedia template",
+                        "wikimedia module",
+                        "wikinews article",
+                        "wikimedia template page"
+                    ]
+                }
+            }
+        ]
+
+        return {
+            "query": {
+                "bool": {
+                    "must": must,
+                    "must_not": must_not
+                }
+            },
+            "size": size,
+            "highlight": highlight
+        }
+
+    def create_external_identifier_query(self, search_term,
+                                         size,
+                                         properties,
+                                         identifier_property):
+        must = list()
+        search_value = f"{identifier_property.upper()}:{search_term}" \
+            if identifier_property is not None \
+            else search_term
+        for property in properties:
+            query_part = {
+                "term": {
+                    "{}.keyword".format(property.lower()): {
+                        "value": search_value
+                    }
+                }
+            }
+            must.append(query_part)
+
+        must_not = [
+            {
+                "terms": {
+                    "descriptions.en.keyword_lower": [
+                        "wikimedia disambiguation page",
+                        "wikimedia category",
+                        "wikimedia kml file",
+                        "wikimedia list article",
+                        "wikimedia template",
+                        "wikimedia module",
+                        "wikinews article",
+                        "wikimedia template page"
+                    ]
+                }
+            }
         ]
 
         return {
@@ -136,6 +262,13 @@ class Search(object):
                                      extra_musts: dict = None):
         if lower_case:
             properties = [prop + '.keyword_lower' for prop in properties]
+
+        highlight = {
+            'fields': {}
+        }
+        for prop in properties:
+            _f = prop + '.keyword_lower' if lower_case else prop
+            highlight['fields'][_f] = {}
         query = {
             "query": {
                 "bool": {
@@ -171,7 +304,7 @@ class Search(object):
         }
         if extra_musts:
             query['query']['bool']['must'].append(extra_musts)
-
+        query['highlight'] = highlight
         return query
 
     def create_fuzzy_augmented_union(self, fuzzy_augmented_hits, fuzzy_augmented_keyword_lower_hits):
@@ -189,9 +322,17 @@ class Search(object):
 
         return hits
 
-    def search_term_candidates(self, search_term_str: str, size: int, properties, query_type: str,
-                               lower_case: bool = True, auxiliary_fields: List[str] = None, ignore_cache=False,
-                               extra_musts: dict = None):
+    def search_term_candidates(self,
+                               search_term_str: str,
+                               size: int,
+                               properties,
+                               query_type: str,
+                               lower_case: bool = True,
+                               auxiliary_fields: List[str] = None,
+                               ignore_cache=False,
+                               extra_musts: dict = None,
+                               search_term_original: str = None,
+                               identifier_property: str = None):
         candidate_dict = {}
         candidate_aux_dict = {}
 
@@ -203,11 +344,23 @@ class Search(object):
                 hits = None
                 if query_type == 'exact-match':
                     hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size, properties,
-                                                                        extra_musts=extra_musts))
+                                                                        extra_musts=extra_musts,
+                                                                        search_term_original=search_term_original))
                     if not hits:
                         hits = self.search_es(self.create_exact_match_query(search_term, lower_case, size,
                                                                             ['all_labels_aliases'],
-                                                                            extra_musts=extra_musts))
+                                                                            extra_musts=extra_musts,
+                                                                            search_term_original=search_term_original))
+                elif query_type == 'ex-id-match':
+                    hits = self.search_es(self.create_external_identifier_query(search_term,
+                                                                                size,
+                                                                                properties,
+                                                                                identifier_property))
+                elif query_type == 'trigram-match':
+                    hits = self.search_es(self.create_trigram_query(search_term,
+                                                                    size,
+                                                                    properties,
+                                                                    extra_musts=extra_musts))
 
                 elif query_type == 'phrase-match':
                     hits = self.search_es(self.create_phrase_query(search_term, size, properties))
@@ -229,12 +382,24 @@ class Search(object):
                         if re.match(r'Q\d+', hit['_id']):
                             _source = hit['_source']
                             _id = hit['_id']
+                            highlight = hit.get('highlight', None)
                             description = ""
                             pagerank = 0.0
                             all_labels, all_aliases = self.get_all_labels_aliases(_source.get('labels', {}),
                                                                                   _source.get('aliases', {}),
                                                                                   _source.get('ascii_labels', []),
-                                                                                  _source.get('abbreviated_name', {}))
+                                                                                  _source.get('abbreviated_name', {}),
+                                                                                  _source.get('extra_aliases', []),
+                                                                                  _source.get('external_identifiers',
+                                                                                              []),
+                                                                                  _source.get('redirect_text',
+                                                                                              {}),
+                                                                                  _source.get('wikipedia_anchor_text',
+                                                                                              {}),
+                                                                                  _source.get('wikitable_anchor_text',
+                                                                                              {}),
+                                                                                  highlight=highlight
+                                                                                  )
 
                             if 'en' in _source['descriptions'] and len(_source['descriptions']['en']) > 0:
                                 description = "|".join(_source['descriptions']['en'])
@@ -303,27 +468,61 @@ class Search(object):
     def get_all_labels_aliases(labels: dict,
                                aliases: dict,
                                ascii_labels: List[str],
-                               abbreviated_name: dict) -> (List[str], List[str]):
+                               abbreviated_name: dict,
+                               extra_aliases: List[str],
+                               external_identifiers: List[str],
+                               redirect_text: dict,
+                               wikipedia_anchor_text: dict,
+                               wikitable_anchor_text: dict,
+                               highlight: dict = None) -> (List[str], List[str]):
         all_labels = set()
         all_aliases = set()
 
+        relevant_languages = set()
+        if highlight is not None:
+            for k in highlight:
+                relevant_languages.add(k.split(".")[1])
+        if len(relevant_languages) == 0:
+            relevant_languages = romance_languages
+
         if labels:
             for lang in labels:
-                if lang in romance_languages:
+                if lang in relevant_languages:
                     all_labels.update(x for x in labels[lang] if x.strip())
 
         if aliases:
             for lang in aliases:
-                if lang in romance_languages:
+                if lang in relevant_languages:
                     all_aliases.update(x for x in aliases[lang] if x.strip())
 
         if ascii_labels:
             all_aliases.update(x for x in ascii_labels if x.strip())
 
+        if extra_aliases:
+            all_aliases.update(x for x in extra_aliases if x.strip())
+
+        if external_identifiers:
+            all_aliases.update(x for x in external_identifiers if x.strip())
+
         if abbreviated_name:
             for lang in abbreviated_name:
-                if lang in romance_languages:
+                if lang in relevant_languages:
                     all_aliases.update(x for x in abbreviated_name[lang] if x.strip())
+
+        if redirect_text:
+            for lang in redirect_text:
+                if lang in relevant_languages:
+                    all_aliases.update(x for x in redirect_text[lang] if x.strip())
+
+        if wikipedia_anchor_text:
+            for lang in wikipedia_anchor_text:
+                if lang in relevant_languages:
+                    all_aliases.update(x for x in wikipedia_anchor_text[lang] if x.strip())
+
+        if wikitable_anchor_text:
+            for lang in wikitable_anchor_text:
+                if lang in relevant_languages:
+                    all_aliases.update(x for x in wikitable_anchor_text[lang] if x.strip())
 
         return list(all_labels), list(all_aliases)
 
@@ -356,5 +555,11 @@ class Search(object):
             ngrams_query['query']['function_score']['query']['bool']['must'].append(extra_musts)
 
         ngrams_query['size'] = size
+        ngrams_query['highlight'] = {
+            'fields': {
+                search_field: {},
+                exact_match_field: {}
+            }
+        }
 
         return ngrams_query
