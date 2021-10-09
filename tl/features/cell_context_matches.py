@@ -337,7 +337,7 @@ class TableContextMatches:
             out.append(self.other_input_df)
         return pd.concat(out).fillna(0.0)
 
-    def correctness_of_candidate(self, sum_of_relevant_properties_not_matched):
+    def incorrectness_of_candidate(self, sum_of_relevant_properties_not_matched):
         # Number of matches are the number it matched correctly
         return 1 / (pow(2, sum_of_relevant_properties_not_matched))
 
@@ -348,7 +348,7 @@ class TableContextMatches:
         context_property_list = []
         context_similarity_list = []
         relevant_property_list = []
-        correctness_score_list = []
+        incorrectness_score_list = []
         for row, col, q_node in zip(self.input_df['row'], self.input_df['column'], self.input_df['kg_id']):
             # Handle equal similarity for different properties by looping over and getting
             # the one with highest similarity.
