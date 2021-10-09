@@ -357,7 +357,7 @@ class TableContextMatches:
             relevant_properties = []
             sum_of_properties = 0
             relevant_properties_not_matched = []
-            correctness_score = 0
+            incorrectness_score = 0
             r_c = f"{row}_{col}"
             for col2 in n_context_columns:
                 if col2 != col and (col == self.main_entity_column or col2 == self.main_entity_column):
