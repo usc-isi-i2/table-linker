@@ -308,7 +308,7 @@ class TableContextMatches:
                         context_results = self.compute_context_similarity(kg_id_context, col,
                                                                           col2,
                                                                           self.row_col_label_dict.get(f"{row}_{col2}",
-                                                                                                      None))
+                                                                                                      None), return_zero_similarity = True)
                         for context_result in context_results:
                             self.add_match(row=row,
                                            col1=col,
