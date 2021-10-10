@@ -337,9 +337,8 @@ class TableContextMatches:
             out.append(self.other_input_df)
         return pd.concat(out).fillna(0.0)
 
-    def incorrectness_of_candidate(self, sum_of_relevant_properties_not_matched):
-        # Number of matches are the number it matched correctly
-        return 1 / (pow(2, sum_of_relevant_properties_not_matched))
+    def incorrectness_of_candidate(self, sum_of_relevant_properties_not_matched: int) -> float:
+        return 1 - (1 / (pow(2, sum_of_relevant_properties_not_matched)))
 
     def compute_context_scores(self, n_context_columns: set, row_column_pairs: set) -> (
             List[int], List[str], List[int]):
@@ -402,7 +401,7 @@ class TableContextMatches:
             context_similarity_list.append(similarity_matched)
             context_property_list.append(property_matched)
             relevant_property_list.append("|".join(relevant_properties))
-        return context_score_list, context_property_list, context_similarity_list, relevant_property_list, correctness_score_list
+        return context_score_list, context_property_list, context_similarity_list, relevant_property_list, incorrectness_score_list
 
     def compute_property_scores(self, row_column_pairs: set, n_context_columns: set):
         properties_df_list = []
