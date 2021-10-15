@@ -387,7 +387,8 @@ class TableContextMatches:
                     int_prop['column'] = col
                     int_prop['col2'] = col2
                     properties_df_list.append(int_prop)
-        properties_df = pd.concat(properties_df_list)
+            if len(properties_df_list) > 0:
+              properties_df = pd.concat(properties_df_list)
         property_value_list = []
         grouped_obj = properties_df.groupby(['column', 'col2', 'property_'])
         for cell, group in grouped_obj:
