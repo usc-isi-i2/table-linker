@@ -40,6 +40,9 @@ def add_arguments(parser):
     parser.add_argument('--ignore-column-name', action='store',
                         dest='ignore_column_name', default=None,
                         help='This column is used to consider only few rows by setting to 1.')
+    parser.add_argument('--pseudo-gt-column-name', action='store',
+                        dest='pseudo_gt_column_name', default=None,
+                        help='This column is used to consider only few rows by setting to 0.')
     parser.add_argument('--context-properties-path', action='store',
                         dest='context_properties_path', default=None,
                         help="The path where relevant properties will be stored.")
@@ -48,6 +51,9 @@ def add_arguments(parser):
     parser.add_argument('--save-relevant-properties', action='store_true', default=False,
                         dest='save_relevant_properties',
                         help="if set, relevant properties are written a file.")
+    parser.add_argument('--property-relevance-threshold', action='store', type=float,
+                        default=0, dest='property_relevance_threshold',
+                        help='The minimum property score to be used for determining the relevance of a property.')
     # output
     parser.add_argument('-o', '--output-column-name', action='store', dest='output_column', default="context_score",
                         help='The output column is the named column of the score for the matches '
@@ -65,15 +71,20 @@ def run(**kwargs):
         similarity_string_threshold = kwargs.pop("similarity_string_threshold")
         similarity_quantity_threshold = kwargs.pop("similarity_quantity_threshold")
         ignore_column_name = kwargs.pop("ignore_column_name")
+        property_relevance_threshold = kwargs.pop("property_relevance_threshold")
+        pseudo_gt_column_name = kwargs.pop("pseudo_gt_column_name")
 
-        obj = TableContextMatches(context_path=context_file_path, context_dict=None, input_path=input_file_path,
+        obj = TableContextMatches(context_path=context_file_path, context_dict=None,
+                                  input_path=input_file_path,
                                   context_matches_path=None, label_column='label_clean',
                                   ignore_column=ignore_column_name,
+                                  pseudo_column=pseudo_gt_column_name,
                                   relevant_properties_file=kwargs['context_properties_path'],
                                   use_relevant_properties=kwargs['use_relevant_properties'],
                                   save_relevant_properties=kwargs['save_relevant_properties'],
                                   string_similarity_threshold=similarity_string_threshold,
                                   quantity_similarity_threshold=similarity_quantity_threshold,
+                                  property_relevance_threshold=property_relevance_threshold,
                                   output_column_name=output_column_name)
         start = time.time()
         result_df = obj.input_df
