@@ -252,7 +252,7 @@ class TableContextMatches:
 
         raw_input_df['kg_labels'].fillna("", inplace=True)
         raw_input_df['kg_aliases'].fillna("", inplace=True)
-        raw_input_df['context'].fillna("", inplace = True)
+        raw_input_df['context'].fillna("", inplace=True)
 
         if self.ignore_column is not None or self.pseudo_column is not None:
             if self.ignore_column is not None:
@@ -272,15 +272,16 @@ class TableContextMatches:
         else:
             self.input_df = raw_input_df
             self.other_input_df = None
-        rows = set(self.input_df['row'].unique())
         columns = set(self.input_df['column'].unique())
         row_column_pairs = set()
         for row, col, label in zip(self.input_df['row'], self.input_df['column'], self.input_df[label_column]):
             key = f"{row}_{col}"
+            self.row_col_label_dict[key] = label
             row_column_pairs.add(key)
         # row_column_label_dict stores only the row_column pairs that need to be matched
+        min_columns = min(columns)
         for row, col, context in zip(self.input_df['row'], self.input_df['column'], self.input_df['context']):
-            if col == min(columns):
+            if col == min_columns:
                 context_vals = context.split('|')
                 for i, context_val in enumerate(context_vals):
                     context_column = i + 1
@@ -300,6 +301,7 @@ class TableContextMatches:
                                 pass
                         self.row_col_label_dict[row_col_dict_key] = context_val
                         columns.add(str(context_column))
+
         for row, col, kg_id, kg_id_label_str, kg_id_alias_str in zip(self.input_df['row'],
                                                                      self.input_df['column'],
                                                                      self.input_df['kg_id'],
@@ -330,6 +332,7 @@ class TableContextMatches:
                                                                           self.row_col_label_dict.get(f"{row}_{col2}",
                                                                                                       None),
                                                                           return_zero_similarity=True)
+
                         for context_result in context_results:
                             self.add_match(row=row,
                                            col1=col,
@@ -486,6 +489,7 @@ class TableContextMatches:
             if not self.use_relevant_properties or (self.use_relevant_properties
                                                     and
                                                     self.is_relevant_property(col, col2, property)):
+
                 score, best_str_match = self.computes_similarity(prop_val_dict['v'],
                                                                  col2_string_set,
                                                                  prop_val_dict['t'])
@@ -680,4 +684,3 @@ class TableContextMatches:
             context_dict.update(json.loads(line.strip()))
 
         return context_dict
-
