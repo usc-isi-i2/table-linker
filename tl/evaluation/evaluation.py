@@ -16,15 +16,12 @@ def read_csv(file_path, dtype=object):
 def ground_truth_labeler(gt_file_path, file_path=None, df=None):
     """
     compares each candidate for the input cells with the ground truth value for that cell and adds an evaluation label.
-
     Args:
         gt_file_path: ground truth file path.
         column: column name with ranking scores
         file_path: input file path
         df: or input dataframe
-
     Returns: a dataframe with added column `evaluation_label`
-
     """
     if file_path is None and df is None:
         raise RequiredInputParameterMissingException(
@@ -58,20 +55,59 @@ def assign_evaluation_label(row):
         return 1
     return -1
 
+def calculate_metrics_by_group(cgdf, k, method, col, column, tag):
+    results = []
+    # true positive for precision at 1
+    tp_ps = []
 
-def metrics(column, file_path=None, df=None, k: int = 1, tag=""):
+    # true positive for recall at k
+    tp_rs = defaultdict(list)
+    if method == 'column':
+        grouped = cgdf.groupby(by=['row'])
+    else:
+        grouped = cgdf.groupby(by=['column-id', 'row'])
+    n = len(grouped)
+    for key, gdf in grouped:
+        gdf = gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True]).reset_index()
+
+        for i, row in gdf.iterrows():
+            if float(row['evaluation_label']) == 1 and row[column] == row['max_score']:
+                tp_ps.append(key)
+
+            # this df is sorted by score, so highest ranked candidate is rank 1 and so on...
+            rank = i + 1
+            if rank <= k and (row['evaluation_label'] == '1' or row['evaluation_label'] == 1.0):
+                tp_rs[k].append(key)
+
+    precision = float(len(tp_ps)) / float(n)
+    recall = {k: float(len(each_tp_rs)) / float(n) for k, each_tp_rs in tp_rs.items()}
+    # sort as k value increasing
+    recall = {k: v for k, v in sorted(recall.items(), key=lambda x: x[0])}
+
+    for _k, each_recall in recall.items():
+        if precision == 0 and each_recall == 0:
+            f1_score = 0.0
+        else:
+            f1_score = (2 * precision * each_recall) / (precision + each_recall)
+        results.append({"k": _k,
+                        'f1': f1_score,
+                        'precision': precision,
+                        'recall': each_recall,
+                        'column': col,
+                        'tag': tag})
+    return results
+
+
+def metrics(column, file_path=None, df=None, k: int = 1, tag="", method = 'column'):
     """
     computes the precision, recall and f1 score for the tl pipeline.
-
     Args:
         column: column with ranking score
         file_path: input file path
         df: or input dataframe
         k: calculate recall at top k candidates
         tag: a tag to use in the output file to identify the results of running the given pipeline
-
     Returns:
-
     """
     if file_path is None and df is None:
         raise RequiredInputParameterMissingException(
@@ -85,49 +121,24 @@ def metrics(column, file_path=None, df=None, k: int = 1, tag=""):
 
     # replace na to 0.0
     df[column] = df[column].astype(float).fillna(0.0)
-    df['max_score'] = df.groupby(by=['column', 'row'])[column].transform(max)
+    if method == 'column':
+        separating_column = 'column'
+    else:
+        separating_column = 'column-id'
+    df['max_score'] = df.groupby(by=[separating_column, 'row'])[column].transform(max)
 
     # relevant df
     rdf = df[df['evaluation_label'].astype(float) != 0.0]
-
-    col_grouped = rdf.groupby(by=['column'])
-    results = []
-    for col, cgdf in col_grouped:
-        # true positive for precision at 1
-        tp_ps = []
-
-        # true positive for recall at k
-        tp_rs = defaultdict(list)
-        grouped = cgdf.groupby(by=['row'])
-        n = len(grouped)
-        for key, gdf in grouped:
-            gdf = gdf.sort_values(by=[column, 'kg_id'], ascending=[False, True]).reset_index()
-
-            for i, row in gdf.iterrows():
-                if float(row['evaluation_label']) == 1 and row[column] == row['max_score']:
-                    tp_ps.append(key)
-
-                # this df is sorted by score, so highest ranked candidate is rank 1 and so on...
-                rank = i + 1
-                if rank <= k and (row['evaluation_label'] == '1' or row['evaluation_label'] == 1.0):
-                    tp_rs[k].append(key)
-
-        precision = float(len(tp_ps)) / float(n)
-        recall = {k: float(len(each_tp_rs)) / float(n) for k, each_tp_rs in tp_rs.items()}
-        # sort as k value increasing
-        recall = {k: v for k, v in sorted(recall.items(), key=lambda x: x[0])}
-
-        for _k, each_recall in recall.items():
-            if precision == 0 and each_recall == 0:
-                f1_score = 0.0
-            else:
-                f1_score = (2 * precision * each_recall) / (precision + each_recall)
-            results.append({"k": _k,
-                            'f1': f1_score,
-                            'precision': precision,
-                            'recall': each_recall,
-                            'column': col,
-                            'tag': tag})
+    if method == 'column':
+        col_grouped = rdf.groupby(by=['column'])
+        results = []
+        # output_df = calculate_metrics_by_group(col_grouped)
+        for col, cgdf in col_grouped:
+            col_wise_result = calculate_metrics_by_group(cgdf, k, method, col, column, tag)
+            results.extend(col_wise_result)
+            
+    else:
+        results = calculate_metrics_by_group(rdf, k, method = method, col = "", column = column, tag = tag)
 
     output_df = pd.DataFrame(results)
     return output_df

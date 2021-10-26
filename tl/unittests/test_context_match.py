@@ -115,6 +115,7 @@ class TestContextMatch(unittest.TestCase):
     def test_for_date_match(self):
         obj_6 = MatchContext(self.input_file_path, self.similarity_string_threshold, self.similarity_quantity_threshold,
                              self.string_separator, self.missing_property_replacement_factor, self.ignore_column_name,
+                             self.pseudo_gt_column_name, 
                              self.output_column_name, context_path=self.context_file_path)
         odf = obj_6.process_data_by_column()
         odf.to_csv('{}/data/result_test_6.csv'.format(parent_path), index=False)

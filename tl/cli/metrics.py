@@ -27,8 +27,12 @@ def add_arguments(parser):
     parser.add_argument('--tag', action='store', type=str, dest='tag', default='',
                         help='a tag to use in the output file to identify the results of running the given pipeline')
 
+    parser.add_argument('--method', action='store', dest='method',
+                        default="column",
+                        choices=["column", 'cell'],
+                        help="The method for calculating metrics.")
+    
     parser.add_argument('input_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
-
 
 def run(**kwargs):
     from tl.evaluation import evaluation
@@ -37,7 +41,7 @@ def run(**kwargs):
     try:
         df = pd.read_csv(kwargs['input_file'], dtype=object)
         start = time.time()
-        odf = evaluation.metrics(kwargs['column'], k=kwargs['k'], df=df, tag=kwargs['tag'])
+        odf = evaluation.metrics(kwargs['column'], k=kwargs['k'], df=df, tag=kwargs['tag'], method=kwargs['method'])
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
