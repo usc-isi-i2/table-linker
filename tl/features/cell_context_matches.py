@@ -388,17 +388,21 @@ class TableContextMatches:
                     int_prop['col2'] = col2
                     properties_df_list.append(int_prop)
             if len(properties_df_list) > 0:
-              properties_df = pd.concat(properties_df_list)
-        property_value_list = []
-        grouped_obj = properties_df.groupby(['column', 'col2', 'property_'])
-        for cell, group in grouped_obj:
-            property_score = (group['avg_score'].sum(axis=0))
-            property_value_list.append([cell[2], cell[0], cell[1], property_score])
-        property_value_df = pd.DataFrame(property_value_list, columns=['property_', 'column', 'col2', 'property_score'])
-        property_value_df = property_value_df.sort_values(by=['column', 'property_score'], ascending=[True, False])
-        # Saving the top 3 properties for each column column pair that we have.
-        # <column, col2> is equivalent to <from, to>
-        most_important_property_df = property_value_df.groupby(['column', 'col2']).head(3)
+                properties_df = pd.concat(properties_df_list)
+                property_value_list = []
+                grouped_obj = properties_df.groupby(['column', 'col2', 'property_'])
+                for cell, group in grouped_obj:
+                    property_score = (group['avg_score'].sum(axis=0))
+                    property_value_list.append([cell[2], cell[0], cell[1], property_score])
+                property_value_df = pd.DataFrame(property_value_list,
+                                                 columns=['property_', 'column', 'col2', 'property_score'])
+                property_value_df = property_value_df.sort_values(by=['column', 'property_score'],
+                                                                  ascending=[True, False])
+                # Saving the top 3 properties for each column column pair that we have.
+                # <column, col2> is equivalent to <from, to>
+                most_important_property_df = property_value_df.groupby(['column', 'col2']).head(3)
+            else:
+                most_important_property_df = pd.DataFrame(columns=['property_', 'column', 'col2', 'property_score'])
         if self.save_relevant_properties:
             self.write_relevant_properties(most_important_property_df)
 
