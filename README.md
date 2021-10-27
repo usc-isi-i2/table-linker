@@ -21,7 +21,16 @@ pip install -r requirements.txt
 
 pip install -e .
 ```
-If python3 is not installed, find out what version of python 3 is installed and use that instead
+If python3 is not installed, find out what version of python 3 is installed and use that instead.
+
+### Alternatively, install using pip
+
+```
+python3 -m venv tl_env
+source tl_env/bin/activate
+
+pip install table-linker
+```
 
 ## Install via Docker
 
