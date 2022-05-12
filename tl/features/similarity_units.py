@@ -1,3 +1,4 @@
+import sys
 from abc import ABC, abstractmethod
 from functools import partial
 import rltk.similarity as sim
@@ -225,3 +226,24 @@ class TfidfSimilarity(StringSimilarityModule):
         tf_y = sim.compute_tf(str2)
         tfidf_y = {k: v * self._tfidf.idf[k] for k, v in tf_y.items()}
         return sim.tf_idf_cosine_similarity(tfidf_x, tfidf_y)
+
+
+class PrefixMongeElkanSimilarity(StringSimilarityModule):
+    # prefix_monge_elkan:tokenizer=word
+
+    def __init__(self, tl_args, **kwargs):
+        super().__init__(tl_args, **kwargs)
+
+    def _similarity(self, str1: str, str2: str, threshold: float) -> float:
+        # str1 and str2 are tokenized
+        n = len(str1)
+        m = len(str2)
+
+        if m > n + 1:
+            m1 = n + 1
+        elif m < n:
+            m1 = m
+        else:
+            m1 = n
+
+        return sim.monge_elkan_similarity(str1, str2[:m1], lower_bound=threshold)
