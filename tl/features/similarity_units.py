@@ -234,7 +234,7 @@ class PrefixMongeElkanSimilarity(StringSimilarityModule):
     def __init__(self, tl_args, **kwargs):
         super().__init__(tl_args, **kwargs)
 
-    def _similarity(self, str1: str, str2: str, threshold: float) -> float:
+    def _similarity(self, str1: list, str2: list, threshold: float) -> float:
         # str1 and str2 are tokenized
         n = len(str1)
         m = len(str2)
