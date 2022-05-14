@@ -31,6 +31,8 @@ class TLArgumentParser(ArgumentParser):
 
 
 error_message = ""
+
+
 def cmd_done(cmd, success, exit_code):
     # cmd.cmd -> complete command line
     if not success:
@@ -93,7 +95,7 @@ def cli_entry(*args):
         dest='tee',
         required=False,
         help='directory path for saving outputs of all pipeline stages')
-    
+
     parser.add_argument(
         '--log-file',
         action='store',
@@ -102,6 +104,11 @@ def cli_entry(*args):
         dest='logfile',
         help='path to file showing additional info about execution of command'
     )
+    parser.add_argument(
+        '--use-column-header',
+        action='store_true',
+        dest='use_column_header',
+        help="if provided, append the column header to the search term while generating candidates.")
 
     sub_parsers = parser.add_subparsers(
         metavar='command',
@@ -121,14 +128,14 @@ def cli_entry(*args):
     if len(args) == 1:
         args = args + ('-h',)
     args = args[1:]
-    
+
     # parse internal pipe
     pipe = [tuple(y) for x, y in itertools.groupby(args, lambda a: a == pipe_delimiter) if not x]
     if '--tee' in args:
         i = args.index('--tee')
         tee_dir = Path(args[i + 1])
         pipe_with_tee = []
-        last_stage = len(pipe) -1
+        last_stage = len(pipe) - 1
         for idx, stage in enumerate(pipe):
             pipe_with_tee.append(stage)
             if idx < last_stage:
@@ -168,7 +175,7 @@ def cli_entry(*args):
         if '-P' in args:
             i = args.index('-P')
             global_cmd_options['-P'] = args[i + 1]
-        
+
         if '--log-file' in args:
             i = args.index('--log-file')
             global_cmd_options['--log-file'] = args[i + 1]
