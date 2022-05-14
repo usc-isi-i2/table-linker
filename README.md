@@ -1105,6 +1105,8 @@ soundex score implement similarity.
 symmetric monge elkan score implement similarity.
 - [tfidf](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) (`tokenizer` needed)
 tf-idf score implement similarity.
+- [prefix_monge_elkan]() (`tokenizer` needed)
+return higher score if `str1` is prefix of `str2`, using monge elkan.
 
 
 
