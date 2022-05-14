@@ -60,6 +60,7 @@ def run(**kwargs):
     try:
         auxiliary_fields = kwargs.get('auxiliary_fields', None)
         auxiliary_folder = kwargs.get('auxiliary_folder', None)
+        use_column_header = kwargs.get('use_column_header', False)
 
         if (auxiliary_folder is not None and auxiliary_fields is None) or (
                 auxiliary_folder is None and auxiliary_fields is not None):
@@ -76,7 +77,8 @@ def run(**kwargs):
                              es_user=kwargs['user'],
                              es_pass=kwargs['password'],
                              output_column_name=kwargs['output_column_name'],
-                             pgt_column=kwargs['pgt_column'])
+                             pgt_column=kwargs['pgt_column'],
+                             use_column_header=use_column_header)
         odf = tgm.get_trigram_matches(kwargs['column'],
                                       size=kwargs['size'], df=df,
                                       auxiliary_fields=auxiliary_fields,
