@@ -34,7 +34,7 @@ def add_arguments(parser):
                              "to the column: `context`, separated by `|`")
 
     parser.add_argument('--add-column-header', action='store_true', dest='add_column_header',
-                        help="if provided, the column header fo corresponding columns specified by the option '-c' "
+                        help="if provided, the column header of corresponding columns specified by the option '-c' "
                              "will be added in another column 'tl-column-header' in the output canonical file.")
 
 
@@ -56,7 +56,8 @@ def run(**kwargs):
         odf = preprocess.canonicalize(kwargs['columns'], output_column=kwargs['output_column'], df=df,
                                       file_type=file_type, add_context=kwargs['add_context'],
                                       file_name=file_name,
-                                      skip_columns=skip_columns)
+                                      skip_columns=skip_columns,
+                                      add_column_header=kwargs['add_column_header'])
         end = time.time()
         logger = Logger(kwargs["logfile"])
         logger.write_to_file(args={
