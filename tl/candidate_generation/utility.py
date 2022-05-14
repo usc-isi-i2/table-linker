@@ -3,7 +3,7 @@ import pandas as pd
 import sys
 
 from tl.file_formats_validator import FFV
-from tl.exceptions import UnsupportTypeError
+from tl.exceptions import UnsupportTypeError, TLException
 from concurrent.futures import ThreadPoolExecutor
 from itertools import repeat
 
@@ -16,10 +16,20 @@ class Utility(object):
         self.ffv = FFV(previous_match_column_name)
         self.score_column_name = output_column_name
 
-    def create_candidates_df(self, df, column, size, properties, method,
-                             lower_case=False, auxiliary_fields=None,
-                             auxiliary_folder=None, auxiliary_file_prefix='',
-                             extra_musts=None, max_threads=50, identifier_property=None):
+    def create_candidates_df(self,
+                             df,
+                             column,
+                             size,
+                             properties,
+                             method,
+                             lower_case=False,
+                             auxiliary_fields=None,
+                             auxiliary_folder=None,
+                             auxiliary_file_prefix='',
+                             extra_musts=None,
+                             max_threads=50,
+                             identifier_property=None,
+                             use_column_header: bool = False):
         properties = [_.strip() for _ in properties.split(',')]
         candidates_format = list()
         df_columns = df.columns
@@ -33,7 +43,8 @@ class Utility(object):
                         self.create_candidates, rows, repeat(df_columns),
                         repeat(column), repeat(size), repeat(properties),
                         repeat(method), repeat(lower_case),
-                        repeat(auxiliary_fields), repeat(extra_musts), repeat(identifier_property)):
+                        repeat(auxiliary_fields), repeat(extra_musts), repeat(identifier_property),
+                        repeat(use_column_header)):
                     all_candidates_aux_dict = {**all_candidates_aux_dict,
                                                **candidates_aux_dict}
                     candidates_format.extend(_candidates_format)
@@ -58,7 +69,7 @@ class Utility(object):
                         repeat(relevant_columns), repeat(column),
                         repeat(size), repeat(properties), repeat(method),
                         repeat(lower_case), repeat(auxiliary_fields),
-                        repeat(extra_musts)):
+                        repeat(extra_musts), repeat(use_column_header)):
                     all_candidates_aux_dict = {**all_candidates_aux_dict,
                                                **candidates_aux_dict}
                     candidates_format.extend(_candidates_format)
@@ -73,9 +84,18 @@ class Utility(object):
                 " or a candidate format!"
             )
 
-    def create_candidates(self, row, relevant_columns, column, size,
-                          properties, method, lower_case,
-                          auxiliary_fields=None, extra_musts=None, identifier_property=None):
+    def create_candidates(self,
+                          row,
+                          relevant_columns,
+                          column,
+                          size,
+                          properties,
+                          method,
+                          lower_case,
+                          auxiliary_fields=None,
+                          extra_musts=None,
+                          identifier_property=None,
+                          use_column_header: bool = False):
         candidates_format = list()
 
         _ = {}
@@ -87,8 +107,16 @@ class Utility(object):
             # run the exact match query with cleaned and original label
             search_term_original = row['label']
 
+        if use_column_header:
+            if 'tl-column-header' not in row:
+                raise TLException('The column "tl-column-header" not found in the canonical file. Please'
+                                  'generate the canonical file again with option --add-column-header')
+            search_term = f"{_[column]} {_['tl-column-header']}"
+        else:
+            search_term = _[column]
+
         candidate_dict, candidate_aux_dict = self.es.search_term_candidates(
-            _[column], size, properties,
+            search_term, size, properties,
             method, lower_case=lower_case,
             auxiliary_fields=auxiliary_fields,
             extra_musts=extra_musts,
