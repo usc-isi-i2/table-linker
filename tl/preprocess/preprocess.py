@@ -5,8 +5,16 @@ from tl.exceptions import RequiredInputParameterMissingException
 from tl.exceptions import RequiredColumnMissingException
 
 
-def canonicalize(columns, output_column='label', file_path=None, df=None, file_type='csv',
-                 add_context=False, context_column_name="context", file_name=None, skip_columns: List[str] = None):
+def canonicalize(columns: str,
+                 output_column: str = 'label',
+                 file_path: str = None,
+                 df: pd.DataFrame = None,
+                 file_type: str = 'csv',
+                 add_context: bool = False,
+                 add_column_header: bool = False,
+                 context_column_name: str = "context",
+                 file_name: str = None,
+                 skip_columns: List[str] = None):
     """
     translate an input CSV or TSV file to canonical form
 
@@ -61,6 +69,8 @@ def canonicalize(columns, output_column='label', file_path=None, df=None, file_t
             if file_name is not None:
                 new_row['filename'] = file_name
                 new_row['column-id'] = f'{file_name}-{column_idx}'
+            if add_column_header:
+                new_row['tl-column-header'] = column
 
             out.append(new_row)
         row_num += 1

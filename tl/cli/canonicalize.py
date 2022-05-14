@@ -33,6 +33,10 @@ def add_arguments(parser):
                         help="if provided, the information from other columns will be combined together and saved "
                              "to the column: `context`, separated by `|`")
 
+    parser.add_argument('--add-column-header', action='store_true', dest='add_column_header',
+                        help="if provided, the column header fo corresponding columns specified by the option '-c' "
+                             "will be added in another column 'tl-column-header' in the output canonical file.")
+
 
 def run(**kwargs):
     from tl.preprocess import preprocess
