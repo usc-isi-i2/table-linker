@@ -20,10 +20,12 @@ class TriGramMatches(object):
                  es_user=None,
                  es_pass=None,
                  output_column_name: str = "retrieval_score",
-                 pgt_column: str = None):
+                 pgt_column: str = None,
+                 use_column_header: bool = False):
         self.es = Search(es_url, es_index, es_user=es_user, es_pass=es_pass)
         self.utility = Utility(self.es, output_column_name)
         self.pgt_column = pgt_column
+        self.use_column_header = use_column_header
 
     def get_trigram_matches(self,
                             column: str,
@@ -135,7 +137,8 @@ class TriGramMatches(object):
                                                       auxiliary_fields=auxiliary_fields,
                                                       auxiliary_folder=auxiliary_folder,
                                                       auxiliary_file_prefix='trigram_matches_',
-                                                      extra_musts=extra_musts) \
+                                                      extra_musts=extra_musts,
+                                                      use_column_header=self.use_column_header) \
             if df_non_pgt is not None \
             else \
             self.utility.create_candidates_df(
@@ -147,7 +150,8 @@ class TriGramMatches(object):
                 auxiliary_fields=auxiliary_fields,
                 auxiliary_folder=auxiliary_folder,
                 auxiliary_file_prefix='trigram_matches_',
-                extra_musts=extra_musts)
+                extra_musts=extra_musts,
+                use_column_header=self.use_column_header)
 
         if self.pgt_column:
             result_df = result_df[result_df['method'] == 'trigram-match']
